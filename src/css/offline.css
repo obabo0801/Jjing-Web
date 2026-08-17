@@ -1,0 +1,13 @@
+@import "./common/body.css";
+@import "./common/theme.css";
+
+body {
+  display: grid;
+  min-height: 100vh;
+  margin: 0;
+  place-items: center;
+}
+
+main {
+  text-align: center;
+}

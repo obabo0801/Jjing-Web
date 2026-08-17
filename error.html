@@ -1,8 +1,7 @@
 <!doctype html>
 <html
-  lang="en"
+  lang="ko"
   data-theme="system"
-  data-access
 >
 
 <head>
@@ -11,6 +10,14 @@
     name="viewport"
     content="width=device-width, initial-scale=1.0"
   >
+
+  <noscript>
+    <style>
+      html {
+        display: none !important;
+      }
+    </style>
+  </noscript>
 
   <title data-i18n="app.title">&#8203;</title>
 
@@ -30,34 +37,17 @@
     content="#ffffff"
   >
 
-  <link
-    rel="stylesheet"
-    href="/src/css/online.css"
-  >
+  <link rel="stylesheet" href="/src/css/error.css">
 </head>
 
 <body>
   <main>
-
-    <button
-      id="push"
-      type="button"
-      data-i18n="push.subscribe"
-    ></button>
-
-    <button
-      id="voice"
-      type="button"
-      data-i18n="voice.test"
-    ></button>
-
-    <pre id="voice-result"></pre>
-
+    <h1 data-i18n="error.heading"></h1>
   </main>
 
   <script
     type="module"
-    src="/src/js/script.js"
+    src="/src/js/error.js"
   ></script>
 </body>
 </html>

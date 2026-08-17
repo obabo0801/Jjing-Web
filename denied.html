@@ -2,7 +2,6 @@
 <html
   lang="en"
   data-theme="system"
-  data-access
 >
 
 <head>
@@ -20,11 +19,6 @@
     sizes="any"
   >
 
-  <link
-    rel="manifest"
-    href="/manifest.json"
-  >
-
   <meta
     name="theme-color"
     content="#ffffff"
@@ -32,32 +26,18 @@
 
   <link
     rel="stylesheet"
-    href="/src/css/online.css"
+    href="/src/css/denied.css"
   >
 </head>
 
 <body>
   <main>
-
-    <button
-      id="push"
-      type="button"
-      data-i18n="push.subscribe"
-    ></button>
-
-    <button
-      id="voice"
-      type="button"
-      data-i18n="voice.test"
-    ></button>
-
-    <pre id="voice-result"></pre>
-
+    <h1 data-i18n="denied.heading"></h1>
   </main>
 
   <script
     type="module"
-    src="/src/js/script.js"
+    src="/src/js/denied.js"
   ></script>
 </body>
 </html>

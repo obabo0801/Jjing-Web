@@ -1,8 +1,32 @@
+import "dotenv/config";
+
+import cookie from "cookie-parser";
 import express from "express";
 
-const app = express();
-const port = 3000;
+import block from "#block";
+import maintenance from "#maintenance";
+import page, { reject } from "#page";
+import assets from "#assets";
+import router from "#router";
 
-app.listen(port, () => {
+const server = express();
+const port = process.env.PORT || 3000;
+const secret = process.env.COOKIE_SECRET;
+
+server.set("trust proxy", "loopback");
+
+server.use(cookie(secret));
+server.use(express.json());
+
+server.use(block);
+server.use(maintenance);
+
+server.use("/api", router);
+
+server.use(page);
+server.use(assets);
+server.use(reject);
+
+server.listen(port, () => {
   console.log(`http://localhost:${port}`);
 });

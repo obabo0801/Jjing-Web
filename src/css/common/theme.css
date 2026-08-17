@@ -1,0 +1,72 @@
+:root {
+  color-scheme: light dark;
+
+  --background: light-dark(#ffffff, #111111);
+  --canvas: light-dark(#ffffff, #111111);
+  --surface: light-dark(#ffffff, #111111);
+  --text: light-dark(#111111, #ffffff);
+  --muted: light-dark(#6e6e6e, #a0a0a0);
+  --border: light-dark(
+    rgb(0 0 0 / 12%),
+    rgb(255 255 255 / 14%)
+  );
+
+  --shadow:
+    0 4px 16px
+    light-dark(
+      rgb(0 0 0 / 16%),
+      rgb(0 0 0 / 24%)
+    );
+
+  --thumb: #ffffff;
+
+  --track: light-dark(#a4a3a8, #646368);
+  --hover: light-dark(#181818, #ffffff);
+  --pointer: color-mix(
+    in srgb,
+    var(--hover) 20%,
+    transparent
+  );
+
+  --error: #ff453a;
+  --success: #34c759;
+  --info: #007aff;
+
+  --active: var(--error);
+  --focus: #377aff;
+}
+
+:root[data-theme="light"] {
+  color-scheme: light;
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+}
+
+html,
+body {
+  background-color: var(--background);
+  color: var(--text);
+}
+
+html[data-changing],
+html[data-changing] *,
+html[data-changing] *::before,
+html[data-changing] *::after {
+  transition: none !important;
+}
+
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 0.3s;
+  animation-timing-function: ease;
+  mix-blend-mode: normal;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-old(root),
+  ::view-transition-new(root) {
+    animation: none;
+  }
+}

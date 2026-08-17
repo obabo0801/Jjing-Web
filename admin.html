@@ -1,0 +1,88 @@
+<!doctype html>
+<html
+  lang="ko"
+  data-theme="system"
+  data-access
+>
+
+<head>
+  <meta charset="UTF-8">
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+  >
+
+  <noscript>
+    <style>
+      html {
+        display: none !important;
+      }
+    </style>
+  </noscript>
+
+  <title data-i18n="app.title">&#8203;</title>
+
+  <link
+    rel="icon"
+    href="src/assets/favicon.ico"
+    sizes="any"
+  >
+
+  <link
+    rel="manifest"
+    href="/manifest.json"
+  >
+
+  <meta
+    name="theme-color"
+    content="#ffffff"
+  >
+
+  <link
+    rel="stylesheet"
+    href="/src/css/online.css"
+  >
+</head>
+
+<body>
+  <main>
+    <h1 data-i18n="admin.heading"></h1>
+
+    <form id="form">
+      <label>
+        <span data-i18n="admin.title"></span>
+        <input
+          name="title"
+          maxlength="100"
+          required
+        >
+      </label>
+
+      <label>
+        <span data-i18n="admin.body"></span>
+        <textarea
+          name="body"
+          maxlength="500"
+        ></textarea>
+      </label>
+
+      <label>
+        <span data-i18n="admin.url"></span>
+        <input name="url" value="/">
+      </label>
+
+      <button
+        type="submit"
+        data-i18n="admin.send"
+      ></button>
+    </form>
+
+    <output id="result"></output>
+  </main>
+
+  <script
+    type="module"
+    src="/src/js/admin.js"
+  ></script>
+</body>
+</html>

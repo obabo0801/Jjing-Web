@@ -2,7 +2,6 @@
 <html
   lang="en"
   data-theme="system"
-  data-access
 >
 
 <head>
@@ -11,6 +10,14 @@
     name="viewport"
     content="width=device-width, initial-scale=1.0"
   >
+
+  <noscript>
+    <style>
+      html {
+        display: none !important;
+      }
+    </style>
+  </noscript>
 
   <title data-i18n="app.title">&#8203;</title>
 
@@ -32,32 +39,18 @@
 
   <link
     rel="stylesheet"
-    href="/src/css/online.css"
+    href="/src/css/block.css"
   >
 </head>
 
 <body>
   <main>
-
-    <button
-      id="push"
-      type="button"
-      data-i18n="push.subscribe"
-    ></button>
-
-    <button
-      id="voice"
-      type="button"
-      data-i18n="voice.test"
-    ></button>
-
-    <pre id="voice-result"></pre>
-
+    <h1 data-i18n="block.heading"></h1>
   </main>
 
   <script
     type="module"
-    src="/src/js/script.js"
+    src="/src/js/block.js"
   ></script>
 </body>
 </html>

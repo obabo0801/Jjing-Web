@@ -1,0 +1,26 @@
+:root {
+  --brightness: 100%;
+
+  --volume-master: 100%;
+  --volume-media: 100%;
+  --volume-notify: 100%;
+  --volume-tts: 100%;
+  --volume-system: 100%;
+
+  --font-family:
+    "Segoe UI",
+    "Noto Sans KR",
+    "Malgun Gothic",
+    system-ui,
+    sans-serif;
+}
+
+*,
+*::before,
+*::after {
+  font-family: var(--font-family);
+}
+
+html[data-access] body {
+  visibility: hidden;
+}
