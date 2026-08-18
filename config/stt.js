@@ -3,7 +3,7 @@ import { mkdirSync } from "node:fs";
 import { writeFile } from "node:fs/promises";
 import path from "node:path";
 
-import sqlite3 from "sqlite3";
+import { run } from "#config/sqlite";
 
 const dir = path.join(
   import.meta.dirname, "../data/stt"
@@ -19,41 +19,6 @@ export const supported = (type) =>
   Object.hasOwn(types, type);
 
 mkdirSync(dir, { recursive: true });
-
-const db = new sqlite3.Database(
-  path.join(dir, "stt.db")
-);
-
-db.configure("busyTimeout", 5000);
-
-db.exec(`
-  CREATE TABLE IF NOT EXISTS stt (
-    file TEXT NOT NULL,
-    uid TEXT NOT NULL,
-    text TEXT NOT NULL,
-    time TEXT NOT NULL
-  );
-
-  CREATE INDEX IF NOT EXISTS stt_file
-    ON stt (file);
-
-  CREATE INDEX IF NOT EXISTS stt_uid
-    ON stt (uid);
-`);
-
-const run = (query, params = []) =>
-  new Promise((resolve, reject) => {
-    db.run(query, params, function (error) {
-      if (error) {
-        return reject(error);
-      }
-
-      resolve({
-        id: this.lastID,
-        changes: this.changes
-      });
-    });
-  });
 
 export default async function save(
   audio, type, uid, text, time

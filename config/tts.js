@@ -3,7 +3,7 @@ import { mkdirSync } from "node:fs";
 import { readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 
-import sqlite3 from "sqlite3";
+import { run } from "#config/sqlite";
 
 import {
   TextToSpeechClient
@@ -32,41 +32,6 @@ let client;
 let retry = 0;
 
 mkdirSync(dir, { recursive: true });
-
-const db = new sqlite3.Database(
-  path.join(dir, "tts.db")
-);
-
-db.configure("busyTimeout", 5000);
-
-db.exec(`
-  CREATE TABLE IF NOT EXISTS tts (
-    file TEXT NOT NULL,
-    uid TEXT NOT NULL,
-    text TEXT NOT NULL,
-    time TEXT NOT NULL
-  );
-
-  CREATE INDEX IF NOT EXISTS tts_file
-    ON tts (file);
-
-  CREATE INDEX IF NOT EXISTS tts_uid
-    ON tts (uid);
-`);
-
-const run = (query, params = []) =>
-  new Promise((resolve, reject) => {
-    db.run(query, params, function (error) {
-      if (error) {
-        return reject(error);
-      }
-
-      resolve({
-        id: this.lastID,
-        changes: this.changes
-      });
-    });
-  });
 
 const record = (file, uid, text, time) =>
   run(`

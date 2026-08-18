@@ -12,6 +12,7 @@
     "#maintenance": "./middleware/maintenance.js",
     "#page": "./middleware/page.js",
     "#assets": "./middleware/static.js",
+    "#error": "./middleware/error.js",
     "#router": "./router/index.js",
     "#audio/*": "./src/assets/audio/*"
   },

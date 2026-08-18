@@ -91,7 +91,7 @@ export function play(name, options = {}) {
 }
 
 export function file(
-  source = "eoheo",
+  source = "",
   {
     channel = "media",
     loop = false,

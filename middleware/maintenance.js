@@ -2,6 +2,16 @@ import { get } from "#config/sqlite";
 import uid from "#config/uid";
 import { isPage, send } from "#page";
 
+export const unavailable = (res) => {
+  res.set({
+    "Cache-Control": "private, no-store",
+    "X-Maintenance": "true",
+    Vary: "Cookie"
+  });
+
+  return send(res, "maintenance", 503);
+};
+
 export default async function maintenance(req, res, next) {
   if (!isPage(req)) {
     return next();
@@ -30,11 +40,5 @@ export default async function maintenance(req, res, next) {
     return next();
   }
 
-  res.set({
-    "Cache-Control": "private, no-store",
-    "X-Maintenance": "true",
-    Vary: "Cookie"
-  });
-
-  return send(res, "maintenance", 503);
+  return unavailable(res);
 }

@@ -2,15 +2,23 @@ const clean = (value) =>
   value?.replaceAll('"', "").trim() || "";
 
 const os = (req) => {
-  const value = clean(
-    req.get("sec-ch-ua-platform")
-  );
+  const wearable = req.get("x-wearable") === "true";
+
+  const value = clean(req.get("sec-ch-ua-platform"));
+
+  if (wearable && ["Android", "iOS"].includes(value)) {
+    return "Wearable";
+  }
 
   if (value) {
     return value;
   }
 
   const agent = req.get("user-agent") || "";
+
+  if (wearable && /Android|iPhone|iPad/.test(agent)) {
+    return "Wearable";
+  }
 
   if (agent.includes("Android")) return "Android";
   if (/iPhone|iPad/.test(agent)) return "iOS";

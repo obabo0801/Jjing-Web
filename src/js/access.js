@@ -1,6 +1,23 @@
 import { user } from "#config/route";
 
 import api from "#common/api";
+import device from "#common/device";
+
+const show = async (name) => {
+  const header = name === "offline"
+    ? "X-PWA-Cache"
+    : `X-${name}`;
+
+  const response = await fetch(`/${name}`, {
+    headers: { [header]: "true" }
+  });
+
+  const html = await response.text();
+
+  document.open();
+  document.write(html);
+  document.close();
+};
 
 export default async function access(
   redirect = true, name
@@ -17,9 +34,14 @@ export default async function access(
     .getEntriesByType("navigation")[0]
     ?.responseStatus ?? 0;
 
+  const wearable = device().wearable;
+
+  const options = {
+    headers: { "X-Wearable": String(wearable) }
+  };
+
   const response = await api(user, {
-    method: "POST",
-    data: { path, result }
+    ...options, method: "POST", data: { path, result }
   });
 
   if (response.status === 403) {
@@ -34,9 +56,17 @@ export default async function access(
     return false;
   }
 
+  if (response.status === 503) {
+    if (redirect) {
+      await show("maintenance");
+    }
+
+    return false;
+  }
+
   if (!response.ok) {
     if (redirect) {
-      location.replace("/offline");
+      await show("offline");
     }
 
     return false;
@@ -47,12 +77,20 @@ export default async function access(
   });
 
   const session = await api(
-    `${user}?${query}`
+    `${user}?${query}`, options
   );
+
+  if (session.status === 503) {
+    if (redirect) {
+      await show("maintenance");
+    }
+
+    return false;
+  }
 
   if (!session.ok) {
     if (redirect) {
-      location.replace("/offline");
+      await show("offline");
     }
 
     return false;
@@ -60,15 +98,7 @@ export default async function access(
 
   if (!session.data?.valid) {
     if (redirect) {
-      const denied = await fetch("/denied", {
-        headers: { "X-Denied": "true" }
-      });
-
-      const html = await denied.text();
-
-      document.open();
-      document.write(html);
-      document.close();
+      await show("denied");
     }
 
     return false;

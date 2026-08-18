@@ -41,7 +41,17 @@ const normal = (res, name) => {
 
 const page = Router();
 
-page.get("/", (_, res) => normal(res, "index"));
+page.get("/", (_, res) =>
+  normal(res, "index")
+);
+
+page.get("/terms", (_, res) =>
+  normal(res, "terms")
+);
+
+page.get("/privacy", (_, res) =>
+  normal(res, "privacy")
+);
 
 page.get("/admin", async (req, res) => {
   if (!await admin(req)) {
@@ -51,6 +61,16 @@ page.get("/admin", async (req, res) => {
   res.set("Cache-Control", "private, no-store");
 
   return send(res, "admin");
+});
+
+page.get("/maintenance", (req, res) => {
+  if (req.get("x-maintenance") !== "true") {
+    return error(res);
+  }
+
+  res.set("Cache-Control", "no-store");
+
+  return send(res, "maintenance", 503);
 });
 
 page.get("/denied", (req, res) => {

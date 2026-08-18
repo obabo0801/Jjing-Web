@@ -43,6 +43,20 @@ db.exec(`
       DEFAULT (datetime('now', '+9 hours'))
   );
 
+  CREATE TABLE IF NOT EXISTS tts (
+    file TEXT NOT NULL,
+    uid TEXT NOT NULL,
+    text TEXT NOT NULL,
+    time TEXT NOT NULL
+  );
+
+  CREATE TABLE IF NOT EXISTS stt (
+    file TEXT NOT NULL,
+    uid TEXT NOT NULL,
+    text TEXT NOT NULL,
+    time TEXT NOT NULL
+  );
+
   CREATE INDEX IF NOT EXISTS user_ip
     ON user (ip);
 
@@ -54,6 +68,18 @@ db.exec(`
 
   CREATE INDEX IF NOT EXISTS push_uid
     ON push (uid);
+
+  CREATE INDEX IF NOT EXISTS tts_file
+    ON tts (file);
+
+  CREATE INDEX IF NOT EXISTS tts_uid
+    ON tts (uid);
+
+  CREATE INDEX IF NOT EXISTS stt_file
+    ON stt (file);
+
+  CREATE INDEX IF NOT EXISTS stt_uid
+    ON stt (uid);
 `);
 
 export const get = (query, params = []) =>

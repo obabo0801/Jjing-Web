@@ -17,18 +17,12 @@ const lock = (value) => {
     cipher.final()
   ]);
 
-  return {
-    data,
-    iv,
-    tag: cipher.getAuthTag()
-  };
+  return { data, iv, tag: cipher.getAuthTag() };
 };
 
 const unlock = (value) => {
   const decipher = createDecipheriv(
-    algorithm,
-    key,
-    value.iv
+    algorithm, key, value.iv
   );
 
   decipher.setAuthTag(value.tag);
@@ -39,6 +33,25 @@ const unlock = (value) => {
   ]);
 
   return JSON.parse(data.toString("utf8"));
+};
+
+const flat = (value, prefix = "", result = {}) => {
+  Object.entries(value).forEach(([key, data]) => {
+    const name = prefix
+      ? `${prefix}.${key}`
+      : key;
+
+    if (
+      data && typeof data === "object" &&
+      !Array.isArray(data)
+    ) {
+      flat(data, name, result);
+    } else {
+      result[name] = data;
+    }
+  });
+
+  return result;
 };
 
 const dir = path.join(
@@ -67,14 +80,13 @@ for (const file of files) {
   const { default: value } = await import(url);
 
   if (
-    !value ||
-    typeof value !== "object" ||
+    !value || typeof value !== "object" ||
     Array.isArray(value)
   ) {
     continue;
   }
 
-  data[lang] = lock(value);
+  data[lang] = lock(flat(value));
 }
 
 export const langs = Object.keys(data);

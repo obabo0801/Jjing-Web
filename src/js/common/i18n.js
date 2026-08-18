@@ -88,7 +88,15 @@ export default async function translate(
       const id = ids[name];
 
       if (Object.hasOwn(text, id)) {
+        const icon = element.querySelector(
+          ":scope > .icon"
+        );
+
         element.textContent = text[id];
+
+        if (icon) {
+          element.prepend(icon);
+        }
       }
     });
 

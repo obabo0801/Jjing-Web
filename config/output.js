@@ -1,16 +1,27 @@
 import { resolve } from "node:path";
 
+const page = (name) =>
+  resolve(
+    import.meta.dirname, `../src/${name}.html`
+  );
+
 const input = {
-  index: resolve(import.meta.dirname, "../index.html"),
-  admin: resolve(import.meta.dirname, "../admin.html"),
+  index: resolve(
+    import.meta.dirname, "../index.html"
+  ),
 
-  error: resolve(import.meta.dirname, "../error.html"),
-  offline: resolve(import.meta.dirname, "../offline.html"),
+  admin: page("admin"),
 
-  denied: resolve(import.meta.dirname, "../denied.html"),
-  block: resolve(import.meta.dirname, "../block.html"),
+  terms: page("terms"),
+  privacy: page("privacy"),
 
-  maintenance: resolve(import.meta.dirname, "../maintenance.html"),
+  error: page("error"),
+  offline: page("offline"),
+
+  denied: page("denied"),
+  block: page("block"),
+
+  maintenance: page("maintenance")
 };
 
 const output = {

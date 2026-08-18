@@ -1,0 +1,56 @@
+.icon {
+  flex: 0 0 auto;
+
+  width: 1.2rem;
+  height: 1.2rem;
+
+  transform: rotate(
+    var(--icon-angle, 0deg)
+  );
+}
+
+svg.icon {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+img.icon {
+  object-fit: contain;
+}
+
+.icon-text {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+[data-icon] {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.icon-right:not(
+  .icon-top, .icon-bottom
+) .icon,
+.icon-bottom .icon {
+  order: 1;
+}
+
+.icon-top,
+.icon-bottom {
+  flex-direction: column;
+}
+
+.icon-top.icon-left,
+.icon-bottom.icon-left {
+  align-items: flex-start;
+}
+
+.icon-top.icon-right,
+.icon-bottom.icon-right {
+  align-items: flex-end;
+}

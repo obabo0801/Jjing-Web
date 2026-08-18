@@ -1,0 +1,15 @@
+@import "./common/body.css";
+@import "./common/theme.css";
+@import "./common/button.css";
+@import "./common/icon.css";
+
+body {
+  display: grid;
+  min-height: 120vh;
+  margin: 0;
+  place-items: center;
+}
+
+main {
+  text-align: center;
+}

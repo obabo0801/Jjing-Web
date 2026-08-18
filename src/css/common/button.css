@@ -1,0 +1,70 @@
+button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+
+  min-height: 40px;
+  padding: 16px;
+  border: 2px solid var(--border);
+  border-radius: 12px;
+
+  background: transparent;
+  color: inherit;
+
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+
+  transition:
+    background-color 160ms,
+    box-shadow 160ms,
+    transform 100ms;
+}
+
+button[data-background] {
+  background: var(--surface);
+}
+
+button[data-shadow] {
+  box-shadow: var(--shadow);
+}
+
+button:disabled {
+  cursor: default;
+  opacity: 0.4;
+}
+
+button:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: -2px;
+}
+
+button[data-background]:enabled:active {
+  background-image: linear-gradient(
+    var(--pointer), var(--pointer)
+  );
+}
+
+button[data-opacity]:enabled:active {
+  &, & > * { opacity: 0.6; }
+}
+
+@media (hover: hover) and (pointer: fine) {
+  button[data-background]:enabled:hover {
+    background-image: linear-gradient(
+      var(--pointer), var(--pointer)
+    );
+  }
+
+  button[data-opacity]:enabled:hover {
+    &, & > * { opacity: 0.6; }
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  button {
+    transition: none;
+  }
+}
