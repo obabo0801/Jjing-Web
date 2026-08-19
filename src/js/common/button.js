@@ -10,9 +10,7 @@ export default function button() {
   }
 
   on(document, "click", (event) => {
-    const button = event.target.closest?.(
-      "button:enabled"
-    );
+    const button = event.target.closest?.("button:enabled");
 
     if (!button) {
       return;

@@ -18,10 +18,7 @@ export default function limit(max, time = 60_000) {
         return false;
       }
 
-      items.set(key, {
-        count: 1,
-        end: now + time
-      });
+      items.set(key, { count: 1, end: now + time });
 
       return true;
     }

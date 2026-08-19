@@ -5,7 +5,7 @@
 
 body {
   display: grid;
-  min-height: 120vh;
+  min-height: 80vh;
   margin: 0;
   place-items: center;
 }

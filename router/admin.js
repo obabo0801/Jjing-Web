@@ -17,30 +17,19 @@ router.post("/", async (req, res) => {
     return res.status(503).end();
   }
 
-  const title = typeof req.body.title === "string"
-    ? req.body.title.trim()
-    : "";
+  const title = typeof req.body.title === "string" ? req.body.title.trim() : "";
 
-  const body = typeof req.body.body === "string"
-    ? req.body.body.trim()
-    : "";
+  const body = typeof req.body.body === "string" ? req.body.body.trim() : "";
 
-  const value = typeof req.body.url === "string"
-    ? req.body.url.trim()
-    : "";
+  const value = typeof req.body.url === "string" ? req.body.url.trim() : "";
 
-  const url = value.startsWith("/") &&
-    !value.startsWith("//")
-      ? value
-      : "/";
+  const url = value.startsWith("/") && !value.startsWith("//") ? value : "/";
 
   if (!title) {
     return res.status(400).end();
   }
 
-  const rows = await all(
-    "SELECT endpoint, data FROM push"
-  );
+  const rows = await all("SELECT endpoint, data FROM push");
 
   let sent = 0;
   let failed = 0;
@@ -57,10 +46,7 @@ router.post("/", async (req, res) => {
         sent += 1;
       } catch (error) {
         if ([404, 410].includes(error.statusCode)) {
-          await run(
-            "DELETE FROM push WHERE endpoint = ?",
-            [row.endpoint]
-          );
+          await run("DELETE FROM push WHERE endpoint = ?", [row.endpoint]);
 
           return;
         }

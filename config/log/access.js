@@ -1,6 +1,8 @@
 import log from "#config/log";
 
-const run = log("access", `
+const run = log(
+  "access",
+  `
   CREATE TABLE IF NOT EXISTS access (
     uid TEXT,
     ip TEXT NOT NULL,
@@ -11,16 +13,16 @@ const run = log("access", `
     time TEXT NOT NULL
       DEFAULT (datetime('now', '+9 hours'))
   );
-`);
+`
+);
 
-export default (
-  uid, ip, os, browser, path, result
-) =>
-  run(`
+export default (uid, ip, os, browser, path, result) =>
+  run(
+    `
     INSERT INTO access (
       uid, ip, os, browser, path, result
     )
     VALUES (?, ?, ?, ?, ?, ?)
-  `, [
-    uid, ip, os, browser, path, result
-  ]);
+  `,
+    [uid, ip, os, browser, path, result]
+  );

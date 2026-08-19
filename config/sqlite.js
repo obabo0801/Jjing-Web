@@ -3,15 +3,11 @@ import path from "node:path";
 
 import sqlite3 from "sqlite3";
 
-const dir = path.join(
-  import.meta.dirname, "../data"
-);
+const dir = path.join(import.meta.dirname, "../data");
 
 mkdirSync(dir, { recursive: true });
 
-const db = new sqlite3.Database(
-  path.join(dir, "service.db")
-);
+const db = new sqlite3.Database(path.join(dir, "service.db"));
 
 db.configure("busyTimeout", 5000);
 
@@ -100,10 +96,7 @@ export const run = (query, params = []) =>
         return reject(error);
       }
 
-      resolve({
-        id: this.lastID,
-        changes: this.changes
-      });
+      resolve({ id: this.lastID, changes: this.changes });
     });
   });
 

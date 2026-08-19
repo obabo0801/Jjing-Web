@@ -4,14 +4,14 @@ import root from "#common/root";
 import { query } from "#common/query";
 import { on } from "#common/event";
 import api from "#common/api";
+import init from "#common/init";
 import i18n from "#common/i18n";
-import theme from "#common/theme";
 import access from "#src/access";
 
 const start = async () => {
-  theme();
+  init();
 
-  if (!await access()) {
+  if (!(await access())) {
     root.removeAttribute("data-access");
 
     return;
@@ -36,9 +36,7 @@ const start = async () => {
 
     const data = Object.fromEntries(new FormData(form));
 
-    const response = await api(admin, {
-      method: "POST", data
-    });
+    const response = await api(admin, { method: "POST", data });
 
     output.textContent = response.ok
       ? `${response.data.sent}/${response.data.failed}`

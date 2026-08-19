@@ -6,18 +6,14 @@ import { context } from "#common/audio";
 import device from "#common/device";
 
 const SpeechRecognition =
-  window.SpeechRecognition ||
-  window.webkitSpeechRecognition;
+  window.SpeechRecognition || window.webkitSpeechRecognition;
 
-const regions = {
-  en: "en-US", ja: "ja-JP", ko: "ko-KR"
-};
+const regions = { en: "en-US", ja: "ja-JP", ko: "ko-KR" };
 
 let cloud;
 
 const language = () => {
-  const value = root.lang ||
-    navigator.language || "ko";
+  const value = root.lang || navigator.language || "ko";
 
   const lang = value.toLowerCase();
   const base = lang.split("-")[0];
@@ -48,13 +44,9 @@ const available = async () => {
 };
 
 const encode = (value) => {
-  const bytes = new TextEncoder().encode(
-    JSON.stringify(value)
-  );
+  const bytes = new TextEncoder().encode(JSON.stringify(value));
 
-  return btoa(
-    String.fromCharCode(...bytes)
-  );
+  return btoa(String.fromCharCode(...bytes));
 };
 
 const frequency = (buffer) => {
@@ -62,26 +54,17 @@ const frequency = (buffer) => {
   const rate = buffer.sampleRate;
 
   const size = Math.min(data.length, rate);
-  const start = Math.max(
-    0, Math.floor((data.length - size) / 2)
-  );
+  const start = Math.max(0, Math.floor((data.length - size) / 2));
 
   let power = 0;
   let count = 0;
 
-  for (
-    let i = start;
-    i < start + size;
-    i += 4
-  ) {
+  for (let i = start; i < start + size; i += 4) {
     power += data[i] ** 2;
     count += 1;
   }
 
-  if (
-    !count ||
-    Math.sqrt(power / count) < 0.01
-  ) {
+  if (!count || Math.sqrt(power / count) < 0.01) {
     return 0;
   }
 
@@ -94,11 +77,7 @@ const frequency = (buffer) => {
   for (let lag = min; lag <= max; lag += 1) {
     let value = 0;
 
-    for (
-      let i = start;
-      i < start + size - lag;
-      i += 4
-    ) {
+    for (let i = start; i < start + size - lag; i += 4) {
       value += data[i] * data[i + lag];
     }
 
@@ -135,9 +114,7 @@ const analyze = async (blob) => {
   }
 
   try {
-    const buffer = await audio.decodeAudioData(
-      await blob.arrayBuffer()
-    );
+    const buffer = await audio.decodeAudioData(await blob.arrayBuffer());
 
     return pitch(frequency(buffer));
   } catch {
@@ -167,12 +144,8 @@ const upload = async (blob, lang, text, pitch) => {
     const data = await response.json();
 
     return {
-      text: typeof data.text === "string"
-        ? data.text.trim()
-        : text,
-      confidence: Number(data.confidence) > 0
-        ? Number(data.confidence)
-        : null
+      text: typeof data.text === "string" ? data.text.trim() : text,
+      confidence: Number(data.confidence) > 0 ? Number(data.confidence) : null
     };
   } catch {
     return { text, confidence: null };
@@ -190,11 +163,14 @@ const record = (stream) => {
       }
     });
 
-    on(recorder, "stop", () => {
-      resolve(new Blob(chunks, {
-        type: recorder.mimeType || "audio/webm"
-      }));
-    }, { once: true });
+    on(
+      recorder,
+      "stop",
+      () => {
+        resolve(new Blob(chunks, { type: recorder.mimeType || "audio/webm" }));
+      },
+      { once: true }
+    );
   });
 
   recorder.start();
@@ -202,7 +178,7 @@ const record = (stream) => {
   return { recorder, done };
 };
 
-const listen = (lang) => {
+const listen = (lang, stream) => {
   const recognition = new SpeechRecognition();
 
   recognition.lang = lang;
@@ -226,82 +202,85 @@ const listen = (lang) => {
       confidence = Number(item.confidence) || 0;
     });
 
-    const finish = () => resolve({
-      text, confidence
-    });
+    const finish = () => resolve({ text, confidence });
 
     on(recognition, "end", finish, { once: true });
     on(recognition, "error", finish, { once: true });
   });
 
-  recognition.start();
+  const track = stream?.getAudioTracks()[0];
+
+  try {
+    track ? recognition.start(track) : recognition.start();
+  } catch {
+    recognition.start();
+  }
 
   return done;
 };
 
-const silence = (stream) => new Promise((resolve) => {
-  const audio = context();
+const silence = (stream) =>
+  new Promise((resolve) => {
+    const audio = context();
 
-  if (!audio) {
-    setTimeout(resolve, 5000);
-    return;
-  }
-
-  const source = audio.createMediaStreamSource(stream);
-  const analyser = audio.createAnalyser();
-
-  analyser.fftSize = 1024;
-  source.connect(analyser);
-
-  const data = new Uint8Array(analyser.fftSize);
-  const start = performance.now();
-
-  let spoken = false;
-  let quiet = start;
-  let frame;
-
-  const done = () => {
-    cancelAnimationFrame(frame);
-    source.disconnect();
-    resolve();
-  };
-
-  const check = (time) => {
-    analyser.getByteTimeDomainData(data);
-
-    let power = 0;
-    let count = 0;
-
-    for (let i = 0; i < data.length; i += 4) {
-      const value = (data[i] - 128) / 128;
-
-      power += value ** 2;
-      count += 1;
-    }
-
-    const level = count
-      ? Math.sqrt(power / count)
-      : 0;
-
-    if (level > 0.025) {
-      spoken = true;
-      quiet = time;
-    }
-
-    if (
-      (spoken && time - quiet >= 900) ||
-      (!spoken && time - start >= 5000) ||
-      time - start >= 15000
-    ) {
-      done();
+    if (!audio) {
+      setTimeout(resolve, 5000);
       return;
     }
 
-    frame = requestAnimationFrame(check);
-  };
+    const source = audio.createMediaStreamSource(stream);
+    const analyser = audio.createAnalyser();
 
-  frame = requestAnimationFrame(check);
-});
+    analyser.fftSize = 1024;
+    source.connect(analyser);
+
+    const data = new Uint8Array(analyser.fftSize);
+    const start = performance.now();
+
+    let spoken = false;
+    let quiet = start;
+    let frame;
+
+    const done = () => {
+      cancelAnimationFrame(frame);
+      source.disconnect();
+      resolve();
+    };
+
+    const check = (time) => {
+      analyser.getByteTimeDomainData(data);
+
+      let power = 0;
+      let count = 0;
+
+      for (let i = 0; i < data.length; i += 4) {
+        const value = (data[i] - 128) / 128;
+
+        power += value ** 2;
+        count += 1;
+      }
+
+      const level = count ? Math.sqrt(power / count) : 0;
+
+      if (level > 0.025) {
+        spoken = true;
+        quiet = time;
+      }
+
+      if (
+        (spoken && time - quiet >= 900) ||
+        (!spoken && time - start >= 5000) ||
+        time - start >= 15000
+      ) {
+        done();
+        return;
+      }
+
+      frame = requestAnimationFrame(check);
+    };
+
+    frame = requestAnimationFrame(check);
+  });
 
 const native = async (lang) => {
   if (!SpeechRecognition) {
@@ -311,13 +290,12 @@ const native = async (lang) => {
   return listen(lang);
 };
 
-const desktop = async (lang) => {
-  const stream = await navigator.mediaDevices
-    .getUserMedia({ audio: true });
+const desktop = async (lang, deviceId) => {
+  const stream = await microphone(deviceId);
 
   try {
     const saved = record(stream);
-    const heard = await listen(lang);
+    const heard = await listen(lang, stream);
 
     if (saved.recorder.state !== "inactive") {
       saved.recorder.stop();
@@ -326,25 +304,36 @@ const desktop = async (lang) => {
     const blob = await saved.done;
     const pitch = await analyze(blob);
 
-    const result = await upload(
-      blob, lang, heard.text, pitch
-    );
+    const result = await upload(blob, lang, heard.text, pitch);
 
     return {
       text: result.text,
-      confidence: result.confidence ??
-        heard.confidence
+      confidence: result.confidence ?? heard.confidence
     };
   } finally {
-    stream.getTracks().forEach(
-      (track) => track.stop()
-    );
+    stream.getTracks().forEach((track) => track.stop());
   }
 };
 
-const remote = async (lang) => {
-  const stream = await navigator.mediaDevices
-    .getUserMedia({ audio: true });
+export const microphones = async () => {
+  const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+
+  stream.getTracks().forEach((track) => track.stop());
+
+  const devices = await navigator.mediaDevices.enumerateDevices();
+
+  return devices
+    .filter((item) => item.kind === "audioinput")
+    .map((item) => ({ id: item.deviceId, name: item.label }));
+};
+
+const microphone = (deviceId) =>
+  navigator.mediaDevices.getUserMedia({
+    audio: deviceId ? { deviceId: { exact: deviceId } } : true
+  });
+
+const remote = async (lang, deviceId) => {
+  const stream = await microphone(deviceId);
 
   try {
     const saved = record(stream);
@@ -359,14 +348,9 @@ const remote = async (lang) => {
     const pitch = await analyze(blob);
     const result = await upload(blob, lang, "", pitch);
 
-    return {
-      text: result.text,
-      confidence: result.confidence ?? 0
-    };
+    return { text: result.text, confidence: result.confidence ?? 0 };
   } finally {
-    stream.getTracks().forEach(
-      (track) => track.stop()
-    );
+    stream.getTracks().forEach((track) => track.stop());
   }
 };
 
@@ -378,15 +362,13 @@ const match = (text, keywords, lang) => {
       return false;
     }
 
-    const word = keyword
-      .trim()
-      .toLocaleLowerCase(lang);
+    const word = keyword.trim().toLocaleLowerCase(lang);
 
     return word && value.includes(word);
   });
 };
 
-export default async function voice(keywords = {}) {
+export default async function voice(keywords, deviceId) {
   const lang = language();
   const base = lang.split("-")[0];
 
@@ -405,13 +387,13 @@ export default async function voice(keywords = {}) {
       window.MediaRecorder &&
       navigator.mediaDevices?.getUserMedia
     ) {
-      result = await desktop(lang);
+      result = await desktop(lang, deviceId);
     } else if (
-      await available() &&
+      (await available()) &&
       window.MediaRecorder &&
       navigator.mediaDevices?.getUserMedia
     ) {
-      result = await remote(lang);
+      result = await remote(lang, deviceId);
     } else {
       result = await native(lang);
     }
@@ -425,9 +407,7 @@ export default async function voice(keywords = {}) {
     }
 
     return {
-      action: result.confidence >= 0.8
-        ? "run"
-        : "ask",
+      action: result.confidence >= 0.8 ? "run" : "ask",
       text: result.text
     };
   } catch {

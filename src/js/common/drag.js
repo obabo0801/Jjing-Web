@@ -1,8 +1,7 @@
 import { on } from "#common/event";
 import { scrollable } from "#common/scroll";
 
-const ignore = "input, select, textarea, " +
-  "[contenteditable], .range";
+const ignore = "input, select, textarea, " + "[contenteditable], .range";
 
 const listeners = new Set();
 
@@ -24,7 +23,7 @@ export function listen(run) {
   };
 }
 
-export function bind(target) {
+export function bind(target = document) {
   let scroll = null;
   let id = null;
 
@@ -38,27 +37,19 @@ export function bind(target) {
   let pending = false;
   let block = false;
 
-  const down = event => {
+  const down = (event) => {
     if (
+      event.shiftKey ||
       event.pointerType !== "mouse" ||
       event.button !== 0 ||
-      (
-        event.target instanceof Element &&
-        event.target.closest(ignore)
-      )
+      (event.target instanceof Element && event.target.closest(ignore))
     ) {
       return;
     }
 
     const item = scrollable(event.target);
 
-    if (
-      !item ||
-      (
-        item !== target &&
-        !target.contains(item)
-      )
-    ) {
+    if (!item || (item !== target && !target.contains(item))) {
       return;
     }
 
@@ -75,7 +66,7 @@ export function bind(target) {
     pending = false;
   };
 
-  const move = event => {
+  const move = (event) => {
     if (event.pointerId !== id || !scroll) {
       return;
     }
@@ -134,7 +125,7 @@ export function bind(target) {
       block = true;
 
       if (emit) {
-        listeners.forEach(run => {
+        listeners.forEach((run) => {
           run(dx, dy, event);
         });
       }
@@ -152,7 +143,7 @@ export function bind(target) {
     id = null;
   };
 
-  const click = event => {
+  const click = (event) => {
     if (!block) {
       return;
     }
@@ -165,14 +156,14 @@ export function bind(target) {
     on(target, "pointerdown", down),
     on(target, "pointermove", move),
     on(target, "pointerup", end),
-    on(target, "pointercancel", event => {
+    on(target, "pointercancel", (event) => {
       end(event, false);
     }),
     on(target, "click", click, true)
   ];
 
   return () => {
-    stop.forEach(run => run());
+    stop.forEach((run) => run());
 
     scroll = null;
     id = null;

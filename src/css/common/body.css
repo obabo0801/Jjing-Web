@@ -8,11 +8,11 @@
   --volume-system: 100%;
 
   --font-family:
-    "Segoe UI",
-    "Noto Sans KR",
-    "Malgun Gothic",
-    system-ui,
-    sans-serif;
+    "Segoe UI", "Noto Sans KR", "Malgun Gothic", system-ui, sans-serif;
+}
+
+html {
+  overscroll-behavior-y: none;
 }
 
 *,

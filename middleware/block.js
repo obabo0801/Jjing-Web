@@ -11,22 +11,22 @@ export default async function block(req, res, next) {
 
   const ip = address(req);
 
-  const denied = await get(`
+  const denied = await get(
+    `
     SELECT 1
     FROM block
     WHERE uid = ?
       OR ip = ?
     LIMIT 1
-  `, [uid(req) || null, ip]);
+  `,
+    [uid(req) || null, ip]
+  );
 
   if (!denied) {
     return next();
   }
 
-  res.set({
-    "Cache-Control": "private, no-store",
-    Vary: "Cookie"
-  });
+  res.set({ "Cache-Control": "private, no-store", Vary: "Cookie" });
 
   return send(res, "block", 403);
 }

@@ -10,7 +10,7 @@ export function watch() {
 
   watcher = new CloseWatcher();
 
-  watcher.addEventListener("cancel", event => {
+  watcher.addEventListener("cancel", (event) => {
     if (event.cancelable) {
       event.preventDefault();
     }

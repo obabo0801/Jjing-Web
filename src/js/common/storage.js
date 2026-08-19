@@ -9,8 +9,7 @@ export const get = (key, fallback = null) => {
 export const set = (key, value) => {
   try {
     localStorage.setItem(key, String(value));
-  } catch {
-  }
+  } catch {}
 
   return value;
 };
@@ -18,13 +17,11 @@ export const set = (key, value) => {
 export const remove = (key) => {
   try {
     localStorage.removeItem(key);
-  } catch {
-  }
+  } catch {}
 };
 
 export const clear = () => {
   try {
     localStorage.clear();
-  } catch {
-  }
+  } catch {}
 };

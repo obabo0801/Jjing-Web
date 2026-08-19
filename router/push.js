@@ -28,19 +28,19 @@ router.post("/", async (req, res) => {
   const ip = address(req);
 
   const user = id
-    ? await get(
-        "SELECT uid FROM user WHERE uid = ?",
-        [id]
-      )
+    ? await get("SELECT uid FROM user WHERE uid = ?", [id])
     : null;
 
-  const blocked = await get(`
+  const blocked = await get(
+    `
     SELECT 1
     FROM block
     WHERE uid = ?
       OR ip = ?
     LIMIT 1
-  `, [id || null, ip]);
+  `,
+    [id || null, ip]
+  );
 
   if (!user || blocked) {
     return res.status(403).end();
@@ -64,15 +64,16 @@ router.post("/", async (req, res) => {
     return res.status(400).end();
   }
 
-  await run(`
+  await run(
+    `
     INSERT INTO push (uid, endpoint, data)
     VALUES (?, ?, ?)
     ON CONFLICT(endpoint) DO UPDATE SET
       uid = excluded.uid,
       data = excluded.data
-  `, [
-    id, endpoint, JSON.stringify(subscription)
-  ]);
+  `,
+    [id, endpoint, JSON.stringify(subscription)]
+  );
 
   res.status(204).end();
 });

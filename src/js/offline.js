@@ -4,22 +4,19 @@ import { i18n, payload } from "#config/route";
 import root from "#common/root";
 import { all } from "#common/query";
 import api from "#common/api";
-import theme from "#common/theme";
+import init from "#common/init";
+
+init();
 
 if (location.pathname === "/offline") {
   history.replaceState(null, "", "/");
 }
 
 const decode = (value) => {
-  const bytes = Uint8Array.from(
-    atob(value),
-    (value) => value.charCodeAt(0)
-  );
+  const bytes = Uint8Array.from(atob(value), (value) => value.charCodeAt(0));
 
   return JSON.parse(new TextDecoder().decode(bytes));
 };
-
-theme();
 
 try {
   const list = await api(i18n);
@@ -34,7 +31,8 @@ try {
   const system = navigator.language.toLowerCase();
   const lang = mode === "system" ? system : mode;
 
-  const file = languages[lang] ||
+  const file =
+    languages[lang] ||
     languages[lang.split("-")[0]] ||
     languages.ko ||
     Object.values(languages)[0];
@@ -61,5 +59,4 @@ try {
       element.textContent = text[key];
     }
   });
-} catch {
-}
+} catch {}

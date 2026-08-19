@@ -30,44 +30,31 @@ const remember = (res, uid) => {
 const status = (value) => {
   const code = Number(value);
 
-  return Number.isInteger(code) &&
-  code >= 100 && code <= 599
-    ? code
-    : 0;
+  return Number.isInteger(code) && code >= 100 && code <= 599 ? code : 0;
 };
 
 router.get("/", async (req, res) => {
   const uid = identity(req);
   const ip = address(req);
 
-  const name = typeof req.query.name === "string"
-    ? req.query.name
-    : "";
+  const name = typeof req.query.name === "string" ? req.query.name : "";
 
-  const path = typeof req.query.path === "string"
-    ? req.query.path.slice(0, 2048)
-    : "/";
+  const path =
+    typeof req.query.path === "string" ? req.query.path.slice(0, 2048) : "/";
 
   const result = status(req.query.result);
 
   const { os, browser } = client(req);
 
   const user = uid
-    ? await get(
-        "SELECT uid FROM user WHERE uid = ?",
-        [uid]
-      )
+    ? await get("SELECT uid FROM user WHERE uid = ?", [uid])
     : null;
 
   if (user) {
-    await access(
-      uid, ip, os, browser, path, result
-    );
+    await access(uid, ip, os, browser, path, result);
   } else {
     if (name) {
-      await access(
-        name, ip, os, browser, path, result
-      );
+      await access(name, ip, os, browser, path, result);
     }
   }
 
@@ -79,9 +66,8 @@ router.post("/", async (req, res) => {
 
   let uid = saved;
 
-  const path = typeof req.body.path === "string"
-    ? req.body.path.slice(0, 2048)
-    : "/";
+  const path =
+    typeof req.body.path === "string" ? req.body.path.slice(0, 2048) : "/";
 
   const result = status(req.body.result);
 
@@ -96,10 +82,7 @@ router.post("/", async (req, res) => {
   const { os, browser } = client(req);
 
   let user = uid
-    ? await get(
-        "SELECT uid, role FROM user WHERE uid = ?",
-        [uid]
-      )
+    ? await get("SELECT uid, role FROM user WHERE uid = ?", [uid])
     : null;
 
   if (!saved && user?.role === 0) {
@@ -108,7 +91,8 @@ router.post("/", async (req, res) => {
   }
 
   if (!saved && !user) {
-    const found = await get(`
+    const found = await get(
+      `
       SELECT uid, role
       FROM user
       WHERE ip = ?
@@ -120,7 +104,9 @@ router.post("/", async (req, res) => {
             AND role = 1
         ) = 1
       LIMIT 1
-    `, [ip, ip]);
+    `,
+      [ip, ip]
+    );
 
     if (found) {
       uid = found.uid;
@@ -128,41 +114,45 @@ router.post("/", async (req, res) => {
     }
   }
 
-  const blocked = await get(`
+  const blocked = await get(
+    `
     SELECT reason, time
     FROM block
     WHERE uid = ?
       OR ip = ?
     ORDER BY time DESC
     LIMIT 1
-  `, [uid || null, ip]);
+  `,
+    [uid || null, ip]
+  );
 
   if (blocked) {
     remember(res, uid);
 
-    await access(
-      uid || null, ip, os, browser, path, result
-    );
+    await access(uid || null, ip, os, browser, path, result);
 
-    return res.status(403).json({
-      reason: blocked.reason,
-      time: blocked.time
-    });
+    return res.status(403).json({ reason: blocked.reason, time: blocked.time });
   }
 
   if (!user) {
     uid = randomUUID();
 
-    await run(`
+    await run(
+      `
       INSERT INTO user (uid, role, ip)
       VALUES (?, 1, ?)
-    `, [uid, ip]);
+    `,
+      [uid, ip]
+    );
   } else {
-    await run(`
+    await run(
+      `
       UPDATE user
       SET ip = ?
       WHERE uid = ?
-    `, [ip, uid]);
+    `,
+      [ip, uid]
+    );
   }
 
   remember(res, uid);

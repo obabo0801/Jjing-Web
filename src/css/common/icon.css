@@ -4,9 +4,7 @@
   width: 1.2rem;
   height: 1.2rem;
 
-  transform: rotate(
-    var(--icon-angle, 0deg)
-  );
+  transform: rotate(var(--icon-angle, 0deg));
 }
 
 svg.icon {
@@ -33,9 +31,7 @@ img.icon {
   justify-content: center;
 }
 
-.icon-right:not(
-  .icon-top, .icon-bottom
-) .icon,
+.icon-right:not(.icon-top, .icon-bottom) .icon,
 .icon-bottom .icon {
   order: 1;
 }

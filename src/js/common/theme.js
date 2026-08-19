@@ -6,9 +6,7 @@ import { get, set } from "#common/storage";
 const key = "theme";
 const modes = ["system", "light", "dark"];
 
-const scheme = matchMedia(
-  "(prefers-color-scheme: dark)"
-);
+const scheme = matchMedia("(prefers-color-scheme: dark)");
 
 const meta = query('meta[name="theme-color"]');
 
@@ -18,14 +16,9 @@ let loaded = false;
 const sync = () => {
   root.setAttribute("data-theme", current);
 
-  const dark = current === "dark" ||
-    (
-      current === "system" && scheme.matches
-    );
+  const dark = current === "dark" || (current === "system" && scheme.matches);
 
-  meta?.setAttribute(
-    "content", dark ? "#111111" : "#ffffff"
-  );
+  meta?.setAttribute("content", dark ? "#111111" : "#ffffff");
 };
 
 export default function theme(mode) {
@@ -47,12 +40,9 @@ export default function theme(mode) {
     loaded = true;
   }
 
-  const reduced = matchMedia(
-    "(prefers-reduced-motion: reduce)"
-  ).matches;
+  const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-  const transition = document
-    .startViewTransition?.bind(document);
+  const transition = document.startViewTransition?.bind(document);
 
   if (initial || reduced || !transition) {
     sync();

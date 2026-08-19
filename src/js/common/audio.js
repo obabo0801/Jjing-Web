@@ -7,8 +7,7 @@ export function context() {
     return null;
   }
 
-  const AudioContext = window.AudioContext ||
-    window.webkitAudioContext;
+  const AudioContext = window.AudioContext || window.webkitAudioContext;
 
   if (!AudioContext) {
     return null;
@@ -26,23 +25,14 @@ export function context() {
 const percent = (name) => {
   const style = getComputedStyle(root);
 
-  const value = parseFloat(
-    style.getPropertyValue(name)
-  );
+  const value = parseFloat(style.getPropertyValue(name));
 
-  return Number.isFinite(value)
-    ? value / 100
-    : 1;
+  return Number.isFinite(value) ? value / 100 : 1;
 };
 
 export function level(channel, value = 1) {
   const master = percent("--volume-master");
-  const current = percent(
-    `--volume-${channel}`
-  );
+  const current = percent(`--volume-${channel}`);
 
-  return Math.min(
-    1,
-    Math.max(0, value * master * current)
-  );
+  return Math.min(1, Math.max(0, value * master * current));
 }

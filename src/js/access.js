@@ -4,13 +4,9 @@ import api from "#common/api";
 import device from "#common/device";
 
 const show = async (name) => {
-  const header = name === "offline"
-    ? "X-PWA-Cache"
-    : `X-${name}`;
+  const header = name === "offline" ? "X-PWA-Cache" : `X-${name}`;
 
-  const response = await fetch(`/${name}`, {
-    headers: { [header]: "true" }
-  });
+  const response = await fetch(`/${name}`, { headers: { [header]: "true" } });
 
   const html = await response.text();
 
@@ -19,29 +15,25 @@ const show = async (name) => {
   document.close();
 };
 
-export default async function access(
-  redirect = true, name
-) {
-  const current = decodeURI(
-    `${location.pathname}${location.search}`
-  );
+export default async function access(redirect = true, name) {
+  const current = decodeURI(`${location.pathname}${location.search}`);
 
-  const path = name && location.pathname === "/"
-    ? `/${name.replace(/^\/+/, "")}`
-    : current;
+  const path =
+    name && location.pathname === "/"
+      ? `/${name.replace(/^\/+/, "")}`
+      : current;
 
-  const result = performance
-    .getEntriesByType("navigation")[0]
-    ?.responseStatus ?? 0;
+  const result =
+    performance.getEntriesByType("navigation")[0]?.responseStatus ?? 0;
 
   const wearable = device().wearable;
 
-  const options = {
-    headers: { "X-Wearable": String(wearable) }
-  };
+  const options = { headers: { "X-Wearable": String(wearable) } };
 
   const response = await api(user, {
-    ...options, method: "POST", data: { path, result }
+    ...options,
+    method: "POST",
+    data: { path, result }
   });
 
   if (response.status === 403) {
@@ -72,13 +64,9 @@ export default async function access(
     return false;
   }
 
-  const query = new URLSearchParams({
-    path, result, ...(name && { name })
-  });
+  const query = new URLSearchParams({ path, result, ...(name && { name }) });
 
-  const session = await api(
-    `${user}?${query}`, options
-  );
+  const session = await api(`${user}?${query}`, options);
 
   if (session.status === 503) {
     if (redirect) {

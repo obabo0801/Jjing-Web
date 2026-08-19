@@ -21,23 +21,18 @@ const hash = async (value) => {
 
 const encode = (value) => btoa(JSON.stringify(value));
 
-export default async function translate(
-  mode = get(key, "system")
-) {
-  mode = typeof mode === "string" && mode.trim()
-    ? mode.trim().toLowerCase()
-    : "system";
+export default async function translate(mode = get(key, "system")) {
+  mode =
+    typeof mode === "string" && mode.trim()
+      ? mode.trim().toLowerCase()
+      : "system";
 
   set(key, mode);
 
   const elements = all("[data-i18n]");
 
   const names = [
-    ...new Set(
-      elements.map((element) =>
-        element.getAttribute("data-i18n")
-      )
-    )
+    ...new Set(elements.map((element) => element.getAttribute("data-i18n")))
   ];
 
   if (!names.length) {
@@ -60,9 +55,7 @@ export default async function translate(
     const result = await api(i18n, {
       method: "POST",
 
-      data: {
-        [payload]: encode({ lang: mode, keys })
-      }
+      data: { [payload]: encode({ lang: mode, keys }) }
     });
 
     const value = result.data?.[payload];
@@ -71,14 +64,9 @@ export default async function translate(
       return false;
     }
 
-    const bytes = Uint8Array.from(
-      atob(value),
-      (value) => value.charCodeAt(0)
-    );
+    const bytes = Uint8Array.from(atob(value), (value) => value.charCodeAt(0));
 
-    const { lang, text } = JSON.parse(
-      new TextDecoder().decode(bytes)
-    );
+    const { lang, text } = JSON.parse(new TextDecoder().decode(bytes));
 
     root.lang = lang;
 
@@ -88,9 +76,7 @@ export default async function translate(
       const id = ids[name];
 
       if (Object.hasOwn(text, id)) {
-        const icon = element.querySelector(
-          ":scope > .icon"
-        );
+        const icon = element.querySelector(":scope > .icon");
 
         element.textContent = text[id];
 

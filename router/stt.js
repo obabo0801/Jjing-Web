@@ -12,9 +12,7 @@ const router = Router();
 
 const allowed = limit(20);
 
-const raw = express.raw({
-  type: "audio/*", limit: "5mb"
-});
+const raw = express.raw({ type: "audio/*", limit: "5mb" });
 
 const now = () =>
   new Date(Date.now() + 32_400_000)
@@ -30,37 +28,33 @@ const decode = (req) => {
       return null;
     }
 
-    return JSON.parse(
-      Buffer.from(value, "base64").toString("utf8")
-    );
+    return JSON.parse(Buffer.from(value, "base64").toString("utf8"));
   } catch {
     return null;
   }
 };
 
-router.get("/", (req, res) =>
-  res.json({ cloud: enabled })
-);
+router.get("/", (req, res) => res.json({ cloud: enabled }));
 
 router.post("/", raw, async (req, res) => {
   const id = uid(req);
   const ip = address(req);
 
   const user = id
-    ? await get(
-        "SELECT uid FROM user WHERE uid = ?",
-        [id]
-      )
+    ? await get("SELECT uid FROM user WHERE uid = ?", [id])
     : null;
 
   const blocked = user
-    ? await get(`
+    ? await get(
+        `
         SELECT 1
         FROM block
         WHERE uid = ?
           OR ip = ?
         LIMIT 1
-      `, [id, ip])
+      `,
+        [id, ip]
+      )
     : null;
 
   if (!user || blocked) {
@@ -83,28 +77,23 @@ router.post("/", raw, async (req, res) => {
     return res.status(400).end();
   }
 
-  let text = typeof data.text === "string"
-    ? data.text.trim()
-    : "";
+  let text = typeof data.text === "string" ? data.text.trim() : "";
 
-  const lang = typeof data.lang === "string"
-    ? data.lang.trim()
-    : "";
+  const lang = typeof data.lang === "string" ? data.lang.trim() : "";
 
-  const pitch = [
-    "low", "mid", "high", "unknown"
-  ].includes(data.pitch)
+  const pitch = ["low", "mid", "high", "unknown"].includes(data.pitch)
     ? data.pitch
     : "unknown";
+
+  let type = text ? "browser" : "cloud";
 
   if (!lang || [...text].length > 500) {
     return res.status(400).end();
   }
 
-  const type = req.get("content-type")
-    ?.split(";")[0].toLowerCase();
+  const mime = req.get("content-type")?.split(";")[0].toLowerCase();
 
-  if (!supported(type)) {
+  if (!supported(mime)) {
     return res.status(415).end();
   }
 
@@ -117,6 +106,7 @@ router.post("/", raw, async (req, res) => {
       if (result.text) {
         text = result.text;
         confidence = result.confidence;
+        type = "cloud";
       }
     } catch {
       if (!text) {
@@ -134,8 +124,12 @@ router.post("/", raw, async (req, res) => {
   let file;
 
   try {
-    file = await save(req.body, type, id, text, time);
-  } catch {
+    file = await save(req.body, mime, id, text, time);
+  } catch (error) {
+    if (error?.code === "SQLITE_BUSY") {
+      throw error;
+    }
+
     return res.status(500).end();
   }
 
@@ -143,7 +137,7 @@ router.post("/", raw, async (req, res) => {
     return res.status(415).end();
   }
 
-  await record(id, lang, text, pitch, time);
+  await record(id, lang, text, pitch, type, time);
 
   return res.json({ text, confidence });
 });

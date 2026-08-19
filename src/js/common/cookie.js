@@ -6,18 +6,12 @@ export const get = (key) => {
 
   const item = document.cookie
     .split("; ")
-    .find((value) =>
-      value.startsWith(name)
-    );
+    .find((value) => value.startsWith(name));
 
-  return item
-    ? decode(item.slice(name.length))
-    : null;
+  return item ? decode(item.slice(name.length)) : null;
 };
 
-export const set = (
-  key, value, maxAge = 31_536_000
-) => {
+export const set = (key, value, maxAge = 31_536_000) => {
   const parts = [
     `${encode(key)}=${encode(value)}`,
     "Path=/",

@@ -3,21 +3,14 @@ import path from "node:path";
 
 import { manifest } from "#config/html";
 
-const dir = path.join(
-  import.meta.dirname, "../dist"
-);
+const dir = path.join(import.meta.dirname, "../dist");
 
 let pages;
 
 const load = () => {
-  pages ||= JSON.parse(
-    readFileSync(
-      path.join(dir, manifest), "utf8"
-    )
-  );
+  pages ||= JSON.parse(readFileSync(path.join(dir, manifest), "utf8"));
 
   return pages;
 };
 
-export default (name) =>
-  path.join(dir, load()[name]);
+export default (name) => path.join(dir, load()[name]);

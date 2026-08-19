@@ -3,15 +3,11 @@ import path from "node:path";
 
 import sqlite3 from "sqlite3";
 
-const root = path.join(
-  import.meta.dirname, "../data/log"
-);
+const root = path.join(import.meta.dirname, "../data/log");
 
 const date = (time) => {
   if (time) {
-    return time
-      .slice(0, 10)
-      .replaceAll("-", "");
+    return time.slice(0, 10).replaceAll("-", "");
   }
 
   return new Date(Date.now() + 32_400_000)
@@ -39,9 +35,7 @@ export default function log(dir, schema) {
 
     day = next;
 
-    db = new sqlite3.Database(
-      path.join(folder, `${day}.db`)
-    );
+    db = new sqlite3.Database(path.join(folder, `${day}.db`));
 
     db.configure("busyTimeout", 5000);
     db.exec(schema);
@@ -56,10 +50,7 @@ export default function log(dir, schema) {
           return reject(error);
         }
 
-        resolve({
-          id: this.lastID,
-          changes: this.changes
-        });
+        resolve({ id: this.lastID, changes: this.changes });
       });
     });
 }

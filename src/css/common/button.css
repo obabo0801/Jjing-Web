@@ -42,24 +42,26 @@ button:focus-visible {
 }
 
 button[data-background]:enabled:active {
-  background-image: linear-gradient(
-    var(--pointer), var(--pointer)
-  );
+  background-image: linear-gradient(var(--pointer), var(--pointer));
 }
 
 button[data-opacity]:enabled:active {
-  &, & > * { opacity: 0.6; }
+  &,
+  & > * {
+    opacity: 0.6;
+  }
 }
 
 @media (hover: hover) and (pointer: fine) {
   button[data-background]:enabled:hover {
-    background-image: linear-gradient(
-      var(--pointer), var(--pointer)
-    );
+    background-image: linear-gradient(var(--pointer), var(--pointer));
   }
 
   button[data-opacity]:enabled:hover {
-    &, & > * { opacity: 0.6; }
+    &,
+    & > * {
+      opacity: 0.6;
+    }
   }
 }
 

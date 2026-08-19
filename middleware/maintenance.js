@@ -17,11 +17,9 @@ export default async function maintenance(req, res, next) {
     return next();
   }
 
-  const active =
-    process.env.MAINTENANCE === "true";
+  const active = process.env.MAINTENANCE === "true";
 
-  const dev =
-    process.env.SERVER_ENV === "development";
+  const dev = process.env.SERVER_ENV === "development";
 
   if (!active || dev) {
     return next();
@@ -30,10 +28,7 @@ export default async function maintenance(req, res, next) {
   const id = uid(req);
 
   const user = id
-    ? await get(
-        "SELECT role FROM user WHERE uid = ?",
-        [id]
-      )
+    ? await get("SELECT role FROM user WHERE uid = ?", [id])
     : null;
 
   if (user?.role === 0) {

@@ -9,24 +9,43 @@ const sources = new Map();
 
 let version = 0;
 
-export async function speak(
-  text,
-  {
-    lang = root.lang,
-    pitch = 0,
-    rate = 1,
-    voice,
-    volume = 1
-  } = {}
-) {
-  const value = typeof text === "string"
-    ? text.trim()
-    : "";
+const synth = window.speechSynthesis;
 
-  if (!value) {
+export const voices = () => synth?.getVoices() || [];
+
+const browser = async (text, { lang, pitch, rate, voice, volume }) => {
+  if (!synth) {
     return null;
   }
 
+  const speech = new SpeechSynthesisUtterance(text);
+
+  const selected = voices().find((item) => item.name === voice);
+
+  speech.lang = lang;
+  speech.pitch = pitch;
+  speech.rate = rate;
+  speech.volume = level("tts", volume);
+  speech.voice = selected || null;
+
+  synth.speak(speech);
+
+  try {
+    await fetch(`/api${route}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        text,
+        voice: selected?.name || "default",
+        type: "browser"
+      })
+    });
+  } catch {}
+
+  return speech;
+};
+
+const remote = async (text, { lang, pitch, rate, voice, volume, type }) => {
   const audio = context();
 
   if (!audio) {
@@ -41,16 +60,8 @@ export async function speak(
   try {
     const response = await fetch(`/api${route}`, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        text: value,
-        lang,
-        pitch,
-        rate,
-        voice
-      }),
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text, lang, pitch, rate, voice, type }),
       signal: controller.signal
     });
 
@@ -81,12 +92,15 @@ export async function speak(
 
     sources.set(source, gain);
 
-    on(source, "ended", () => {
-      if (sources.delete(source)) {
-        source.disconnect();
-        gain.disconnect();
-      }
-    },
+    on(
+      source,
+      "ended",
+      () => {
+        if (sources.delete(source)) {
+          source.disconnect();
+          gain.disconnect();
+        }
+      },
       { once: true }
     );
 
@@ -98,10 +112,47 @@ export async function speak(
   } finally {
     requests.delete(controller);
   }
+};
+
+export async function speak(
+  text,
+  { lang = root.lang, pitch = 0, rate = 1, voice, volume = 1, type } = {}
+) {
+  const value = typeof text === "string" ? text.trim() : "";
+
+  if (!value) {
+    return null;
+  }
+
+  const option = { lang, pitch, rate, voice, volume };
+
+  if (type === "browser" || (!type && voice)) {
+    return browser(value, option);
+  }
+
+  if (type === "cloud" || type === "google") {
+    return remote(value, { ...option, type });
+  }
+
+  const cloud = await remote(value, { ...option, type: "cloud" });
+
+  if (cloud) {
+    return cloud;
+  }
+
+  const local = await browser(value, option);
+
+  if (local) {
+    return local;
+  }
+
+  return remote(value, { ...option, type: "google" });
 }
 
 export function stop() {
   version += 1;
+
+  synth?.cancel();
 
   for (const request of requests) {
     request.abort();
@@ -121,6 +172,4 @@ export function stop() {
   }
 }
 
-export default Object.freeze(
-  Object.assign(speak, { stop })
-);
+export default Object.freeze(Object.assign(speak, { stop }));

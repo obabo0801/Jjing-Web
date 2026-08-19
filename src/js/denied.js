@@ -1,8 +1,8 @@
+import init from "#common/init";
 import i18n from "#common/i18n";
-import theme from "#common/theme";
 import access from "#src/access";
 
-theme();
+init();
 
 await access(false, "denied");
 await i18n();

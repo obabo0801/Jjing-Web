@@ -22,20 +22,20 @@ router.post("/", async (req, res) => {
   const ip = address(req);
 
   const user = id
-    ? await get(
-        "SELECT uid FROM user WHERE uid = ?",
-        [id]
-      )
+    ? await get("SELECT uid FROM user WHERE uid = ?", [id])
     : null;
 
   const blocked = user
-    ? await get(`
+    ? await get(
+        `
         SELECT 1
         FROM block
         WHERE uid = ?
           OR ip = ?
         LIMIT 1
-      `, [id, ip])
+      `,
+        [id, ip]
+      )
     : null;
 
   if (!user || blocked) {
@@ -48,9 +48,7 @@ router.post("/", async (req, res) => {
     return res.status(429).end();
   }
 
-  const text = typeof req.body.text === "string"
-    ? req.body.text.trim()
-    : "";
+  const text = typeof req.body.text === "string" ? req.body.text.trim() : "";
 
   if (!text) {
     return res.status(400).end();
@@ -60,25 +58,51 @@ router.post("/", async (req, res) => {
     return res.status(413).end();
   }
 
+  if (req.body.type === "browser") {
+    const voice =
+      typeof req.body.voice === "string" ? req.body.voice.trim() : "";
+
+    if ([...voice].length > 200) {
+      return res.status(400).end();
+    }
+
+    await record(id, text, voice || "default", "browser", now());
+
+    return res.status(204).end();
+  }
+
   const time = now();
 
   let result;
 
   try {
-    result = await synthesize({
-      text,
-      lang: req.body.lang,
-      pitch: req.body.pitch,
-      rate: req.body.rate,
-      voice: req.body.voice
-    }, id, time);
-  } catch {
+    result = await synthesize(
+      {
+        text,
+        lang: req.body.lang,
+        pitch: req.body.pitch,
+        rate: req.body.rate,
+        voice: req.body.voice
+      },
+      id,
+      time,
+      req.body.type
+    );
+  } catch (error) {
+    if (error?.code === "SQLITE_BUSY") {
+      throw error;
+    }
+
     return res.status(502).end();
   }
 
-  await record(
-    id, text, result.provider, time
-  );
+  if (!result) {
+    return res.status(503).end();
+  }
+
+  const type = result.cached ? "cache" : result.provider;
+
+  await record(id, text, result.voice, type, time);
 
   res.set({
     "Cache-Control": "private, no-store",

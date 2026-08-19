@@ -2,21 +2,18 @@ import { on } from "#common/event";
 import vibrate from "#common/vibrate";
 
 export function scrollable(node) {
-  let item = node instanceof Element
-    ? node
-    : null;
+  let item = node instanceof Element ? node : null;
 
   while (item && item !== document.body) {
-    if (
-      item instanceof HTMLElement &&
-      !item.hidden
-    ) {
+    if (item instanceof HTMLElement && !item.hidden) {
       const style = getComputedStyle(item);
 
-      const x = item.scrollWidth > item.clientWidth + 1 &&
+      const x =
+        item.scrollWidth > item.clientWidth + 1 &&
         ["auto", "scroll"].includes(style.overflowX);
 
-      const y = item.scrollHeight > item.clientHeight + 1 &&
+      const y =
+        item.scrollHeight > item.clientHeight + 1 &&
         ["auto", "scroll"].includes(style.overflowY);
 
       if (x || y) {
@@ -53,13 +50,18 @@ export default function scroll() {
 
   let last = bound();
 
-  on(window, "scroll", () => {
-    const current = bound();
+  on(
+    window,
+    "scroll",
+    () => {
+      const current = bound();
 
-    if (current && current !== last) {
-      vibrate.touch();
-    }
+      if (current && current !== last) {
+        vibrate.touch();
+      }
 
-    last = current;
-  }, { passive: true });
+      last = current;
+    },
+    { passive: true }
+  );
 }

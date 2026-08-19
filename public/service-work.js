@@ -3,7 +3,8 @@ const page = "/offline";
 
 const prepare = async (locale, payload) => {
   const response = await fetch(page, {
-    cache: "no-store", headers: { "x-pwa-cache": "true" }
+    cache: "no-store",
+    headers: { "x-pwa-cache": "true" }
   });
 
   if (!response.ok) {
@@ -14,9 +15,7 @@ const prepare = async (locale, payload) => {
 
   const files = new Set(
     [...html.matchAll(/\b(?:src|href)=["']([^"']+)["']/g)]
-      .map(([, file]) =>
-        new URL(file, self.location.origin)
-      )
+      .map(([, file]) => new URL(file, self.location.origin))
       .filter((url) => url.origin === self.location.origin)
       .map((url) => `${url.pathname}${url.search}`)
   );
@@ -28,9 +27,7 @@ const prepare = async (locale, payload) => {
       throw new Error();
     }
 
-    const response = await fetch(url, {
-      cache: "no-store"
-    });
+    const response = await fetch(url, { cache: "no-store" });
 
     if (!response.ok) {
       throw new Error();
@@ -68,9 +65,7 @@ const prepare = async (locale, payload) => {
 
       const file = `${url.pathname}${url.search}`;
 
-      if (
-        file.startsWith("/assets/") && !keep.has(file)
-      ) {
+      if (file.startsWith("/assets/") && !keep.has(file)) {
         return cache.delete(request);
       }
 
@@ -86,12 +81,10 @@ const open = () =>
     request.onupgradeneeded = () => {
       const database = request.result;
 
-      if (
-        !database.objectStoreNames
-          .contains("requests")
-      ) {
+      if (!database.objectStoreNames.contains("requests")) {
         database.createObjectStore("requests", {
-          keyPath: "id", autoIncrement: true
+          keyPath: "id",
+          autoIncrement: true
         });
       }
     };
@@ -109,8 +102,10 @@ const records = async () => {
   const database = await open();
 
   return new Promise((resolve, reject) => {
-    const request = database.transaction("requests")
-      .objectStore("requests").getAll();
+    const request = database
+      .transaction("requests")
+      .objectStore("requests")
+      .getAll();
 
     request.onsuccess = () => {
       resolve(request.result);
@@ -126,9 +121,7 @@ const remove = async (id) => {
   const database = await open();
 
   return new Promise((resolve, reject) => {
-    const transaction = database.transaction(
-      "requests", "readwrite"
-    );
+    const transaction = database.transaction("requests", "readwrite");
 
     transaction.objectStore("requests").delete(id);
 
@@ -183,19 +176,15 @@ self.addEventListener("fetch", (event) => {
     event.respondWith(
       fetch(request)
         .then(async (response) => {
-          const maintenance = response.headers
-            .get("x-maintenance") === "true";
+          const maintenance = response.headers.get("x-maintenance") === "true";
 
           if (response.status < 500 || maintenance) {
             return response;
           }
 
-          return await caches.match(page) || response;
+          return (await caches.match(page)) || response;
         })
-        .catch(async () =>
-          await caches.match(page) ||
-          Response.error()
-        )
+        .catch(async () => (await caches.match(page)) || Response.error())
     );
 
     return;
@@ -203,36 +192,30 @@ self.addEventListener("fetch", (event) => {
 
   if (url.pathname.startsWith("/api/")) {
     event.respondWith(
-      fetch(request).then(async (response) => {
-        if (response.ok) {
-          const cache = await caches.open(offline);
+      fetch(request)
+        .then(async (response) => {
+          if (response.ok) {
+            const cache = await caches.open(offline);
 
-          await cache.put(
-            request, response.clone()
-          );
+            await cache.put(request, response.clone());
+
+            return response;
+          }
+
+          if (response.status >= 500) {
+            return (await caches.match(request)) || response;
+          }
 
           return response;
-        }
-
-        if (response.status >= 500) {
-          return await caches.match(request) ||
-            response;
-        }
-
-        return response;
-      })
-      .catch(async () =>
-        await caches.match(request) ||
-        Response.error()
-      ));
+        })
+        .catch(async () => (await caches.match(request)) || Response.error())
+    );
 
     return;
   }
 
   event.respondWith(
-    caches.match(request).then(
-      (response) => response || fetch(request)
-    )
+    caches.match(request).then((response) => response || fetch(request))
   );
 });
 
@@ -248,9 +231,7 @@ self.addEventListener("message", (event) => {
   }
 
   if (event.data?.type === "offline") {
-    event.waitUntil(
-      prepare(event.data.locale, event.data.payload)
-    );
+    event.waitUntil(prepare(event.data.locale, event.data.payload));
   }
 });
 

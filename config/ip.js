@@ -1,7 +1,6 @@
 export default (req) => {
-  const ip = req.get("x-real-ip") || req.ip;
+  const ip =
+    req.get("x-vercel-forwarded-for") || req.get("x-real-ip") || req.ip || "";
 
-  return ip.startsWith("::ffff:")
-    ? ip.slice(7)
-    : ip;
+  return ip.replace(/^::ffff:|,.*/g, "").trim();
 };

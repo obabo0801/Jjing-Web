@@ -1,9 +1,7 @@
 import { isPage } from "#page";
 import { unavailable } from "#maintenance";
 
-export default function error(
-  error, req, res, next
-) {
+export default function error(error, req, res, next) {
   if (error?.code !== "SQLITE_BUSY") {
     return next(error);
   }

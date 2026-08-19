@@ -32,19 +32,16 @@ function selected() {
     active instanceof HTMLInputElement ||
     active instanceof HTMLTextAreaElement
   ) {
-    return active.selectionStart !==
-      active.selectionEnd;
+    return active.selectionStart !== active.selectionEnd;
   }
 
   return false;
 }
 
 function direction(x, y) {
-  const angle = Math.atan2(y, x) /
-    (Math.PI / 4);
+  const angle = Math.atan2(y, x) / (Math.PI / 4);
 
-  const index =
-    (Math.round(angle) + 8) % 8;
+  const index = (Math.round(angle) + 8) % 8;
 
   return arrows[index];
 }
@@ -67,26 +64,19 @@ function trigger(x, y, event) {
   const value = direction(x, y);
 
   items
-    .filter(item => item.direction === value)
-    .forEach(item => item.run(event));
+    .filter((item) => item.direction === value)
+    .forEach((item) => item.run(event));
 }
 
 function start(event) {
-  if (
-    event.touches.length !== 1 ||
-    selected()
-  ) {
+  if (event.touches.length !== 1 || selected()) {
     point = null;
     return;
   }
 
   const touch = event.touches[0];
 
-  point = {
-    id: touch.identifier,
-    x: touch.clientX,
-    y: touch.clientY
-  };
+  point = { id: touch.identifier, x: touch.clientX, y: touch.clientY };
 }
 
 function end(event) {
@@ -96,7 +86,7 @@ function end(event) {
   }
 
   const touch = [...event.changedTouches].find(
-    item => item.identifier === point.id
+    (item) => item.identifier === point.id
   );
 
   if (!touch) {
@@ -138,19 +128,16 @@ function unwatch() {
     return;
   }
 
-  stop.forEach(run => run());
+  stop.forEach((run) => run());
 
   stop = [];
   point = null;
 }
 
 export default function swipe(value, run) {
-  const key = String(value)
-    .trim()
-    .toLowerCase();
+  const key = String(value).trim().toLowerCase();
 
-  const dir = directions[key] ??
-    (arrows.includes(key) ? key : null);
+  const dir = directions[key] ?? (arrows.includes(key) ? key : null);
 
   if (!dir || typeof run !== "function") {
     return () => {};

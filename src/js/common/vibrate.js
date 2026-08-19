@@ -7,17 +7,10 @@ function values(value) {
   if (typeof value === "string") {
     const pattern = patterns[value] || [];
 
-    return pattern
-      .flatMap(([, duration, gap]) => [
-        duration,
-        gap
-      ])
-      .slice(0, -1);
+    return pattern.flatMap(([, duration, gap]) => [duration, gap]).slice(0, -1);
   }
 
-  const pattern = Array.isArray(value)
-    ? value
-    : [value];
+  const pattern = Array.isArray(value) ? value : [value];
 
   return pattern.map((duration) => {
     const number = Number(duration);
@@ -38,10 +31,7 @@ function windows(track, now) {
     const end = start + duration;
 
     if (index % 2 === 0 && end > now) {
-      result.push([
-        Math.max(start, now),
-        end
-      ]);
+      result.push([Math.max(start, now), end]);
     }
 
     start = end;
@@ -74,9 +64,7 @@ function render() {
 
   tracks = tracks.filter(({ end }) => end > now);
 
-  const items = tracks.flatMap((track) =>
-    windows(track, now)
-  );
+  const items = tracks.flatMap((track) => windows(track, now));
 
   const pattern = [];
   let cursor = now;
@@ -97,9 +85,7 @@ function render() {
   }
 
   navigator.vibrate(
-    pattern.map((duration) =>
-      Math.max(0, Math.round(duration))
-    )
+    pattern.map((duration) => Math.max(0, Math.round(duration)))
   );
 
   clearTimeout(timer);
@@ -108,9 +94,7 @@ function render() {
     return;
   }
 
-  const end = Math.max(
-    ...tracks.map((track) => track.end)
-  );
+  const end = Math.max(...tracks.map((track) => track.end));
 
   timer = setTimeout(() => {
     tracks = [];
@@ -118,10 +102,7 @@ function render() {
 }
 
 export function play(value = 50) {
-  if (
-    typeof navigator === "undefined" ||
-    !("vibrate" in navigator)
-  ) {
+  if (typeof navigator === "undefined" || !("vibrate" in navigator)) {
     return false;
   }
 
@@ -132,16 +113,9 @@ export function play(value = 50) {
   }
 
   const start = performance.now();
-  const length = pattern.reduce(
-    (total, duration) => total + duration,
-    0
-  );
+  const length = pattern.reduce((total, duration) => total + duration, 0);
 
-  tracks.push({
-    pattern,
-    start,
-    end: start + length
-  });
+  tracks.push({ pattern, start, end: start + length });
 
   render();
 
@@ -153,10 +127,7 @@ export function stop() {
 
   clearTimeout(timer);
 
-  if (
-    typeof navigator === "undefined" ||
-    !("vibrate" in navigator)
-  ) {
+  if (typeof navigator === "undefined" || !("vibrate" in navigator)) {
     return false;
   }
 
@@ -164,14 +135,7 @@ export function stop() {
 }
 
 const methods = Object.fromEntries(
-  Object.keys(patterns).map((name) => [
-    name,
-    () => play(name)
-  ])
+  Object.keys(patterns).map((name) => [name, () => play(name)])
 );
 
-export default Object.freeze({
-  play,
-  stop,
-  ...methods
-});
+export default Object.freeze({ play, stop, ...methods });
