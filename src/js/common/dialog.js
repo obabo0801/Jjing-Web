@@ -1,4 +1,9 @@
+import { add, back } from "#common/back";
+
 const bound = new WeakSet();
+const backs = new WeakMap();
+
+const native = !("CloseWatcher" in window);
 
 export default function bind(dialog, { backdrop = true } = {}) {
   if (!(dialog instanceof HTMLDialogElement)) {
@@ -6,6 +11,10 @@ export default function bind(dialog, { backdrop = true } = {}) {
   }
 
   dialog.setAttribute("data-backdrop", String(backdrop));
+
+  if (!native) {
+    dialog.setAttribute("closedby", "none");
+  }
 
   if (bound.has(dialog)) {
     return dialog;
@@ -19,6 +28,7 @@ export default function bind(dialog, { backdrop = true } = {}) {
     }
 
     const box = dialog.getBoundingClientRect();
+
     const outside =
       event.clientX < box.left ||
       event.clientX > box.right ||
@@ -28,6 +38,21 @@ export default function bind(dialog, { backdrop = true } = {}) {
     if (outside) {
       dialog.close("cancel");
     }
+  });
+
+  dialog.addEventListener("cancel", (event) => {
+    if (!native) {
+      return;
+    }
+
+    event.preventDefault();
+
+    back().catch(() => {});
+  });
+
+  dialog.addEventListener("close", () => {
+    backs.get(dialog)?.();
+    backs.delete(dialog);
   });
 
   bound.add(dialog);
@@ -40,7 +65,19 @@ export const show = (dialog, options) => {
     return false;
   }
 
+  backs.get(dialog)?.();
+  backs.delete(dialog);
+
   dialog.showModal();
+
+  backs.set(
+    dialog,
+    add(() => {
+      if (dialog.open) {
+        dialog.close("cancel");
+      }
+    })
+  );
 
   return true;
 };

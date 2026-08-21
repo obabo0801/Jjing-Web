@@ -3,48 +3,65 @@ const stack = [];
 let watcher = null;
 let moving = false;
 
-export function watch() {
-  if (watcher || !("CloseWatcher" in window)) {
+const arm = () => {
+  watcher?.destroy();
+  watcher = null;
+
+  if (!stack.length || !("CloseWatcher" in window)) {
     return;
   }
 
   watcher = new CloseWatcher();
 
-  watcher.addEventListener("cancel", (event) => {
-    if (event.cancelable) {
-      event.preventDefault();
-    }
+  watcher.addEventListener(
+    "close",
+    () => {
+      watcher = null;
 
-    back().catch(console.error);
-  });
+      back().catch(console.error);
+    },
+    { once: true }
+  );
+};
 
-  watcher.addEventListener("close", () => {
-    watcher = null;
+const drop = (entry) => {
+  const index = stack.lastIndexOf(entry);
 
-    queueMicrotask(watch);
-  });
-}
+  if (index < 0) {
+    return false;
+  }
+
+  const top = index === stack.length - 1;
+
+  stack.splice(index, 1);
+
+  if (top && !moving) {
+    arm();
+  }
+
+  return true;
+};
 
 export function add(run) {
   if (typeof run !== "function") {
     return () => {};
   }
 
-  stack.push(run);
+  const entry = { run };
 
-  return () => remove(run);
+  stack.push(entry);
+
+  if (!moving) {
+    arm();
+  }
+
+  return () => drop(entry);
 }
 
 export function remove(run) {
-  const index = stack.lastIndexOf(run);
+  const entry = [...stack].reverse().find((item) => item.run === run);
 
-  if (index < 0) {
-    return false;
-  }
-
-  stack.splice(index, 1);
-
-  return true;
+  return entry ? drop(entry) : false;
 }
 
 export async function back() {
@@ -52,18 +69,22 @@ export async function back() {
     return true;
   }
 
-  const run = stack.pop();
+  const entry = stack.pop();
 
-  if (!run) {
+  if (!entry) {
     return false;
   }
 
+  watcher?.destroy();
+  watcher = null;
   moving = true;
 
   try {
-    await run();
+    await entry.run();
   } finally {
     moving = false;
+
+    arm();
   }
 
   return true;
@@ -71,6 +92,9 @@ export async function back() {
 
 export function clear() {
   stack.length = 0;
+
+  watcher?.destroy();
+  watcher = null;
 }
 
 export function has() {

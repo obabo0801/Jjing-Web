@@ -1,4 +1,5 @@
 import { on } from "#common/event";
+import { speak } from "#common/tts";
 import recognize, { stop as stopVoice } from "#common/voice";
 
 const create = (name, className) => {
@@ -69,10 +70,10 @@ export default function load() {
 
     if (result) {
       apply(result);
-      return;
     }
 
     input.blur();
+    await speak(input.value);
   });
 
   on(voice, "click", async () => {

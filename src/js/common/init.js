@@ -6,7 +6,6 @@ import range from "#common/range";
 import scroll from "#common/scroll";
 import dialog from "#common/dialog";
 import { all } from "#common/query";
-import { watch } from "#common/back";
 import { bind as drag } from "#common/drag";
 
 export default function init() {
@@ -17,6 +16,5 @@ export default function init() {
   range();
   scroll();
   all(".dialog").forEach((item) => dialog(item));
-  watch();
   drag();
 }
