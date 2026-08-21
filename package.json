@@ -8,6 +8,7 @@
     "#middleware/*": "./middleware/*.js",
     "#router/*": "./router/*.js",
     "#src/*": "./src/js/*.js",
+    "#ui/*": "./src/js/ui/*.js",
     "#block": "./middleware/block.js",
     "#maintenance": "./middleware/maintenance.js",
     "#page": "./middleware/page.js",

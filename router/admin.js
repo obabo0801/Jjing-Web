@@ -23,7 +23,10 @@ router.post("/", async (req, res) => {
 
   const value = typeof req.body.url === "string" ? req.body.url.trim() : "";
 
-  const url = value.startsWith("/") && !value.startsWith("//") ? value : "/";
+  const url =
+    value.startsWith("/") && !value.startsWith("//") && !value.includes("\\")
+      ? value
+      : "/";
 
   if (!title) {
     return res.status(400).end();

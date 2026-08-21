@@ -174,17 +174,9 @@ self.addEventListener("fetch", (event) => {
 
   if (request.mode === "navigate") {
     event.respondWith(
-      fetch(request)
-        .then(async (response) => {
-          const maintenance = response.headers.get("x-maintenance") === "true";
-
-          if (response.status < 500 || maintenance) {
-            return response;
-          }
-
-          return (await caches.match(page)) || response;
-        })
-        .catch(async () => (await caches.match(page)) || Response.error())
+      fetch(request).catch(
+        async () => (await caches.match(page)) || Response.error()
+      )
     );
 
     return;
@@ -200,10 +192,6 @@ self.addEventListener("fetch", (event) => {
             await cache.put(request, response.clone());
 
             return response;
-          }
-
-          if (response.status >= 500) {
-            return (await caches.match(request)) || response;
           }
 
           return response;

@@ -5,9 +5,9 @@ button {
   gap: 8px;
 
   min-height: 40px;
-  padding: 16px;
-  border: 2px solid var(--border);
-  border-radius: 12px;
+  padding: 0 var(--space-4);
+  border: 0;
+  border-radius: var(--radius);
 
   background: transparent;
   color: inherit;
@@ -23,8 +23,20 @@ button {
     transform 100ms;
 }
 
+button[data-circle] {
+  width: var(--button-size);
+  height: var(--button-size);
+  padding: 0;
+  border-radius: var(--round);
+}
+
 button[data-background] {
   background: var(--surface);
+}
+
+button[data-confirm] {
+  background: var(--focus);
+  color: var(--thumb);
 }
 
 button[data-shadow] {
@@ -33,35 +45,29 @@ button[data-shadow] {
 
 button:disabled {
   cursor: default;
-  opacity: 0.4;
+  opacity: 0.5;
 }
 
 button:focus-visible {
   outline: 2px solid var(--focus);
-  outline-offset: -2px;
+  outline-offset: 2px;
 }
 
-button[data-background]:enabled:active {
+button:is([data-background], [data-confirm]):enabled:active {
   background-image: linear-gradient(var(--pointer), var(--pointer));
 }
 
 button[data-opacity]:enabled:active {
-  &,
-  & > * {
-    opacity: 0.6;
-  }
+  opacity: 0.6;
 }
 
 @media (hover: hover) and (pointer: fine) {
-  button[data-background]:enabled:hover {
+  button:is([data-background], [data-confirm]):enabled:hover {
     background-image: linear-gradient(var(--pointer), var(--pointer));
   }
 
   button[data-opacity]:enabled:hover {
-    &,
-    & > * {
-      opacity: 0.6;
-    }
+    opacity: 0.6;
   }
 }
 

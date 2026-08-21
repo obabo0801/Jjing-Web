@@ -1,14 +1,14 @@
 :root {
   color-scheme: light dark;
 
-  --background: light-dark(#ffffff, #111111);
-  --canvas: light-dark(#ffffff, #111111);
+  --background: light-dark(#ffffff, #181818);
+  --canvas: light-dark(#ffffff, #181818);
   --surface: light-dark(#ffffff, #181818);
-  --text: light-dark(#111111, #ffffff);
+  --text: light-dark(#181818, #eeeeee);
   --muted: light-dark(#6e6e6e, #a0a0a0);
   --border: light-dark(rgb(0 0 0 / 12%), rgb(255 255 255 / 14%));
 
-  --shadow: 0 4px 16px light-dark(rgb(0 0 0 / 16%), rgb(0 0 0 / 64%));
+  --shadow: 0 4px 16px rgb(0 0 0 / 16%);
 
   --thumb: #ffffff;
 
@@ -16,7 +16,7 @@
 
   --hover: light-dark(#181818, #ffffff);
 
-  --pointer: color-mix(in srgb, var(--hover) 10%, transparent);
+  --pointer: color-mix(in srgb, var(--hover) 20%, transparent);
 
   --error: #ff453a;
   --success: #34c759;
@@ -38,6 +38,10 @@ html,
 body {
   background-color: var(--background);
   color: var(--text);
+
+  transition:
+    background-color var(--duration-2) ease,
+    color var(--duration-2) ease;
 }
 
 html[data-changing],
@@ -55,6 +59,11 @@ html[data-changing] *::after {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  html,
+  body {
+    transition: none;
+  }
+
   ::view-transition-old(root),
   ::view-transition-new(root) {
     animation: none;

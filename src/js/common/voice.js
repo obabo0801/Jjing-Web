@@ -3,7 +3,13 @@ import { stt as route } from "#config/route";
 import root from "#common/root";
 import { on } from "#common/event";
 import { context } from "#common/audio";
+import { show } from "#common/dialog";
+import { message } from "#common/i18n";
+import overlay from "#common/overlay";
+import sound from "#common/sound";
 import device from "#common/device";
+
+import permissionView, { confirm as permissionConfirm } from "#ui/dialog";
 
 const SpeechRecognition =
   window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -11,6 +17,9 @@ const SpeechRecognition =
 const regions = { en: "en-US", ja: "ja-JP", ko: "ko-KR" };
 
 let cloud;
+let current;
+
+const views = new WeakMap();
 
 const language = () => {
   const value = root.lang || navigator.language || "ko";
@@ -122,7 +131,7 @@ const analyze = async (blob) => {
   }
 };
 
-const upload = async (blob, lang, text, pitch) => {
+const upload = async (blob, lang, text, pitch, signal) => {
   if (!blob?.size) {
     return { text, confidence: null };
   }
@@ -133,8 +142,13 @@ const upload = async (blob, lang, text, pitch) => {
       "Content-Type": blob.type || "audio/webm",
       "X-STT-Meta": encode({ lang, text, pitch })
     },
-    body: blob
+    body: blob,
+    signal
   });
+
+  if (response.status === 204) {
+    return { text, confidence: null };
+  }
 
   if (!response.ok) {
     return { text, confidence: null };
@@ -151,6 +165,14 @@ const upload = async (blob, lang, text, pitch) => {
     return { text, confidence: null };
   }
 };
+
+const report = (lang, text, signal) =>
+  fetch(`/api${route}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ lang, text }),
+    signal
+  }).catch(() => null);
 
 const record = (stream) => {
   const chunks = [];
@@ -178,53 +200,344 @@ const record = (stream) => {
   return { recorder, done };
 };
 
-const listen = (lang, stream) => {
+const listen = (lang, stream, target, signal, keep = false) => {
   const recognition = new SpeechRecognition();
 
   recognition.lang = lang;
-  recognition.continuous = false;
+  recognition.continuous = keep;
   recognition.interimResults = false;
   recognition.maxAlternatives = 1;
 
+  const track = stream?.getAudioTracks()[0];
+
   let text = "";
   let confidence = 0;
+  let stopVoice = () => {};
+  let stopped = false;
+  let settled = false;
+  let shown = false;
+  let off = () => {};
+  let resolveDone;
 
   const done = new Promise((resolve) => {
-    on(recognition, "result", (event) => {
-      const result = event.results[event.resultIndex];
-      const item = result?.[0];
+    resolveDone = resolve;
+  });
 
-      if (!item) {
+  const finish = () => {
+    if (settled) {
+      return;
+    }
+
+    settled = true;
+
+    off();
+    stopVoice();
+
+    resolveDone({ text, confidence });
+  };
+
+  const start = () => {
+    if (stopped || signal?.aborted) {
+      return;
+    }
+
+    try {
+      recognition.start();
+    } catch {
+      finish();
+    }
+  };
+
+  on(recognition, "result", (event) => {
+    const result = event.results[event.resultIndex];
+    const item = result?.[0];
+
+    if (!item) {
+      return;
+    }
+
+    const value = item.transcript.trim();
+
+    if (!value) {
+      return;
+    }
+
+    if (!text || value.startsWith(text)) {
+      text = value;
+    } else if (!text.startsWith(value) && !text.endsWith(value)) {
+      text = `${text} ${value}`.trim();
+    }
+
+    confidence = Number(item.confidence) || 0;
+  });
+
+  on(recognition, "start", () => {
+    if (shown || stream) {
+      return;
+    }
+
+    shown = true;
+    stopVoice = active(target, stream);
+  });
+
+  on(recognition, "error", (event) => {
+    if (keep && event.error === "no-speech" && !stopped && !signal?.aborted) {
+      return;
+    }
+
+    stopped = true;
+    finish();
+  });
+
+  on(recognition, "end", () => {
+    if (keep && !stopped && !signal?.aborted) {
+      setTimeout(start, 0);
+      return;
+    }
+
+    finish();
+  });
+
+  off = on(
+    signal,
+    "abort",
+    () => {
+      stopped = true;
+
+      try {
+        recognition.abort();
+      } catch {}
+
+      finish();
+    },
+    { once: true }
+  );
+
+  start();
+
+  return {
+    done,
+    stop: () => {
+      if (stopped) {
         return;
       }
 
-      text = item.transcript.trim();
-      confidence = Number(item.confidence) || 0;
-    });
+      stopped = true;
 
-    const finish = () => resolve({ text, confidence });
-
-    on(recognition, "end", finish, { once: true });
-    on(recognition, "error", finish, { once: true });
-  });
-
-  const track = stream?.getAudioTracks()[0];
-
-  try {
-    track ? recognition.start(track) : recognition.start();
-  } catch {
-    recognition.start();
-  }
-
-  return done;
+      try {
+        recognition.stop();
+      } catch {
+        finish();
+      }
+    }
+  };
 };
 
-const silence = (stream) =>
+export const meter = (stream, callback) => {
+  const audio = context();
+
+  if (!audio) {
+    return () => {};
+  }
+
+  const source = audio.createMediaStreamSource(stream);
+  const analyser = audio.createAnalyser();
+
+  analyser.fftSize = 1024;
+  source.connect(analyser);
+
+  const data = new Uint8Array(analyser.fftSize);
+
+  let frame;
+
+  const check = () => {
+    analyser.getByteTimeDomainData(data);
+
+    let power = 0;
+    let count = 0;
+
+    for (let i = 0; i < data.length; i += 4) {
+      const value = (data[i] - 128) / 128;
+
+      power += value ** 2;
+      count += 1;
+    }
+
+    const level = count ? Math.sqrt(power / count) : 0;
+
+    callback(level);
+
+    frame = requestAnimationFrame(check);
+  };
+
+  frame = requestAnimationFrame(check);
+
+  return () => {
+    cancelAnimationFrame(frame);
+    source.disconnect();
+  };
+};
+
+const surface = (target) => {
+  if (!(target instanceof Element)) {
+    return null;
+  }
+
+  const control =
+    target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement;
+
+  return control
+    ? target.closest(".search") || target.closest(".input") || target
+    : target;
+};
+
+const status = (target, name) => {
+  if (
+    target instanceof HTMLInputElement ||
+    target instanceof HTMLTextAreaElement
+  ) {
+    target.placeholder = message(name);
+  }
+};
+
+const display = (target) => {
+  const element = surface(target);
+
+  if (!element) {
+    return () => {};
+  }
+
+  const control =
+    target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement;
+  const action = element.querySelector(".voice");
+  const view = {};
+  const original = control
+    ? {
+        value: target.value,
+        placeholder: target.placeholder,
+        readOnly: target.readOnly
+      }
+    : null;
+
+  views.set(element, view);
+  element.setAttribute("data-voice", "");
+  action?.setAttribute("data-icon", "wave");
+
+  if (control) {
+    target.value = "";
+    status(target, "voice.listening");
+    target.readOnly = true;
+  }
+
+  return () => {
+    if (views.get(element) !== view) {
+      return;
+    }
+
+    views.delete(element);
+    action?.setAttribute("data-icon", "voice");
+    element.removeAttribute("data-voice");
+
+    if (control) {
+      target.value = original.value;
+      target.placeholder = original.placeholder;
+      target.readOnly = original.readOnly;
+      target.dispatchEvent(new Event("input", { bubbles: true }));
+    }
+  };
+};
+
+const active = (target, stream) => {
+  overlay.close();
+  sound.send();
+
+  const stopDisplay = display(target);
+
+  const element = surface(target);
+
+  if (!element) {
+    return stopDisplay;
+  }
+
+  const visual = element.querySelector(".input") || element;
+
+  const ping = visual.animate(
+    [{ outlineOffset: "-2px" }, { outlineOffset: "6px" }],
+    { duration: 1000, fill: "both" }
+  );
+
+  ping.pause();
+
+  let value = 0;
+
+  const stopMeter = stream
+    ? meter(stream, (level) => {
+        const next = Math.min(Math.max((level - 0.02) * 125, 0), 1000);
+
+        value += (next - value) * 0.15;
+
+        ping.currentTime = value;
+      })
+    : () => {};
+
+  let stopped = false;
+
+  return () => {
+    if (stopped) {
+      return;
+    }
+
+    stopped = true;
+
+    stopMeter();
+
+    const offset = getComputedStyle(visual).outlineOffset;
+
+    ping.cancel();
+
+    visual.animate(
+      [
+        { outlineColor: "var(--active)", outlineOffset: offset },
+        { outlineColor: "transparent", outlineOffset: "-6px" }
+      ],
+      { duration: 220, easing: "ease-in" }
+    );
+
+    stopDisplay();
+  };
+};
+
+const silence = (stream, signal, stop) =>
   new Promise((resolve) => {
     const audio = context();
 
     if (!audio) {
-      setTimeout(resolve, 5000);
+      let off = () => {};
+      let stopOff = () => {};
+      let timer;
+      let settled = false;
+
+      const done = (spoken = false) => {
+        if (settled) {
+          return;
+        }
+
+        settled = true;
+        clearTimeout(timer);
+        off();
+        stopOff();
+        resolve(spoken);
+      };
+
+      timer = setTimeout(() => done(true), 5000);
+
+      off = on(signal, "abort", () => done(false), { once: true });
+      stopOff = on(stop, "abort", () => done(false), { once: true });
+
+      if (stop?.aborted) {
+        done();
+      }
+
       return;
     }
 
@@ -240,12 +553,32 @@ const silence = (stream) =>
     let spoken = false;
     let quiet = start;
     let frame;
+    let stopped = false;
+    let off = () => {};
+    let stopOff = () => {};
 
     const done = () => {
+      if (stopped) {
+        return;
+      }
+
+      stopped = true;
+
       cancelAnimationFrame(frame);
+      off();
+      stopOff();
       source.disconnect();
-      resolve();
+
+      resolve(spoken);
     };
+
+    off = on(signal, "abort", done, { once: true });
+    stopOff = on(stop, "abort", done, { once: true });
+
+    if (stop?.aborted) {
+      done();
+      return;
+    }
 
     const check = (time) => {
       analyser.getByteTimeDomainData(data);
@@ -268,9 +601,9 @@ const silence = (stream) =>
       }
 
       if (
-        (spoken && time - quiet >= 900) ||
+        (spoken && time - quiet >= 1200) ||
         (!spoken && time - start >= 5000) ||
-        time - start >= 15000
+        time - start >= 60_000
       ) {
         done();
         return;
@@ -282,35 +615,68 @@ const silence = (stream) =>
     frame = requestAnimationFrame(check);
   });
 
-const native = async (lang) => {
+const native = async (lang, target, signal, stop) => {
   if (!SpeechRecognition) {
     return { text: "", confidence: 0 };
   }
 
-  return listen(lang);
-};
+  const heard = listen(lang, null, target, signal);
+  const off = on(stop, "abort", heard.stop, { once: true });
 
-const desktop = async (lang, deviceId) => {
-  const stream = await microphone(deviceId);
+  if (stop.aborted) {
+    heard.stop();
+  }
 
   try {
+    return await heard.done;
+  } finally {
+    off();
+  }
+};
+
+const desktop = async (lang, deviceId, target, signal, stop) => {
+  const stream = await microphone(deviceId);
+
+  let stopVoice = () => {};
+
+  try {
+    if (signal.aborted || stop.aborted) {
+      return { text: "", confidence: 0 };
+    }
+
+    stopVoice = active(target, stream);
+
     const saved = record(stream);
-    const heard = await listen(lang, stream);
+
+    const heard = listen(lang, stream, target, signal, true);
+
+    const spoken = await silence(stream, signal, stop);
+
+    heard.stop();
 
     if (saved.recorder.state !== "inactive") {
       saved.recorder.stop();
     }
 
-    const blob = await saved.done;
+    const [blob, recognized] = await Promise.all([saved.done, heard.done]);
+
+    if (signal.aborted || (!spoken && !recognized.text)) {
+      return { text: "", confidence: 0 };
+    }
+
+    status(target, "voice.processing");
+
     const pitch = await analyze(blob);
 
-    const result = await upload(blob, lang, heard.text, pitch);
+    const result = await upload(blob, lang, recognized.text, pitch, signal);
 
     return {
       text: result.text,
-      confidence: result.confidence ?? heard.confidence
+      confidence: result.confidence ?? recognized.confidence
     };
   } finally {
+    stopVoice();
+
     stream.getTracks().forEach((track) => track.stop());
   }
 };
@@ -327,29 +693,179 @@ export const microphones = async () => {
     .map((item) => ({ id: item.deviceId, name: item.label }));
 };
 
+export const stop = () => {
+  if (!current) {
+    return null;
+  }
+
+  current.stop();
+
+  return current.done;
+};
+
 const microphone = (deviceId) =>
   navigator.mediaDevices.getUserMedia({
     audio: deviceId ? { deviceId: { exact: deviceId } } : true
   });
 
-const remote = async (lang, deviceId) => {
-  const stream = await microphone(deviceId);
+const permission = async () => {
+  try {
+    return await navigator.permissions?.query({ name: "microphone" });
+  } catch {
+    return null;
+  }
+};
+
+const waitPermission = async (deviceId, signal, stop) => {
+  const item = permissionView;
+  const confirm = permissionConfirm;
+
+  if (!item || !confirm) {
+    return false;
+  }
+
+  show(item, { backdrop: false });
+
+  const access = await permission();
+
+  return new Promise((resolve) => {
+    let checking = false;
+    let settled = false;
+    let offCancel = () => {};
+    let offConfirm = () => {};
+    let offAccess = () => {};
+    let offFocus = () => {};
+    let offSignal = () => {};
+    let offStop = () => {};
+
+    const finish = (value) => {
+      if (settled) {
+        return;
+      }
+
+      settled = true;
+      offCancel();
+      offConfirm();
+      offAccess();
+      offFocus();
+      offSignal();
+      offStop();
+
+      if (item.open) {
+        item.close();
+      }
+
+      resolve(value);
+    };
+
+    const check = async () => {
+      if (checking || settled) {
+        return;
+      }
+
+      checking = true;
+
+      try {
+        const state = await permission();
+
+        if (state && state.state !== "granted") {
+          return;
+        }
+
+        const stream = await microphone(deviceId);
+
+        stream.getTracks().forEach((track) => track.stop());
+        finish(true);
+      } catch {
+      } finally {
+        checking = false;
+      }
+    };
+
+    offCancel = on(item, "cancel", (event) => event.preventDefault());
+    offConfirm = on(confirm, "click", () => finish(false));
+    offAccess = on(access, "change", () => check());
+    offFocus = on(window, "focus", () => check());
+    offSignal = on(signal, "abort", () => finish(false), { once: true });
+    offStop = on(stop, "abort", () => finish(false), { once: true });
+
+    if (signal.aborted || stop.aborted) {
+      finish(false);
+    } else if (access?.state === "granted") {
+      check();
+    }
+  });
+};
+
+const authorize = async (deviceId, signal, stop) => {
+  const access = await permission();
+
+  if (access?.state === "granted") {
+    return true;
+  }
+
+  if (!access || access.state === "prompt") {
+    overlay.open();
+  }
 
   try {
+    const stream = await microphone(deviceId);
+
+    stream.getTracks().forEach((track) => track.stop());
+
+    return !signal.aborted && !stop.aborted;
+  } catch (error) {
+    overlay.close();
+
+    if (
+      error?.name !== "NotAllowedError" &&
+      error?.name !== "PermissionDeniedError"
+    ) {
+      return false;
+    }
+
+    return waitPermission(deviceId, signal, stop);
+  } finally {
+    overlay.close();
+  }
+};
+
+const remote = async (lang, deviceId, target, signal, stop) => {
+  const stream = await microphone(deviceId);
+
+  let stopVoice = () => {};
+
+  try {
+    if (signal.aborted || stop.aborted) {
+      return { text: "", confidence: 0 };
+    }
+
     const saved = record(stream);
 
-    await silence(stream);
+    stopVoice = active(target, stream);
+
+    const spoken = await silence(stream, signal, stop);
 
     if (saved.recorder.state !== "inactive") {
       saved.recorder.stop();
     }
 
     const blob = await saved.done;
+
+    if (signal.aborted || !spoken) {
+      return { text: "", confidence: 0 };
+    }
+
+    status(target, "voice.processing");
+
     const pitch = await analyze(blob);
-    const result = await upload(blob, lang, "", pitch);
+
+    const result = await upload(blob, lang, "", pitch, signal);
 
     return { text: result.text, confidence: result.confidence ?? 0 };
   } finally {
+    stopVoice();
+
     stream.getTracks().forEach((track) => track.stop());
   }
 };
@@ -368,17 +884,65 @@ const match = (text, keywords, lang) => {
   });
 };
 
-export default async function voice(keywords, deviceId) {
-  const lang = language();
-  const base = lang.split("-")[0];
+export default async function voice(keywords, options = {}) {
+  if (options instanceof Element) {
+    options = { target: options };
+  } else if (typeof options === "string") {
+    options = { deviceId: options };
+  }
 
-  const words = Array.isArray(keywords)
-    ? keywords
-    : keywords[lang] || keywords[base] || [];
+  if (current) {
+    current.stop();
 
-  const state = device();
+    return current.done;
+  }
+
+  const controller = new AbortController();
+  const stopper = new AbortController();
+  const { signal } = controller;
+  const stop = stopper.signal;
+
+  let finish;
+  let output = { action: "none" };
+
+  const done = new Promise((resolve) => {
+    finish = resolve;
+  });
+
+  current = {
+    stop: () => {
+      if (stopper.signal.aborted) {
+        controller.abort();
+        return;
+      }
+
+      stopper.abort();
+    },
+    done
+  };
+
+  const complete = (value) => {
+    output = value;
+
+    return value;
+  };
 
   try {
+    const { deviceId, target } = options;
+
+    if (!(await authorize(deviceId, signal, stop))) {
+      return complete({ action: "none" });
+    }
+
+    const lang = language();
+    const base = lang.split("-")[0];
+
+    const words = Array.isArray(keywords)
+      ? keywords
+      : keywords[lang] || keywords[base] || [];
+
+    const state = device();
+
     let result;
 
     if (
@@ -387,30 +951,49 @@ export default async function voice(keywords, deviceId) {
       window.MediaRecorder &&
       navigator.mediaDevices?.getUserMedia
     ) {
-      result = await desktop(lang, deviceId);
+      result = await desktop(lang, deviceId, target, signal, stop);
     } else if (
       (await available()) &&
       window.MediaRecorder &&
       navigator.mediaDevices?.getUserMedia
     ) {
-      result = await remote(lang, deviceId);
+      result = await remote(lang, deviceId, target, signal, stop);
     } else {
-      result = await native(lang);
+      result = await native(lang, target, signal, stop);
+
+      if (result.text) {
+        await report(lang, result.text, signal);
+      }
+    }
+
+    if (signal.aborted) {
+      return complete({ action: "none" });
     }
 
     if (!result.text) {
-      return { action: "none" };
+      sound.fail();
+
+      return complete({ action: "none" });
     }
 
-    if (!match(result.text, words, lang)) {
-      return { action: "none" };
+    sound.success();
+
+    if (words.length && !match(result.text, words, lang)) {
+      return complete({ action: "none" });
     }
 
-    return {
-      action: result.confidence >= 0.8 ? "run" : "ask",
+    return complete({
+      action: !words.length || result.confidence >= 0.8 ? "run" : "ask",
       text: result.text
-    };
+    });
   } catch {
-    return { action: "none" };
+    return complete({ action: "none" });
+  } finally {
+    overlay.close();
+    finish(output);
+
+    if (current?.done === done) {
+      current = undefined;
+    }
   }
 }

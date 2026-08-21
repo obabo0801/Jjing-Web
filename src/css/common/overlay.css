@@ -1,0 +1,44 @@
+.overlay {
+  width: var(--button-size);
+  height: var(--button-size);
+  margin: auto;
+  padding: 0;
+  overflow: visible;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--focus);
+}
+
+.overlay::backdrop {
+  background: rgb(0 0 0 / 24%);
+  backdrop-filter: blur(2px);
+}
+
+.overlay-content {
+  width: 100%;
+  height: 100%;
+}
+
+.overlay[data-busy="true"] .overlay-content::before {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border: 3px solid color-mix(in srgb, var(--focus) 24%, transparent);
+  border-block-start-color: var(--focus);
+  border-radius: var(--round);
+  content: "";
+  animation: overlay-spin 800ms linear infinite;
+}
+
+@keyframes overlay-spin {
+  to {
+    transform: rotate(1turn);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .overlay[data-busy="true"] .overlay-content::before {
+    animation-duration: 1600ms;
+  }
+}

@@ -1,25 +1,66 @@
 :root {
-  --brightness: 100%;
-
-  --volume-master: 100%;
-  --volume-media: 100%;
-  --volume-notify: 100%;
-  --volume-tts: 100%;
-  --volume-system: 100%;
-
   --font-family:
     "Segoe UI", "Noto Sans KR", "Malgun Gothic", system-ui, sans-serif;
+
+  --button-size: 40px;
+  --icon-size: 1.25rem;
+
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+
+  --radius: 12px;
+  --round: 999px;
+
+  --duration-1: 100ms;
+  --duration-2: 160ms;
 }
 
 html {
+  min-height: 100%;
   overscroll-behavior-y: none;
+  filter: brightness(100%);
+  font-family: var(--font-family);
+}
+
+dialog {
+  filter: brightness(100%);
 }
 
 *,
 *::before,
 *::after {
-  font-family: var(--font-family);
-  font-size: 1.2rem;
+  box-sizing: border-box;
+}
+
+body {
+  min-height: 100dvh;
+  margin: 0;
+  background: var(--background);
+  color: var(--text);
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+button {
+  color: inherit;
+}
+
+img,
+svg {
+  display: block;
+  max-width: 100%;
+}
+
+[hidden] {
+  display: none !important;
 }
 
 html[data-access] body {

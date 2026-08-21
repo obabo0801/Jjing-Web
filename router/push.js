@@ -78,4 +78,17 @@ router.post("/", async (req, res) => {
   res.status(204).end();
 });
 
+router.delete("/", async (req, res) => {
+  const id = uid(req);
+  const endpoint = req.body.endpoint;
+
+  if (!id || typeof endpoint !== "string") {
+    return res.status(400).end();
+  }
+
+  await run("DELETE FROM push WHERE uid = ? AND endpoint = ?", [id, endpoint]);
+
+  res.status(204).end();
+});
+
 export default router;

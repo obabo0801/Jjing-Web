@@ -1,4 +1,5 @@
 import patterns from "#common/pattern";
+import { get } from "#common/storage";
 
 let timer;
 let tracks = [];
@@ -102,7 +103,11 @@ function render() {
 }
 
 export function play(value = 50) {
-  if (typeof navigator === "undefined" || !("vibrate" in navigator)) {
+  if (
+    typeof navigator === "undefined" ||
+    !("vibrate" in navigator) ||
+    get("vibration", "true") === "false"
+  ) {
     return false;
   }
 

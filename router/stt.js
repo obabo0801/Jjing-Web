@@ -67,13 +67,10 @@ router.post("/", raw, async (req, res) => {
     return res.status(429).end();
   }
 
-  if (!Buffer.isBuffer(req.body) || !req.body.length) {
-    return res.status(400).end();
-  }
+  const audio = Buffer.isBuffer(req.body);
+  const data = audio ? decode(req) : req.body;
 
-  const data = decode(req);
-
-  if (!data) {
+  if (!data || typeof data !== "object" || Array.isArray(data)) {
     return res.status(400).end();
   }
 
@@ -87,8 +84,16 @@ router.post("/", raw, async (req, res) => {
 
   let type = text ? "browser" : "cloud";
 
-  if (!lang || [...text].length > 500) {
-    return res.status(400).end();
+  if (!audio) {
+    if (!text) {
+      return res.status(204).end();
+    }
+
+    const time = now();
+
+    await record(id, lang, text, "unknown", "browser", time);
+
+    return res.status(204).end();
   }
 
   const mime = req.get("content-type")?.split(";")[0].toLowerCase();
@@ -115,7 +120,11 @@ router.post("/", raw, async (req, res) => {
     }
   }
 
-  if (!text || [...text].length > 500) {
+  if (!text) {
+    return res.status(204).end();
+  }
+
+  if ([...text].length > 500) {
     return res.status(400).end();
   }
 

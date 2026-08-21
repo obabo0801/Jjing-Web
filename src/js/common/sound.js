@@ -1,5 +1,6 @@
 import { on } from "#common/event";
 import { context, level } from "#common/audio";
+import { get } from "#common/storage";
 import patterns from "#common/pattern";
 
 import eoheo from "#audio/eoheo.mp3";
@@ -15,6 +16,10 @@ export function beep(
   duration = 80,
   { channel = "system", delay = 0, type = "sine", volume = 1 } = {}
 ) {
+  if (get("sound", "true") === "false") {
+    return null;
+  }
+
   const current = context();
 
   if (!current) {
@@ -84,7 +89,7 @@ export function file(
   source = "",
   { channel = "media", loop = false, volume = 1 } = {}
 ) {
-  if (typeof Audio === "undefined") {
+  if (typeof Audio === "undefined" || get("sound", "true") === "false") {
     return null;
   }
 

@@ -11,9 +11,11 @@ import error from "#error";
 import router from "#router";
 
 const server = express();
+const env = process.env.SERVER_ENV || "development";
 const port = process.env.PORT || 3000;
 const secret = process.env.COOKIE_SECRET;
 
+server.set("env", env);
 server.set("trust proxy", "loopback");
 
 server.use(cookie(secret));

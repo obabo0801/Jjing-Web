@@ -6,7 +6,9 @@ import device from "#common/device";
 const show = async (name) => {
   const header = name === "offline" ? "X-PWA-Cache" : `X-${name}`;
 
-  const response = await fetch(`/${name}`, { headers: { [header]: "true" } });
+  const response = await fetch(`/${name}`, {
+    headers: { Accept: "text/html", [header]: "true" }
+  });
 
   const html = await response.text();
 
@@ -58,7 +60,9 @@ export default async function access(redirect = true, name) {
 
   if (!response.ok) {
     if (redirect) {
-      await show("offline");
+      const page = response.status === 0 ? "offline" : "error";
+
+      await show(page);
     }
 
     return false;
@@ -78,7 +82,9 @@ export default async function access(redirect = true, name) {
 
   if (!session.ok) {
     if (redirect) {
-      await show("offline");
+      const page = session.status === 0 ? "offline" : "error";
+
+      await show(page);
     }
 
     return false;

@@ -1,10 +1,11 @@
 .icon {
+  display: block;
   flex: 0 0 auto;
 
-  width: 1.2rem;
-  height: 1.2rem;
+  width: var(--icon-size);
+  height: var(--icon-size);
 
-  transform: rotate(var(--icon-angle, 0deg));
+  pointer-events: none;
 }
 
 svg.icon {

@@ -6,6 +6,11 @@ import { all } from "#common/query";
 import api from "#common/api";
 
 const key = "lang";
+const preload = ["voice.listening", "voice.processing"];
+
+let messages = {};
+
+export const message = (name) => messages[name] || "";
 
 const hash = async (value) => {
   const data = await crypto.subtle.digest(
@@ -29,11 +34,13 @@ export default async function translate(mode = get(key, "system")) {
 
   set(key, mode);
 
-  const elements = all("[data-i18n]");
+  const elements = all("[data-i18n], [data-i18n-placeholder]");
 
-  const names = [
-    ...new Set(elements.map((element) => element.getAttribute("data-i18n")))
-  ];
+  const name = (element) =>
+    element.getAttribute("data-i18n") ||
+    element.getAttribute("data-i18n-placeholder");
+
+  const names = [...new Set([...elements.map(name), ...preload])];
 
   if (!names.length) {
     return true;
@@ -42,8 +49,6 @@ export default async function translate(mode = get(key, "system")) {
   const entries = await Promise.all(
     names.map(async (name) => [name, await hash(name)])
   );
-
-  const ids = Object.fromEntries(entries);
 
   const keys = entries.map(([, key]) => key);
 
@@ -70,15 +75,24 @@ export default async function translate(mode = get(key, "system")) {
 
     root.lang = lang;
 
+    messages = Object.fromEntries(
+      entries
+        .map(([name, id]) => [name, text[id]])
+        .filter(([, value]) => typeof value === "string")
+    );
+
     elements.forEach((element) => {
-      const name = element.getAttribute("data-i18n");
+      const key = name(element);
 
-      const id = ids[name];
+      if (Object.hasOwn(messages, key)) {
+        if (element.hasAttribute("data-i18n-placeholder")) {
+          element.placeholder = messages[key];
+          return;
+        }
 
-      if (Object.hasOwn(text, id)) {
         const icon = element.querySelector(":scope > .icon");
 
-        element.textContent = text[id];
+        element.textContent = messages[key];
 
         if (icon) {
           element.prepend(icon);

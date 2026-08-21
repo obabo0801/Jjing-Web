@@ -1,4 +1,4 @@
-import root from "#common/root";
+import { get } from "#common/storage";
 
 let audio;
 
@@ -23,16 +23,15 @@ export function context() {
 }
 
 const percent = (name) => {
-  const style = getComputedStyle(root);
+  const fallback = name === "master" ? get("volume", 100) : 100;
+  const value = Number(get(`volume-${name}`, fallback));
 
-  const value = parseFloat(style.getPropertyValue(name));
-
-  return Number.isFinite(value) ? value / 100 : 1;
+  return Number.isFinite(value) ? Math.min(100, Math.max(0, value)) / 100 : 1;
 };
 
 export function level(channel, value = 1) {
-  const master = percent("--volume-master");
-  const current = percent(`--volume-${channel}`);
+  const master = percent("master");
+  const current = percent(channel);
 
   return Math.min(1, Math.max(0, value * master * current));
 }

@@ -18,7 +18,7 @@ const sync = () => {
 
   const dark = current === "dark" || (current === "system" && scheme.matches);
 
-  meta?.setAttribute("content", dark ? "#111111" : "#ffffff");
+  meta?.setAttribute("content", dark ? "#181818" : "#ffffff");
 };
 
 export default function theme(mode) {

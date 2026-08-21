@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 
 import { Router } from "express";
 
+import { usage } from "#config/route";
 import client from "#config/client";
 import { get, run } from "#config/sqlite";
 import address from "#config/ip";
@@ -21,6 +22,13 @@ const cookie = {
   maxAge: 365 * 24 * 60 * 60 * 1000
 };
 
+const clear = {
+  httpOnly: cookie.httpOnly,
+  sameSite: cookie.sameSite,
+  secure: cookie.secure,
+  path: "/"
+};
+
 const remember = (res, uid) => {
   if (uid) {
     res.cookie("uid", uid, cookie);
@@ -32,6 +40,17 @@ const status = (value) => {
 
   return Number.isInteger(code) && code >= 100 && code <= 599 ? code : 0;
 };
+
+router.get(usage, (req, res) => {
+  const size = Buffer.byteLength(req.get("cookie") || "", "utf8");
+
+  res.json({ size });
+});
+
+router.delete("/", (req, res) => {
+  res.clearCookie("uid", clear);
+  res.status(204).end();
+});
 
 router.get("/", async (req, res) => {
   const uid = identity(req);

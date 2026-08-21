@@ -1,0 +1,19 @@
+.search[data-voice] .input {
+  border-color: var(--active);
+  box-shadow:
+    0 0 0 2px color-mix(in srgb, var(--active) 24%, transparent),
+    var(--shadow);
+  animation: voice-in 220ms ease-out;
+}
+
+@keyframes voice-in {
+  from {
+    box-shadow: var(--shadow);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .search[data-voice] .input {
+    animation: none;
+  }
+}

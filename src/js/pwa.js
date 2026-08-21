@@ -50,6 +50,19 @@ const decode = (value) => {
   return Uint8Array.from(atob(base64), (value) => value.charCodeAt(0));
 };
 
+export async function active(registration) {
+  if (
+    !registration ||
+    !("Notification" in window) ||
+    !("PushManager" in window) ||
+    Notification.permission !== "granted"
+  ) {
+    return false;
+  }
+
+  return Boolean(await registration.pushManager.getSubscription());
+}
+
 export async function subscribe(registration) {
   if (
     !import.meta.env.PROD ||
@@ -85,6 +98,25 @@ export async function subscribe(registration) {
   const result = await api(push, { method: "POST", data: { subscription } });
 
   return result.ok;
+}
+
+export async function unsubscribe(registration) {
+  if (!registration || !("PushManager" in window)) {
+    return false;
+  }
+
+  const subscription = await registration.pushManager.getSubscription();
+
+  if (!subscription) {
+    return true;
+  }
+
+  const endpoint = subscription.endpoint;
+  const removed = await subscription.unsubscribe();
+
+  await api(push, { method: "DELETE", data: { endpoint } });
+
+  return removed;
 }
 
 export default async function pwa() {

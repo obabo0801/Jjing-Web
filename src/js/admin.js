@@ -28,8 +28,8 @@ const start = async () => {
 
   root.removeAttribute("data-access");
 
-  const form = query("#form");
-  const output = query("#result");
+  const form = query(".admin-form");
+  const output = query(".admin-result");
 
   on(form, "submit", async (event) => {
     event.preventDefault();

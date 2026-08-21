@@ -1,70 +1,23 @@
 <!doctype html>
-<html
-  lang="en"
-  data-theme="system"
-  data-access
->
+<html lang="en" data-theme="system" data-access>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-<head>
-  <meta charset="UTF-8">
-  <meta
-    name="viewport"
-    content="width=device-width, initial-scale=1.0"
-  >
+    <title data-i18n="app.title">&#8200;</title>
 
-  <title data-i18n="app.title">&#8203;</title>
+    <link rel="icon" href="/src/assets/favicon.ico" sizes="any" />
 
-  <link
-    rel="icon"
-    href="/src/assets/favicon.ico"
-    sizes="any"
-  >
+    <link rel="manifest" href="/manifest.json" />
 
-  <link
-    rel="manifest"
-    href="/manifest.json"
-  >
+    <meta name="theme-color" content="#ffffff" />
 
-  <meta
-    name="theme-color"
-    content="#ffffff"
-  >
+    <link rel="stylesheet" href="/src/css/style.css" />
+  </head>
 
-  <link
-    rel="stylesheet"
-    href="/src/css/style.css"
-  >
-</head>
+  <body>
+    <main class="app"></main>
 
-<body>
-  <main>
-
-    <button
-      id="push"
-      type="button"
-      data-background
-      data-shadow
-      data-icon="arrow top"
-      data-i18n="push.subscribe"
-    ></button>
-
-    <button
-      id="voice"
-      type="button"
-      data-opacity
-      data-shadow
-      data-angle="45"
-      data-icon="💩 ↘"
-      data-i18n="voice.test"
-    ></button>
-
-    <pre id="voice-result"></pre>
-
-  </main>
-
-  <script
-    type="module"
-    src="/src/js/script.js"
-  ></script>
-</body>
+    <script type="module" src="/src/js/script.js"></script>
+  </body>
 </html>
