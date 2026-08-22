@@ -1,26 +1,30 @@
 import { tts as route } from "#config/route";
 
-import root from "#common/root";
-import { on } from "#common/event";
+import { root, on } from "#common/dom";
 import { context, level } from "#common/audio";
 
 const requests = new Set();
 const sources = new Map();
 
-let version = 0;
+let token = 0;
 
 const synth = window.speechSynthesis;
 
 export const voices = () => synth?.getVoices() || [];
 
-const browser = async (text, { lang, pitch, rate, voice, volume }) => {
+const browser = async (
+  text,
+  { lang, pitch, rate, voice, volume }
+) => {
   if (!synth) {
     return null;
   }
 
   const speech = new SpeechSynthesisUtterance(text);
 
-  const selected = voices().find((item) => item.name === voice);
+  const selected = voices().find(
+    (item) => item.name === voice
+  );
 
   speech.lang = lang;
   speech.pitch = pitch;
@@ -45,7 +49,10 @@ const browser = async (text, { lang, pitch, rate, voice, volume }) => {
   return speech;
 };
 
-const remote = async (text, { lang, pitch, rate, voice, volume, type }) => {
+const remote = async (
+  text,
+  { lang, pitch, rate, voice, volume, type }
+) => {
   const audio = context();
 
   if (!audio) {
@@ -53,7 +60,7 @@ const remote = async (text, { lang, pitch, rate, voice, volume, type }) => {
   }
 
   const controller = new AbortController();
-  const current = version;
+  const id = token;
 
   requests.add(controller);
 
@@ -61,23 +68,30 @@ const remote = async (text, { lang, pitch, rate, voice, volume, type }) => {
     const response = await fetch(`/api${route}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ text, lang, pitch, rate, voice, type }),
+      body: JSON.stringify({
+        text,
+        lang,
+        pitch,
+        rate,
+        voice,
+        type
+      }),
       signal: controller.signal
     });
 
-    if (!response.ok || current !== version) {
+    if (!response.ok || id !== token) {
       return null;
     }
 
     const data = await response.arrayBuffer();
 
-    if (current !== version) {
+    if (id !== token) {
       return null;
     }
 
     const buffer = await audio.decodeAudioData(data);
 
-    if (current !== version) {
+    if (id !== token) {
       return null;
     }
 
@@ -116,7 +130,14 @@ const remote = async (text, { lang, pitch, rate, voice, volume, type }) => {
 
 export async function speak(
   text,
-  { lang = root.lang, pitch = 0, rate = 1, voice, volume = 1, type } = {}
+  {
+    lang = root.lang,
+    pitch = 0,
+    rate = 1,
+    voice,
+    volume = 1,
+    type
+  } = {}
 ) {
   const value = typeof text === "string" ? text.trim() : "";
 
@@ -134,7 +155,10 @@ export async function speak(
     return remote(value, { ...option, type });
   }
 
-  const cloud = await remote(value, { ...option, type: "cloud" });
+  const cloud = await remote(value, {
+    ...option,
+    type: "cloud"
+  });
 
   if (cloud) {
     return cloud;
@@ -150,7 +174,7 @@ export async function speak(
 }
 
 export function stop() {
-  version += 1;
+  token += 1;
 
   synth?.cancel();
 
@@ -172,4 +196,6 @@ export function stop() {
   }
 }
 
-export default Object.freeze(Object.assign(speak, { stop }));
+export default Object.freeze(
+  Object.assign(speak, { stop })
+);

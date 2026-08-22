@@ -48,7 +48,10 @@ router.post("/", async (req, res) => {
     return res.status(429).end();
   }
 
-  const text = typeof req.body.text === "string" ? req.body.text.trim() : "";
+  const text =
+    typeof req.body.text === "string"
+      ? req.body.text.trim()
+      : "";
 
   if (!text) {
     return res.status(400).end();
@@ -60,13 +63,21 @@ router.post("/", async (req, res) => {
 
   if (req.body.type === "browser") {
     const voice =
-      typeof req.body.voice === "string" ? req.body.voice.trim() : "";
+      typeof req.body.voice === "string"
+        ? req.body.voice.trim()
+        : "";
 
     if ([...voice].length > 200) {
       return res.status(400).end();
     }
 
-    await record(id, text, voice || "default", "browser", now());
+    await record(
+      id,
+      text,
+      voice || "default",
+      "browser",
+      now()
+    );
 
     return res.status(204).end();
   }

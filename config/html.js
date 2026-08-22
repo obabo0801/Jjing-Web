@@ -2,7 +2,11 @@ import { createHash } from "node:crypto";
 import path from "node:path";
 
 const hash = (name, source) =>
-  createHash("sha256").update(name).update(source).digest("hex").slice(0, 8);
+  createHash("sha256")
+    .update(name)
+    .update(source)
+    .digest("hex")
+    .slice(0, 8);
 
 export const manifest = `.${hash("pages", "")}.json`;
 
@@ -16,7 +20,8 @@ export default {
 
     Object.entries(bundle)
       .filter(
-        ([name, output]) => name.endsWith(".html") && output.type === "asset"
+        ([name, output]) =>
+          name.endsWith(".html") && output.type === "asset"
       )
       .forEach(([name, output]) => {
         const key = path.basename(name, ".html");
@@ -25,13 +30,21 @@ export default {
 
         delete bundle[name];
 
-        this.emitFile({ type: "asset", fileName: file, source: output.source });
+        this.emitFile({
+          type: "asset",
+          fileName: file,
+          source: output.source
+        });
 
         pages[key] = file;
       });
 
     const data = JSON.stringify(pages);
 
-    this.emitFile({ type: "asset", fileName: manifest, source: data });
+    this.emitFile({
+      type: "asset",
+      fileName: manifest,
+      source: data
+    });
   }
 };

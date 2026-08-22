@@ -1,7 +1,7 @@
 const offline = "offline";
 const page = "/offline";
 
-const prepare = async (locale, payload) => {
+const prepare = async (locale, content) => {
   const response = await fetch(page, {
     cache: "no-store",
     headers: { "x-pwa-cache": "true" }
@@ -15,26 +15,30 @@ const prepare = async (locale, payload) => {
 
   const files = new Set(
     [...html.matchAll(/\b(?:src|href)=["']([^"']+)["']/g)]
-      .map(([, file]) => new URL(file, self.location.origin))
+      .map(
+        ([, file]) => new URL(file, self.location.origin)
+      )
       .filter((url) => url.origin === self.location.origin)
       .map((url) => `${url.pathname}${url.search}`)
   );
 
-  if (locale && payload) {
+  if (locale && content) {
     const url = new URL(locale, self.location.origin);
 
     if (url.origin !== self.location.origin) {
       throw new Error();
     }
 
-    const response = await fetch(url, { cache: "no-store" });
+    const response = await fetch(url, {
+      cache: "no-store"
+    });
 
     if (!response.ok) {
       throw new Error();
     }
 
     const body = await response.json();
-    const value = body?.[payload];
+    const value = body?.[content];
 
     if (typeof value !== "string") {
       throw new Error();
@@ -121,7 +125,10 @@ const remove = async (id) => {
   const database = await open();
 
   return new Promise((resolve, reject) => {
-    const transaction = database.transaction("requests", "readwrite");
+    const transaction = database.transaction(
+      "requests",
+      "readwrite"
+    );
 
     transaction.objectStore("requests").delete(id);
 
@@ -175,7 +182,8 @@ self.addEventListener("fetch", (event) => {
   if (request.mode === "navigate") {
     event.respondWith(
       fetch(request).catch(
-        async () => (await caches.match(page)) || Response.error()
+        async () =>
+          (await caches.match(page)) || Response.error()
       )
     );
 
@@ -196,14 +204,20 @@ self.addEventListener("fetch", (event) => {
 
           return response;
         })
-        .catch(async () => (await caches.match(request)) || Response.error())
+        .catch(
+          async () =>
+            (await caches.match(request)) ||
+            Response.error()
+        )
     );
 
     return;
   }
 
   event.respondWith(
-    caches.match(request).then((response) => response || fetch(request))
+    caches
+      .match(request)
+      .then((response) => response || fetch(request))
   );
 });
 
@@ -219,7 +233,9 @@ self.addEventListener("message", (event) => {
   }
 
   if (event.data?.type === "offline") {
-    event.waitUntil(prepare(event.data.locale, event.data.payload));
+    event.waitUntil(
+      prepare(event.data.locale, event.data.content)
+    );
   }
 });
 

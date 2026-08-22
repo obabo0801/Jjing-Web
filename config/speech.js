@@ -4,7 +4,8 @@ const { SpeechClient } = speech.v2;
 
 const mode = (process.env.STT || "").trim().toLowerCase();
 
-const keyFile = process.env.GOOGLE_APPLICATION_CREDENTIALS?.trim();
+const keyFile =
+  process.env.GOOGLE_APPLICATION_CREDENTIALS?.trim();
 
 export const enabled = ["login", "json"].includes(mode);
 
@@ -24,7 +25,11 @@ const connect = () => {
 };
 
 export default async function recognize(audio, lang) {
-  if (!enabled || !Buffer.isBuffer(audio) || !audio.length) {
+  if (
+    !enabled ||
+    !Buffer.isBuffer(audio) ||
+    !audio.length
+  ) {
     return { text: "", confidence: null };
   }
 
@@ -34,7 +39,11 @@ export default async function recognize(audio, lang) {
 
   const [response] = await client.recognize({
     recognizer: `projects/${project}/locations/global/recognizers/_`,
-    config: { autoDecodingConfig: {}, languageCodes: [lang], model: "short" },
+    config: {
+      autoDecodingConfig: {},
+      languageCodes: [lang],
+      model: "short"
+    },
     content: audio
   });
 
@@ -53,7 +62,8 @@ export default async function recognize(audio, lang) {
     .filter((value) => value > 0);
 
   const confidence = scores.length
-    ? scores.reduce((sum, value) => sum + value, 0) / scores.length
+    ? scores.reduce((sum, value) => sum + value, 0) /
+      scores.length
     : null;
 
   return { text, confidence };

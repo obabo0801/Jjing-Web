@@ -19,7 +19,10 @@ export const style = {
 };
 
 const hash = (name) =>
-  createHash("sha256").update(name.toLowerCase()).digest("hex").slice(0, 8);
+  createHash("sha256")
+    .update(name.toLowerCase())
+    .digest("hex")
+    .slice(0, 8);
 
 const replace = (code) =>
   code.replace(

@@ -12,7 +12,10 @@ export default defineConfig(({ command, mode }) => {
   return {
     ...output,
 
-    css: command === "build" ? { postcss: { plugins: [style] } } : undefined,
+    css:
+      command === "build"
+        ? { postcss: { plugins: [style] } }
+        : undefined,
 
     plugins: [data, html],
 

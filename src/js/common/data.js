@@ -1,10 +1,10 @@
 import { usage, user } from "#config/route";
 
-import api from "#common/api";
 import format from "#common/format";
-import { clear as clearStorage } from "#common/storage";
+import api from "#common/api";
+import * as storage from "#common/storage";
 
-const clearSync = () => {
+const clearRequests = () => {
   if (!("indexedDB" in window)) {
     return Promise.resolve();
   }
@@ -25,52 +25,73 @@ const clearSync = () => {
 
     request.onsuccess = () => {
       const database = request.result;
-      const transaction = database.transaction("requests", "readwrite");
+      const transaction = database.transaction(
+        "requests",
+        "readwrite"
+      );
+
+      const finish = () => {
+        database.close();
+        resolve();
+      };
 
       transaction.objectStore("requests").clear();
-      transaction.oncomplete = () => {
-        database.close();
-        resolve();
-      };
-      transaction.onerror = () => {
-        database.close();
-        resolve();
-      };
+
+      transaction.oncomplete = finish;
+      transaction.onerror = finish;
+      transaction.onabort = finish;
     };
 
     request.onerror = () => resolve();
   });
 };
 
-export const size = async () => {
-  const [cookie, storage] = await Promise.all([
-    api(`${user}${usage}`),
-    navigator.storage?.estimate() || {}
+export const sizeCookie = async () => {
+  const response = await api(`${user}${usage}`);
+
+  return Number(response.data?.size) || 0;
+};
+
+export const sizeData = async () => {
+  const storage = await navigator.storage?.estimate();
+
+  return Number(storage?.usage) || 0;
+};
+
+export const sizeAll = async () => {
+  const [cookie, data] = await Promise.all([
+    sizeCookie(),
+    sizeData()
   ]);
 
-  const cookieSize = Number(cookie.data?.size) || 0;
-  const dataSize = Number(storage.usage) || 0;
-
   return {
-    cookie: format(cookieSize),
-    data: format(dataSize),
-    total: format(cookieSize + dataSize)
+    cookie: format(cookie),
+    data: format(data),
+    total: format(cookie + data)
   };
 };
 
 export const clearCookie = async () => {
-  const result = await api(user, { method: "DELETE" });
+  const response = await api(user, { method: "DELETE" });
 
-  return result.ok;
+  return response.ok;
 };
 
 export const clearData = async () => {
-  clearStorage();
+  storage.clear();
 
   await Promise.all([
     "caches" in window ? caches.delete("offline") : false,
-    clearSync()
+    clearRequests()
   ]);
 
   return true;
 };
+
+export default Object.freeze({
+  sizeCookie,
+  sizeData,
+  sizeAll,
+  clearCookie,
+  clearData
+});

@@ -2,11 +2,19 @@
   color-scheme: light dark;
 
   --background: light-dark(#ffffff, #181818);
+
   --canvas: light-dark(#ffffff, #181818);
+
   --surface: light-dark(#ffffff, #181818);
+
   --text: light-dark(#181818, #eeeeee);
+
   --muted: light-dark(#6e6e6e, #a0a0a0);
-  --border: light-dark(rgb(0 0 0 / 12%), rgb(255 255 255 / 14%));
+
+  --border: light-dark(
+    rgb(0 0 0 / 12%),
+    rgb(255 255 255 / 14%)
+  );
 
   --shadow: 0 4px 16px rgb(0 0 0 / 16%);
 
@@ -15,8 +23,6 @@
   --track: light-dark(#a4a3a8, #646368);
 
   --hover: light-dark(#181818, #ffffff);
-
-  --pointer: color-mix(in srgb, var(--hover) 20%, transparent);
 
   --error: #ff453a;
   --success: #34c759;
@@ -40,8 +46,8 @@ body {
   color: var(--text);
 
   transition:
-    background-color var(--duration-2) ease,
-    color var(--duration-2) ease;
+    background-color 160ms ease,
+    color 160ms ease;
 }
 
 html[data-changing],

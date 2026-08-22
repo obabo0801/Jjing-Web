@@ -18,7 +18,7 @@
     "#audio/*": "./src/assets/audio/*"
   },
   "scripts": {
-    "format": "prettier --write \"**/*.{js,css}\"",
+    "format": "prettier --write \"**/*.{js,css}\" \"index.html\"",
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",

@@ -1,21 +1,12 @@
 import { admin } from "#config/route";
 
-import root from "#common/root";
-import { query } from "#common/query";
-import { on } from "#common/event";
+import { query, on } from "#common/dom";
 import api from "#common/api";
 import init from "#common/init";
 import i18n from "#common/i18n";
-import access from "#src/access";
 
 const start = async () => {
   init();
-
-  if (!(await access())) {
-    root.removeAttribute("data-access");
-
-    return;
-  }
 
   const check = await api(admin);
 
@@ -26,8 +17,6 @@ const start = async () => {
 
   await i18n();
 
-  root.removeAttribute("data-access");
-
   const form = query(".admin-form");
   const output = query(".admin-result");
 
@@ -36,7 +25,10 @@ const start = async () => {
 
     const data = Object.fromEntries(new FormData(form));
 
-    const response = await api(admin, { method: "POST", data });
+    const response = await api(admin, {
+      method: "POST",
+      data
+    });
 
     output.textContent = response.ok
       ? `${response.data.sent}/${response.data.failed}`

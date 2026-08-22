@@ -1,8 +1,7 @@
 import { get } from "#common/storage";
-import { i18n, payload } from "#config/route";
+import { i18n, content } from "#config/route";
 
-import root from "#common/root";
-import { all } from "#common/query";
+import * as dom from "#common/dom";
 import api from "#common/api";
 import init from "#common/init";
 
@@ -13,14 +12,16 @@ if (location.pathname === "/offline") {
 }
 
 const decode = (value) => {
-  const bytes = Uint8Array.from(atob(value), (value) => value.charCodeAt(0));
+  const bytes = Uint8Array.from(atob(value), (value) =>
+    value.charCodeAt(0)
+  );
 
   return JSON.parse(new TextDecoder().decode(bytes));
 };
 
 try {
   const list = await api(i18n);
-  const value = list.data?.[payload];
+  const value = list.data?.[content];
 
   if (!list.ok || typeof value !== "string") {
     throw new Error();
@@ -42,7 +43,7 @@ try {
   }
 
   const result = await api(`${i18n}/${file}`);
-  const data = result.data?.[payload];
+  const data = result.data?.[content];
 
   if (!result.ok || typeof data !== "string") {
     throw new Error();
@@ -50,10 +51,10 @@ try {
 
   const { lang: selected, text } = decode(data);
 
-  root.lang = selected;
+  dom.root.lang = selected;
 
-  all("[data-i18n]").forEach((element) => {
-    const key = element.getAttribute("data-i18n");
+  dom.all("[data-i18n]").forEach((element) => {
+    const key = dom.get(element, "data-i18n");
 
     if (Object.hasOwn(text, key)) {
       element.textContent = text[key];

@@ -4,12 +4,17 @@ import identity from "#config/uid";
 import file from "#config/pages";
 import { allowed as admin } from "#middleware/admin";
 
-const hidden = new Set(["/service-work.js", "/manifest.json"]);
+const hidden = new Set([
+  "/service-work.js",
+  "/manifest.json"
+]);
 
 const isHtml = (req) => req.path.endsWith(".html");
 
 const denied = (req) =>
-  hidden.has(req.path) || isHtml(req) || req.path.startsWith("/assets/");
+  hidden.has(req.path) ||
+  isHtml(req) ||
+  req.path.startsWith("/assets/");
 
 export const isPage = (req) =>
   req.method === "GET" &&
@@ -20,7 +25,10 @@ export const send = (res, name, status = 200) =>
   res.status(status).sendFile(file(name));
 
 export const error = (res) => {
-  res.set({ "Cache-Control": "no-store", Vary: "Sec-Fetch-Dest, Accept" });
+  res.set({
+    "Cache-Control": "no-store",
+    Vary: "Sec-Fetch-Dest, Accept"
+  });
 
   return send(res, "error", 404);
 };

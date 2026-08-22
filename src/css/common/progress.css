@@ -1,61 +1,106 @@
 .progress {
+  --progress-track: color-mix(
+    in srgb,
+    var(--text) 16%,
+    transparent
+  );
+
+  color: inherit;
+}
+
+.progress[data-progress="linear"] {
   display: grid;
-  gap: var(--space-2);
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+
   width: 100%;
 }
 
-.progress-track {
-  width: 100%;
+.progress[data-progress="linear"] .progress-track {
   height: 6px;
   overflow: hidden;
-  border-radius: var(--round);
-  background: var(--border);
+  border-radius: 999px;
+
+  background: var(--progress-track);
 }
 
-.progress-fill {
+.progress[data-progress="linear"] .progress-fill {
   width: 0;
   height: 100%;
   border-radius: inherit;
+
   background: var(--focus);
-  transition: width var(--duration-2) ease;
+  transition: width 160ms ease;
+}
+
+.progress[data-progress="linear"] .progress-value {
+  min-width: 4ch;
+  text-align: right;
+}
+
+.progress[data-progress="circular"] {
+  position: relative;
+
+  display: grid;
+  place-items: center;
+
+  width: 48px;
+  aspect-ratio: 1;
+  border-radius: 50%;
+}
+
+.progress[data-progress="circular"] .progress-track {
+  position: absolute;
+  inset: 6px;
+
+  border-radius: 50%;
+  background: var(--background);
+}
+
+.progress[data-progress="circular"] .progress-fill {
+  display: none;
+}
+
+.progress[data-progress="circular"] .progress-value {
+  position: relative;
+
+  font-size: 0.75rem;
 }
 
 .progress-value {
-  color: var(--muted);
-  font-size: 0.8rem;
   font-variant-numeric: tabular-nums;
-  text-align: end;
-}
-
-.progress[data-progress-type="circular"] {
-  width: 5rem;
-  aspect-ratio: 1;
-  border-radius: var(--round);
-  background: conic-gradient(var(--focus) 0%, var(--border) 0);
-  place-items: center;
-}
-
-.progress[data-progress-type="circular"]::before {
-  width: calc(100% - 12px);
-  aspect-ratio: 1;
-  border-radius: inherit;
-  background: var(--surface);
-  content: "";
-  grid-area: 1 / 1;
-}
-
-.progress[data-progress-type="circular"] .progress-value {
-  z-index: 1;
-  grid-area: 1 / 1;
-  color: var(--text);
-}
-
-.progress[data-progress-type="circular"] .progress-track {
-  display: none;
 }
 
 @media (prefers-reduced-motion: reduce) {
   .progress-fill {
     transition: none;
+  }
+}
+
+.loading {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+
+  display: grid;
+  place-items: center;
+
+  background: var(--background);
+}
+
+.loading > .progress {
+  animation: loading 800ms linear infinite;
+}
+
+@keyframes loading {
+  to {
+    transform: rotate(1turn);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .loading > .progress {
+    animation: none;
   }
 }

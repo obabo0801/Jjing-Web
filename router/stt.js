@@ -28,7 +28,9 @@ const decode = (req) => {
       return null;
     }
 
-    return JSON.parse(Buffer.from(value, "base64").toString("utf8"));
+    return JSON.parse(
+      Buffer.from(value, "base64").toString("utf8")
+    );
   } catch {
     return null;
   }
@@ -70,15 +72,23 @@ router.post("/", raw, async (req, res) => {
   const audio = Buffer.isBuffer(req.body);
   const data = audio ? decode(req) : req.body;
 
-  if (!data || typeof data !== "object" || Array.isArray(data)) {
+  if (
+    !data ||
+    typeof data !== "object" ||
+    Array.isArray(data)
+  ) {
     return res.status(400).end();
   }
 
-  let text = typeof data.text === "string" ? data.text.trim() : "";
+  let text =
+    typeof data.text === "string" ? data.text.trim() : "";
 
-  const lang = typeof data.lang === "string" ? data.lang.trim() : "";
+  const lang =
+    typeof data.lang === "string" ? data.lang.trim() : "";
 
-  const pitch = ["low", "mid", "high", "unknown"].includes(data.pitch)
+  const pitch = ["low", "mid", "high", "unknown"].includes(
+    data.pitch
+  )
     ? data.pitch
     : "unknown";
 
@@ -91,12 +101,22 @@ router.post("/", raw, async (req, res) => {
 
     const time = now();
 
-    await record(id, lang, text, "unknown", "browser", time);
+    await record(
+      id,
+      lang,
+      text,
+      "unknown",
+      "browser",
+      time
+    );
 
     return res.status(204).end();
   }
 
-  const mime = req.get("content-type")?.split(";")[0].toLowerCase();
+  const mime = req
+    .get("content-type")
+    ?.split(";")[0]
+    .toLowerCase();
 
   if (!supported(mime)) {
     return res.status(415).end();

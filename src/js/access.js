@@ -4,7 +4,8 @@ import api from "#common/api";
 import device from "#common/device";
 
 const show = async (name) => {
-  const header = name === "offline" ? "X-PWA-Cache" : `X-${name}`;
+  const header =
+    name === "offline" ? "X-PWA-Cache" : `X-${name}`;
 
   const response = await fetch(`/${name}`, {
     headers: { Accept: "text/html", [header]: "true" }
@@ -17,20 +18,24 @@ const show = async (name) => {
   document.close();
 };
 
-export default async function access(redirect = true, name) {
-  const current = decodeURI(`${location.pathname}${location.search}`);
-
+export default async function access(
+  redirect = true,
+  name
+) {
   const path =
     name && location.pathname === "/"
       ? `/${name.replace(/^\/+/, "")}`
-      : current;
+      : decodeURI(`${location.pathname}${location.search}`);
 
   const result =
-    performance.getEntriesByType("navigation")[0]?.responseStatus ?? 0;
+    performance.getEntriesByType("navigation")[0]
+      ?.responseStatus ?? 0;
 
   const wearable = device().wearable;
 
-  const options = { headers: { "X-Wearable": String(wearable) } };
+  const options = {
+    headers: { "X-Wearable": String(wearable) }
+  };
 
   const response = await api(user, {
     ...options,
@@ -60,7 +65,8 @@ export default async function access(redirect = true, name) {
 
   if (!response.ok) {
     if (redirect) {
-      const page = response.status === 0 ? "offline" : "error";
+      const page =
+        response.status === 0 ? "offline" : "error";
 
       await show(page);
     }
@@ -68,7 +74,11 @@ export default async function access(redirect = true, name) {
     return false;
   }
 
-  const query = new URLSearchParams({ path, result, ...(name && { name }) });
+  const query = new URLSearchParams({
+    path,
+    result,
+    ...(name && { name })
+  });
 
   const session = await api(`${user}?${query}`, options);
 
@@ -82,7 +92,8 @@ export default async function access(redirect = true, name) {
 
   if (!session.ok) {
     if (redirect) {
-      const page = session.status === 0 ? "offline" : "error";
+      const page =
+        session.status === 0 ? "offline" : "error";
 
       await show(page);
     }

@@ -1,4 +1,4 @@
-import { on } from "#common/event";
+import { on } from "#common/dom";
 import { listen } from "#common/drag";
 import viewport from "#common/viewport";
 
@@ -76,7 +76,11 @@ function start(event) {
 
   const touch = event.touches[0];
 
-  point = { id: touch.identifier, x: touch.clientX, y: touch.clientY };
+  point = {
+    id: touch.identifier,
+    x: touch.clientX,
+    y: touch.clientY
+  };
 }
 
 function end(event) {
@@ -137,7 +141,8 @@ function unwatch() {
 export default function swipe(value, run) {
   const key = String(value).trim().toLowerCase();
 
-  const dir = directions[key] ?? (arrows.includes(key) ? key : null);
+  const dir =
+    directions[key] ?? (arrows.includes(key) ? key : null);
 
   if (!dir || typeof run !== "function") {
     return () => {};

@@ -1,6 +1,4 @@
-import root from "#common/root";
-import { query } from "#common/query";
-import { on } from "#common/event";
+import * as dom from "#common/dom";
 import { get, set } from "#common/storage";
 
 const key = "theme";
@@ -8,17 +6,19 @@ const modes = ["system", "light", "dark"];
 
 const scheme = matchMedia("(prefers-color-scheme: dark)");
 
-const meta = query('meta[name="theme-color"]');
+const meta = dom.query('meta[name="theme-color"]');
 
-let current = "system";
+let selected = "system";
 let loaded = false;
 
 const sync = () => {
-  root.setAttribute("data-theme", current);
+  dom.set(dom.root, "data-theme", selected);
 
-  const dark = current === "dark" || (current === "system" && scheme.matches);
+  const dark =
+    selected === "dark" ||
+    (selected === "system" && scheme.matches);
 
-  meta?.setAttribute("content", dark ? "#181818" : "#ffffff");
+  dom.set(meta, "content", dark ? "#181818" : "#ffffff");
 };
 
 export default function theme(mode) {
@@ -30,19 +30,22 @@ export default function theme(mode) {
     mode = "system";
   }
 
-  current = mode;
+  selected = mode;
 
   set(key, mode);
 
   if (!loaded) {
-    on(scheme, "change", sync);
+    dom.on(scheme, "change", sync);
 
     loaded = true;
   }
 
-  const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const reduced = matchMedia(
+    "(prefers-reduced-motion: reduce)"
+  ).matches;
 
-  const transition = document.startViewTransition?.bind(document);
+  const transition =
+    document.startViewTransition?.bind(document);
 
   if (initial || reduced || !transition) {
     sync();
@@ -50,10 +53,10 @@ export default function theme(mode) {
     return mode;
   }
 
-  root.setAttribute("data-changing", "");
+  dom.set(dom.root, "data-changing", "");
 
   transition(sync).finished.finally(() => {
-    root.removeAttribute("data-changing");
+    dom.remove(dom.root, "data-changing");
   });
 
   return mode;

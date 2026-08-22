@@ -14,7 +14,8 @@ const regions = { en: "en-US", ja: "ja-JP", ko: "ko-KR" };
 
 const mode = (process.env.TTS || "").trim().toLowerCase();
 
-const keyFile = process.env.GOOGLE_APPLICATION_CREDENTIALS?.trim();
+const keyFile =
+  process.env.GOOGLE_APPLICATION_CREDENTIALS?.trim();
 
 const enabled = ["login", "json"].includes(mode);
 const pending = new Map();
@@ -35,7 +36,8 @@ const record = (file, uid, text, time) =>
     [file, uid, text, time]
   );
 
-const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
+const clamp = (value, min, max) =>
+  Math.min(max, Math.max(min, value));
 
 const within = async (promise) => {
   let timer;
@@ -52,7 +54,8 @@ const within = async (promise) => {
 };
 
 const language = (value) => {
-  const lang = typeof value === "string" ? value.trim() : "";
+  const lang =
+    typeof value === "string" ? value.trim() : "";
 
   if (!/^[a-z]{2,3}(?:-[a-z]{2})?$/i.test(lang)) {
     return "ko-KR";
@@ -72,7 +75,8 @@ const options = (value) => {
   const rate = Number(value.rate);
   const pitch = Number(value.pitch);
   const voice =
-    typeof value.voice === "string" && /^[a-z0-9-]{1,100}$/i.test(value.voice)
+    typeof value.voice === "string" &&
+    /^[a-z0-9-]{1,100}$/i.test(value.voice)
       ? value.voice
       : undefined;
 
@@ -80,7 +84,9 @@ const options = (value) => {
     text: value.text,
     lang: language(value.lang),
     rate: Number.isFinite(rate) ? clamp(rate, 0.25, 2) : 1,
-    pitch: Number.isFinite(pitch) ? clamp(pitch, -20, 20) : 0,
+    pitch: Number.isFinite(pitch)
+      ? clamp(pitch, -20, 20)
+      : 0,
     voice
   };
 };
@@ -109,7 +115,9 @@ const cacheKey = (provider, value) => {
 };
 
 const voice = (provider, value) =>
-  provider === "cloud" ? value.voice || "default" : "default";
+  provider === "cloud"
+    ? value.voice || "default"
+    : "default";
 
 const name = (provider, value) => {
   const key = cacheKey(provider, value);
@@ -142,10 +150,22 @@ const find = async (provider, value) => {
     return null;
   }
 
-  return { audio, file, provider, voice: voice(provider, value), cached: true };
+  return {
+    audio,
+    file,
+    provider,
+    voice: voice(provider, value),
+    cached: true
+  };
 };
 
-const cache = async (provider, value, create, uid, time) => {
+const cache = async (
+  provider,
+  value,
+  create,
+  uid,
+  time
+) => {
   const file = name(provider, value);
   const saved = await find(provider, value);
 
@@ -265,9 +285,20 @@ const google = async (value) => {
 };
 
 const fallback = (request, uid, time) =>
-  cache("google", request, () => google(request), uid, time);
+  cache(
+    "google",
+    request,
+    () => google(request),
+    uid,
+    time
+  );
 
-export default async function synthesize(value, uid, time, type) {
+export default async function synthesize(
+  value,
+  uid,
+  time,
+  type
+) {
   const request = options(value);
 
   if (type !== "google") {
@@ -284,7 +315,13 @@ export default async function synthesize(value, uid, time, type) {
 
   if (enabled && Date.now() >= retry) {
     try {
-      return await cache("cloud", request, () => cloud(request), uid, time);
+      return await cache(
+        "cloud",
+        request,
+        () => cloud(request),
+        uid,
+        time
+      );
     } catch (error) {
       if (error?.code === "SQLITE_BUSY") {
         throw error;
@@ -299,5 +336,7 @@ export default async function synthesize(value, uid, time, type) {
     }
   }
 
-  return type === "cloud" ? null : fallback(request, uid, time);
+  return type === "cloud"
+    ? null
+    : fallback(request, uid, time);
 }

@@ -1,4 +1,5 @@
-const clean = (value) => value?.replaceAll('"', "").trim() || "";
+const clean = (value) =>
+  value?.replaceAll('"', "").trim() || "";
 
 const os = (req) => {
   const wearable = req.get("x-wearable") === "true";
@@ -50,11 +51,17 @@ const browser = (req) => {
 
   if (agent.includes("Edg/")) return "Edge";
 
-  if (agent.includes("Firefox/") || agent.includes("FxiOS/")) {
+  if (
+    agent.includes("Firefox/") ||
+    agent.includes("FxiOS/")
+  ) {
     return "Firefox";
   }
 
-  if (agent.includes("Chrome/") || agent.includes("CriOS/")) {
+  if (
+    agent.includes("Chrome/") ||
+    agent.includes("CriOS/")
+  ) {
     return "Chrome";
   }
 
@@ -63,4 +70,7 @@ const browser = (req) => {
   return "Unknown";
 };
 
-export default (req) => ({ os: os(req), browser: browser(req) });
+export default (req) => ({
+  os: os(req),
+  browser: browser(req)
+});

@@ -1,14 +1,8 @@
-import { on } from "#common/event";
+import { on } from "#common/dom";
 import sound from "#common/sound";
 import vibrate from "#common/vibrate";
 
-let loaded = false;
-
 export default function button() {
-  if (loaded) {
-    return;
-  }
-
   on(document, "click", (event) => {
     const button = event.target.closest?.("button:enabled");
 
@@ -16,9 +10,7 @@ export default function button() {
       return;
     }
 
-    sound.click();
+    sound.play("click");
     vibrate.click();
   });
-
-  loaded = true;
 }

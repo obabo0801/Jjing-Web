@@ -7,20 +7,34 @@ import { run } from "#config/sqlite";
 
 const dir = path.join(import.meta.dirname, "../data/stt");
 
-const types = { "audio/webm": "webm", "audio/ogg": "ogg", "audio/mp4": "m4a" };
+const types = {
+  "audio/webm": "webm",
+  "audio/ogg": "ogg",
+  "audio/mp4": "m4a"
+};
 
-export const supported = (type) => Object.hasOwn(types, type);
+export const supported = (type) =>
+  Object.hasOwn(types, type);
 
 mkdirSync(dir, { recursive: true });
 
-export default async function save(audio, type, uid, text, time) {
+export default async function save(
+  audio,
+  type,
+  uid,
+  text,
+  time
+) {
   const ext = types[type];
 
   if (!ext || !Buffer.isBuffer(audio)) {
     return null;
   }
 
-  const hash = createHash("sha256").update(audio).digest("hex").slice(0, 32);
+  const hash = createHash("sha256")
+    .update(audio)
+    .digest("hex")
+    .slice(0, 32);
 
   const file = `${hash}.${ext}`;
   const target = path.join(dir, file);

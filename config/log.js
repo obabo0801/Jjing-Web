@@ -35,7 +35,9 @@ export default function log(dir, schema) {
 
     day = next;
 
-    db = new sqlite3.Database(path.join(folder, `${day}.db`));
+    db = new sqlite3.Database(
+      path.join(folder, `${day}.db`)
+    );
 
     db.configure("busyTimeout", 5000);
     db.exec(schema);

@@ -1,6 +1,13 @@
 import { Router } from "express";
 
-import { admin, i18n, push, stt, tts, user } from "#config/route";
+import {
+  admin,
+  i18n,
+  push,
+  stt,
+  tts,
+  user
+} from "#config/route";
 
 import admins from "#router/admin";
 import locale from "#router/i18n";

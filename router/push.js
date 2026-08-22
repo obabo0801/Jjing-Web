@@ -86,7 +86,10 @@ router.delete("/", async (req, res) => {
     return res.status(400).end();
   }
 
-  await run("DELETE FROM push WHERE uid = ? AND endpoint = ?", [id, endpoint]);
+  await run(
+    "DELETE FROM push WHERE uid = ? AND endpoint = ?",
+    [id, endpoint]
+  );
 
   res.status(204).end();
 });

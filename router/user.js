@@ -38,11 +38,18 @@ const remember = (res, uid) => {
 const status = (value) => {
   const code = Number(value);
 
-  return Number.isInteger(code) && code >= 100 && code <= 599 ? code : 0;
+  return Number.isInteger(code) &&
+    code >= 100 &&
+    code <= 599
+    ? code
+    : 0;
 };
 
 router.get(usage, (req, res) => {
-  const size = Buffer.byteLength(req.get("cookie") || "", "utf8");
+  const size = Buffer.byteLength(
+    req.get("cookie") || "",
+    "utf8"
+  );
 
   res.json({ size });
 });
@@ -56,10 +63,15 @@ router.get("/", async (req, res) => {
   const uid = identity(req);
   const ip = address(req);
 
-  const name = typeof req.query.name === "string" ? req.query.name : "";
+  const name =
+    typeof req.query.name === "string"
+      ? req.query.name
+      : "";
 
   const path =
-    typeof req.query.path === "string" ? req.query.path.slice(0, 2048) : "/";
+    typeof req.query.path === "string"
+      ? req.query.path.slice(0, 2048)
+      : "/";
 
   const result = status(req.query.result);
 
@@ -86,7 +98,9 @@ router.post("/", async (req, res) => {
   let uid = saved;
 
   const path =
-    typeof req.body.path === "string" ? req.body.path.slice(0, 2048) : "/";
+    typeof req.body.path === "string"
+      ? req.body.path.slice(0, 2048)
+      : "/";
 
   const result = status(req.body.result);
 
@@ -101,7 +115,10 @@ router.post("/", async (req, res) => {
   const { os, browser } = client(req);
 
   let user = uid
-    ? await get("SELECT uid, role FROM user WHERE uid = ?", [uid])
+    ? await get(
+        "SELECT uid, role FROM user WHERE uid = ?",
+        [uid]
+      )
     : null;
 
   if (!saved && user?.role === 0) {
@@ -148,9 +165,18 @@ router.post("/", async (req, res) => {
   if (blocked) {
     remember(res, uid);
 
-    await access(uid || null, ip, os, browser, path, result);
+    await access(
+      uid || null,
+      ip,
+      os,
+      browser,
+      path,
+      result
+    );
 
-    return res.status(403).json({ reason: blocked.reason, time: blocked.time });
+    return res
+      .status(403)
+      .json({ reason: blocked.reason, time: blocked.time });
   }
 
   if (!user) {
