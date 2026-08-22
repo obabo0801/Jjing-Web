@@ -79,6 +79,10 @@
   opacity: 0;
   cursor: pointer;
   touch-action: pan-y;
+
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .range input::-webkit-slider-thumb {

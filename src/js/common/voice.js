@@ -486,7 +486,7 @@ const display = (target) => {
 };
 
 const active = (target, stream) => {
-  sound.send();
+  sound.play("send");
 
   const stopDisplay = display(target);
 
@@ -982,12 +982,12 @@ export default async function voice(
     }
 
     if (!result.text) {
-      sound.fail();
+      sound.play("fail");
 
       return complete({ action: "none" });
     }
 
-    sound.success();
+    sound.play("success");
 
     if (words.length && !match(result.text, words, lang)) {
       return complete({ action: "none" });

@@ -14,12 +14,13 @@ const directions = {
 };
 
 const arrows = Object.values(directions);
-const items = [];
+
+const handlers = [];
 
 let point = null;
-let stop = [];
+let remove = [];
 
-function selected() {
+function hasSelection() {
   const selection = window.getSelection();
 
   if (selection && !selection.isCollapsed) {
@@ -38,7 +39,7 @@ function selected() {
   return false;
 }
 
-function direction(x, y) {
+function arrow(x, y) {
   const angle = Math.atan2(y, x) / (Math.PI / 4);
 
   const index = (Math.round(angle) + 8) % 8;
@@ -46,31 +47,30 @@ function direction(x, y) {
   return arrows[index];
 }
 
-function distance() {
+function threshold() {
   const { width, height } = viewport();
 
   return Math.min(width, height) * 0.15;
 }
 
 function trigger(x, y, event) {
-  if (selected()) {
+  if (hasSelection() || Math.hypot(x, y) < threshold()) {
     return;
   }
 
-  if (Math.hypot(x, y) < distance()) {
-    return;
-  }
+  const value = arrow(x, y);
 
-  const value = direction(x, y);
-
-  items
-    .filter((item) => item.direction === value)
-    .forEach((item) => item.run(event));
+  handlers.forEach((handler) => {
+    if (handler.arrow === value) {
+      handler.callback(event);
+    }
+  });
 }
 
 function start(event) {
-  if (event.touches.length !== 1 || selected()) {
+  if (event.touches.length !== 1 || hasSelection()) {
     point = null;
+
     return;
   }
 
@@ -84,8 +84,9 @@ function start(event) {
 }
 
 function end(event) {
-  if (!point || selected()) {
+  if (!point || hasSelection()) {
     point = null;
+
     return;
   }
 
@@ -98,6 +99,7 @@ function end(event) {
   }
 
   const x = touch.clientX - point.x;
+
   const y = touch.clientY - point.y;
 
   point = null;
@@ -110,15 +112,17 @@ function cancel() {
 }
 
 function watch() {
-  if (stop.length) {
+  if (remove.length) {
     return;
   }
 
   const options = { passive: true };
 
-  stop = [
+  remove = [
     on(document, "touchstart", start, options),
+
     on(document, "touchend", end, options),
+
     on(document, "touchcancel", cancel, options),
 
     listen((x, y, event) => {
@@ -128,36 +132,39 @@ function watch() {
 }
 
 function unwatch() {
-  if (items.length) {
+  if (handlers.length) {
     return;
   }
 
-  stop.forEach((run) => run());
+  remove.forEach((run) => {
+    run();
+  });
 
-  stop = [];
+  remove = [];
   point = null;
 }
 
-export default function swipe(value, run) {
-  const key = String(value).trim().toLowerCase();
+export default function swipe(direction, callback) {
+  const name = String(direction).trim().toLowerCase();
 
-  const dir =
-    directions[key] ?? (arrows.includes(key) ? key : null);
+  const value =
+    directions[name] ??
+    (arrows.includes(name) ? name : null);
 
-  if (!dir || typeof run !== "function") {
+  if (!value || typeof callback !== "function") {
     return () => {};
   }
 
-  const item = { direction: dir, run };
+  const handler = { arrow: value, callback };
 
-  items.push(item);
+  handlers.push(handler);
   watch();
 
   return () => {
-    const index = items.indexOf(item);
+    const index = handlers.indexOf(handler);
 
     if (index >= 0) {
-      items.splice(index, 1);
+      handlers.splice(index, 1);
     }
 
     unwatch();

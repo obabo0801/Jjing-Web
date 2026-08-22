@@ -25,15 +25,22 @@ const files = Object.freeze({
   ).href
 });
 
+const waves = new Set([
+  "sine",
+  "square",
+  "sawtooth",
+  "triangle"
+]);
+
 const buffers = new Map();
-const media = new Map();
+const players = new Map();
 const tones = new Set();
 
 let token = 0;
 
-const load = (audio, source) => {
-  if (!buffers.has(source)) {
-    const request = fetch(source)
+const load = (audio, url) => {
+  if (!buffers.has(url)) {
+    const request = fetch(url)
       .then((response) => {
         if (!response.ok) {
           throw new Error();
@@ -43,15 +50,15 @@ const load = (audio, source) => {
       })
       .then((data) => audio.decodeAudioData(data))
       .catch((error) => {
-        buffers.delete(source);
+        buffers.delete(url);
 
         throw error;
       });
 
-    buffers.set(source, request);
+    buffers.set(url, request);
   }
 
-  return buffers.get(source);
+  return buffers.get(url);
 };
 
 export function beep(
@@ -75,11 +82,15 @@ export function beep(
   }
 
   const oscillator = audio.createOscillator();
+
   const gain = audio.createGain();
+
   const length = Math.max(1, Number(duration) || 80) / 1000;
+
   const start =
     audio.currentTime +
     Math.max(0, Number(delay) || 0) / 1000;
+
   const end = start + length;
   const attack = Math.min(0.01, length / 2);
 
@@ -87,20 +98,16 @@ export function beep(
     Math.max(1, Number(frequency) || 440),
     start
   );
-  oscillator.type = [
-    "sine",
-    "square",
-    "sawtooth",
-    "triangle"
-  ].includes(type)
-    ? type
-    : "sine";
+
+  oscillator.type = waves.has(type) ? type : "sine";
 
   gain.gain.setValueAtTime(0, start);
+
   gain.gain.linearRampToValueAtTime(
     level(channel, volume),
     start + attack
   );
+
   gain.gain.linearRampToValueAtTime(0, end);
 
   oscillator.connect(gain);
@@ -177,35 +184,37 @@ export async function file(
     return null;
   }
 
-  const item = audio.createBufferSource();
+  const player = audio.createBufferSource();
+
   const gain = audio.createGain();
 
-  item.buffer = buffer;
-  item.loop = loop;
+  player.buffer = buffer;
+  player.loop = loop;
+
   gain.gain.value = level(channel, volume);
 
-  item.connect(gain);
+  player.connect(gain);
   gain.connect(audio.destination);
 
-  media.set(item, gain);
+  players.set(player, gain);
 
   on(
-    item,
+    player,
     "ended",
     () => {
-      if (!media.delete(item)) {
+      if (!players.delete(player)) {
         return;
       }
 
-      item.disconnect();
+      player.disconnect();
       gain.disconnect();
     },
     { once: true }
   );
 
-  item.start();
+  player.start();
 
-  return item;
+  return player;
 }
 
 export function stop() {
@@ -219,29 +228,16 @@ export function stop() {
 
   tones.clear();
 
-  for (const [item, gain] of media) {
+  for (const [player, gain] of players) {
     try {
-      item.stop();
+      player.stop();
     } catch {}
 
-    item.disconnect();
+    player.disconnect();
     gain.disconnect();
   }
 
-  media.clear();
+  players.clear();
 }
 
-const methods = Object.fromEntries(
-  Object.keys(patterns).map((name) => [
-    name,
-    (options) => play(name, options)
-  ])
-);
-
-export default Object.freeze({
-  beep,
-  file,
-  play,
-  stop,
-  ...methods
-});
+export default Object.freeze({ beep, file, play, stop });
