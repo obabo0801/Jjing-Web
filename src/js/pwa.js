@@ -1,9 +1,9 @@
-import { i18n, payload, push } from "#config/route";
+import * as route from "#config/route";
 
-import { on } from "#common/event";
+import * as dom from "#common/dom";
 import api from "#common/api";
 
-const open = () =>
+const openDatabase = () =>
   new Promise((resolve, reject) => {
     const request = indexedDB.open("sync", 1);
 
@@ -27,27 +27,41 @@ const open = () =>
     };
   });
 
-const save = async (value) => {
-  const database = await open();
+const saveRequest = async (value) => {
+  const database = await openDatabase();
 
   return new Promise((resolve, reject) => {
-    const transaction = database.transaction("requests", "readwrite");
+    const transaction = database.transaction(
+      "requests",
+      "readwrite"
+    );
 
     transaction.objectStore("requests").add(value);
 
-    transaction.oncomplete = resolve;
+    transaction.oncomplete = () => {
+      database.close();
+      resolve();
+    };
+
     transaction.onerror = () => {
-      reject(transaction.error);
+      const { error } = transaction;
+
+      database.close();
+      reject(error);
     };
   });
 };
 
-const decode = (value) => {
+const decodeKey = (value) => {
   const pad = "=".repeat((4 - (value.length % 4)) % 4);
 
-  const base64 = (value + pad).replace(/-/g, "+").replace(/_/g, "/");
+  const base64 = (value + pad)
+    .replace(/-/g, "+")
+    .replace(/_/g, "/");
 
-  return Uint8Array.from(atob(base64), (value) => value.charCodeAt(0));
+  return Uint8Array.from(atob(base64), (character) =>
+    character.charCodeAt(0)
+  );
 };
 
 export async function active(registration) {
@@ -60,7 +74,10 @@ export async function active(registration) {
     return false;
   }
 
-  return Boolean(await registration.pushManager.getSubscription());
+  const subscription =
+    await registration.pushManager.getSubscription();
+
+  return Boolean(subscription);
 }
 
 export async function subscribe(registration) {
@@ -73,7 +90,7 @@ export async function subscribe(registration) {
     return false;
   }
 
-  const key = await api(push);
+  const key = await api(route.push);
 
   if (!key.ok || !key.data?.key) {
     return false;
@@ -88,14 +105,20 @@ export async function subscribe(registration) {
     return false;
   }
 
+  const saved =
+    await registration.pushManager.getSubscription();
+
   const subscription =
-    (await registration.pushManager.getSubscription()) ||
+    saved ||
     (await registration.pushManager.subscribe({
       userVisibleOnly: true,
-      applicationServerKey: decode(key.data.key)
+      applicationServerKey: decodeKey(key.data.key)
     }));
 
-  const result = await api(push, { method: "POST", data: { subscription } });
+  const result = await api(route.push, {
+    method: "POST",
+    data: { subscription }
+  });
 
   return result.ok;
 }
@@ -105,48 +128,59 @@ export async function unsubscribe(registration) {
     return false;
   }
 
-  const subscription = await registration.pushManager.getSubscription();
+  const subscription =
+    await registration.pushManager.getSubscription();
 
   if (!subscription) {
     return true;
   }
 
-  const endpoint = subscription.endpoint;
+  const { endpoint } = subscription;
+
   const removed = await subscription.unsubscribe();
 
-  await api(push, { method: "DELETE", data: { endpoint } });
+  await api(route.push, {
+    method: "DELETE",
+    data: { endpoint }
+  });
 
   return removed;
 }
 
-export default async function pwa() {
-  if (!import.meta.env.PROD || !("serviceWorker" in navigator)) {
+export async function load() {
+  if (
+    !import.meta.env.PROD ||
+    !("serviceWorker" in navigator)
+  ) {
     return;
   }
 
-  await navigator.serviceWorker.register("/service-work.js", { scope: "/" });
+  await navigator.serviceWorker.register(
+    "/service-work.js",
+    { scope: "/" }
+  );
 
   const registration = await navigator.serviceWorker.ready;
 
   const cache = () => {
     registration.active?.postMessage({
       type: "offline",
-      locale: `/api${i18n}`,
-      payload
+      locale: `/api${route.i18n}`,
+      content: route.content
     });
   };
 
-  const installed =
-    matchMedia("(display-mode: standalone)").matches ||
-    navigator.standalone === true;
+  const standalone = matchMedia(
+    "(display-mode: standalone)"
+  ).matches;
 
-  if (installed) {
+  if (navigator.standalone || standalone) {
     cache();
   }
 
-  on(window, "appinstalled", cache, { once: true });
+  dom.on(window, "appinstalled", cache, { once: true });
 
-  on(window, "online", () => {
+  dom.on(window, "online", () => {
     registration.active?.postMessage({ type: "sync" });
   });
 
@@ -154,7 +188,10 @@ export default async function pwa() {
 }
 
 export async function notify(title, options = {}) {
-  if (!("Notification" in window) || !("serviceWorker" in navigator)) {
+  if (
+    !("Notification" in window) ||
+    !("serviceWorker" in navigator)
+  ) {
     return false;
   }
 
@@ -177,28 +214,39 @@ export async function notify(title, options = {}) {
   return true;
 }
 
-export async function sync(path, { data, ...options } = {}) {
+export async function sync(
+  path,
+  { data, ...options } = {}
+) {
   const request = {
     url: `/api${path}`,
+
     options: {
       ...options,
 
       ...(data !== undefined && {
-        headers: { "Content-Type": "application/json", ...options.headers },
+        headers: {
+          "Content-Type": "application/json",
+          ...options.headers
+        },
+
         body: JSON.stringify(data)
       })
     }
   };
 
   try {
-    const response = await fetch(request.url, request.options);
+    const response = await fetch(
+      request.url,
+      request.options
+    );
 
     if (response.ok || response.status < 500) {
       return response;
     }
   } catch {}
 
-  await save(request);
+  await saveRequest(request);
 
   const registration = await navigator.serviceWorker.ready;
 

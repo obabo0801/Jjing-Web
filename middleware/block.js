@@ -26,7 +26,10 @@ export default async function block(req, res, next) {
     return next();
   }
 
-  res.set({ "Cache-Control": "private, no-store", Vary: "Cookie" });
+  res.set({
+    "Cache-Control": "private, no-store",
+    Vary: "Cookie"
+  });
 
   return send(res, "block", 403);
 }

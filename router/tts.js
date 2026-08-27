@@ -1,54 +1,31 @@
 import { Router } from "express";
 
-import { get } from "#config/sqlite";
 import address from "#config/ip";
-import uid from "#config/uid";
+import { now } from "#config/log";
 import record from "#config/log/tts";
+import { get } from "#config/sqlite";
 import synthesize from "#config/tts";
+import uid from "#config/uid";
+
 import limit from "#middleware/limit";
 
 const router = Router();
 
 const allowed = limit(20);
 
-const now = () =>
-  new Date(Date.now() + 32_400_000)
-    .toISOString()
-    .slice(0, 19)
-    .replace("T", " ");
-
 router.post("/", async (req, res) => {
-  const id = uid(req);
-  const ip = address(req);
+  const body = req.body;
 
-  const user = id
-    ? await get("SELECT uid FROM user WHERE uid = ?", [id])
-    : null;
-
-  const blocked = user
-    ? await get(
-        `
-        SELECT 1
-        FROM block
-        WHERE uid = ?
-          OR ip = ?
-        LIMIT 1
-      `,
-        [id, ip]
-      )
-    : null;
-
-  if (!user || blocked) {
-    return res.status(403).end();
+  if (
+    !body ||
+    typeof body !== "object" ||
+    Array.isArray(body)
+  ) {
+    return res.status(400).end();
   }
 
-  if (!allowed(ip)) {
-    res.set("Retry-After", "60");
-
-    return res.status(429).end();
-  }
-
-  const text = typeof req.body.text === "string" ? req.body.text.trim() : "";
+  const text =
+    typeof body.text === "string" ? body.text.trim() : "";
 
   if (!text) {
     return res.status(400).end();
@@ -58,15 +35,57 @@ router.post("/", async (req, res) => {
     return res.status(413).end();
   }
 
-  if (req.body.type === "browser") {
+  const id = uid(req);
+  const ip = address(req);
+
+  if (!allowed(ip)) {
+    res.set("Retry-After", "60");
+
+    return res.status(429).end();
+  }
+
+  const user = id
+    ? await get("SELECT uid FROM user WHERE uid = ?", [id])
+    : null;
+
+  const blocked = await get(
+    `
+    SELECT 1
+    FROM block
+    WHERE uid = ?
+      OR ip = ?
+    LIMIT 1
+  `,
+    [id || null, ip]
+  );
+
+  const only = body.type === "cache";
+
+  if (!user && !blocked) {
+    return res.status(403).end();
+  }
+
+  if (blocked && !only) {
+    return res.status(403).end();
+  }
+
+  if (body.type === "browser") {
     const voice =
-      typeof req.body.voice === "string" ? req.body.voice.trim() : "";
+      typeof body.voice === "string"
+        ? body.voice.trim()
+        : "";
 
     if ([...voice].length > 200) {
       return res.status(400).end();
     }
 
-    await record(id, text, voice || "default", "browser", now());
+    await record(
+      id,
+      text,
+      voice || "default",
+      "browser",
+      now()
+    );
 
     return res.status(204).end();
   }
@@ -79,14 +98,14 @@ router.post("/", async (req, res) => {
     result = await synthesize(
       {
         text,
-        lang: req.body.lang,
-        pitch: req.body.pitch,
-        rate: req.body.rate,
-        voice: req.body.voice
+        lang: body.lang,
+        pitch: body.pitch,
+        rate: body.rate,
+        voice: body.voice
       },
       id,
       time,
-      req.body.type
+      body.type
     );
   } catch (error) {
     if (error?.code === "SQLITE_BUSY") {
@@ -97,12 +116,16 @@ router.post("/", async (req, res) => {
   }
 
   if (!result) {
-    return res.status(503).end();
+    return body.type === "cache"
+      ? res.status(204).end()
+      : res.status(503).end();
   }
 
-  const type = result.cached ? "cache" : result.provider;
+  if (body.type !== "cache") {
+    const type = result.cached ? "cache" : result.provider;
 
-  await record(id, text, result.voice, type, time);
+    await record(id, text, result.voice, type, time);
+  }
 
   res.set({
     "Cache-Control": "private, no-store",

@@ -7,7 +7,9 @@ const dir = path.join(import.meta.dirname, "../data");
 
 mkdirSync(dir, { recursive: true });
 
-const db = new sqlite3.Database(path.join(dir, "service.db"));
+const db = new sqlite3.Database(
+  path.join(dir, "service.db")
+);
 
 db.configure("busyTimeout", 5000);
 
@@ -27,6 +29,8 @@ db.exec(`
     uid TEXT,
     ip TEXT,
     reason TEXT,
+    log INTEGER NOT NULL DEFAULT 0
+      CHECK (log IN (0, 1)),
     time TEXT NOT NULL
       DEFAULT (datetime('now', '+9 hours'))
   );

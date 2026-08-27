@@ -1,0 +1,9 @@
+.app {
+  display: grid;
+  place-content: center;
+
+  width: min(100%, 32rem);
+  min-height: 100dvh;
+  margin-inline: auto;
+  padding: 1.5rem;
+}

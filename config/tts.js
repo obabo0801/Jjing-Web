@@ -3,20 +3,23 @@ import { mkdirSync } from "node:fs";
 import { readFile, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 
-import { run } from "#config/sqlite";
-
 import { TextToSpeechClient } from "@google-cloud/text-to-speech";
+
+import { run } from "#config/sqlite";
 
 const host = "https://translate.google.com";
 const dir = path.join(import.meta.dirname, "../data/tts");
+const timeout = 5000;
 
 const regions = { en: "en-US", ja: "ja-JP", ko: "ko-KR" };
 
 const mode = (process.env.TTS || "").trim().toLowerCase();
 
-const keyFile = process.env.GOOGLE_APPLICATION_CREDENTIALS?.trim();
+const keyFile =
+  process.env.GOOGLE_APPLICATION_CREDENTIALS?.trim();
 
 const enabled = ["login", "json"].includes(mode);
+
 const pending = new Map();
 
 let client;
@@ -35,24 +38,28 @@ const record = (file, uid, text, time) =>
     [file, uid, text, time]
   );
 
-const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
+const clamp = (value, min, max) =>
+  Math.min(max, Math.max(min, value));
 
 const within = async (promise) => {
   let timer;
 
-  const timeout = new Promise((_, reject) => {
-    timer = setTimeout(() => reject(new Error()), 5000);
+  const limit = new Promise((_, reject) => {
+    timer = setTimeout(() => {
+      reject(new Error("TTS request timed out."));
+    }, timeout);
   });
 
   try {
-    return await Promise.race([promise, timeout]);
+    return await Promise.race([promise, limit]);
   } finally {
     clearTimeout(timer);
   }
 };
 
 const language = (value) => {
-  const lang = typeof value === "string" ? value.trim() : "";
+  const lang =
+    typeof value === "string" ? value.trim() : "";
 
   if (!/^[a-z]{2,3}(?:-[a-z]{2})?$/i.test(lang)) {
     return "ko-KR";
@@ -71,8 +78,10 @@ const language = (value) => {
 const options = (value) => {
   const rate = Number(value.rate);
   const pitch = Number(value.pitch);
+
   const voice =
-    typeof value.voice === "string" && /^[a-z0-9-]{1,100}$/i.test(value.voice)
+    typeof value.voice === "string" &&
+    /^[a-z0-9-]{1,100}$/i.test(value.voice)
       ? value.voice
       : undefined;
 
@@ -80,7 +89,9 @@ const options = (value) => {
     text: value.text,
     lang: language(value.lang),
     rate: Number.isFinite(rate) ? clamp(rate, 0.25, 2) : 1,
-    pitch: Number.isFinite(pitch) ? clamp(pitch, -20, 20) : 0,
+    pitch: Number.isFinite(pitch)
+      ? clamp(pitch, -20, 20)
+      : 0,
     voice
   };
 };
@@ -109,7 +120,9 @@ const cacheKey = (provider, value) => {
 };
 
 const voice = (provider, value) =>
-  provider === "cloud" ? value.voice || "default" : "default";
+  provider === "cloud"
+    ? value.voice || "default"
+    : "default";
 
 const name = (provider, value) => {
   const key = cacheKey(provider, value);
@@ -142,10 +155,22 @@ const find = async (provider, value) => {
     return null;
   }
 
-  return { audio, file, provider, voice: voice(provider, value), cached: true };
+  return {
+    audio,
+    file,
+    provider,
+    voice: voice(provider, value),
+    cached: true
+  };
 };
 
-const cache = async (provider, value, create, uid, time) => {
+const cache = async (
+  provider,
+  value,
+  create,
+  uid,
+  time
+) => {
   const file = name(provider, value);
   const saved = await find(provider, value);
 
@@ -175,7 +200,9 @@ const cache = async (provider, value, create, uid, time) => {
 
         return audio;
       })
-      .finally(() => pending.delete(file));
+      .finally(() => {
+        pending.delete(file);
+      });
 
     pending.set(file, task);
   }
@@ -192,7 +219,7 @@ const cache = async (provider, value, create, uid, time) => {
 const connect = () => {
   if (mode === "json") {
     if (!keyFile) {
-      throw new Error("TTS key is missing");
+      throw new Error("TTS credentials not found.");
     }
 
     return new TextToSpeechClient({ keyFilename: keyFile });
@@ -206,6 +233,8 @@ const cloud = async (value) => {
 
   await within(client.initialize());
 
+  const chirp = value.voice?.includes("-Chirp3-HD-");
+
   const [response] = await client.synthesizeSpeech(
     {
       input: { text: value.text },
@@ -215,11 +244,14 @@ const cloud = async (value) => {
       },
       audioConfig: {
         audioEncoding: "MP3",
-        speakingRate: value.rate,
-        pitch: value.pitch
+
+        ...(!chirp && {
+          speakingRate: value.rate,
+          pitch: value.pitch
+        })
       }
     },
-    { timeout: 5000 }
+    { timeout }
   );
 
   const audio = response.audioContent;
@@ -249,7 +281,7 @@ const google = async (value) => {
 
     const response = await fetch(url, {
       headers: { "User-Agent": "Mozilla/5.0" },
-      signal: AbortSignal.timeout(5000)
+      signal: AbortSignal.timeout(timeout)
     });
 
     const type = response.headers.get("content-type");
@@ -265,10 +297,27 @@ const google = async (value) => {
 };
 
 const fallback = (request, uid, time) =>
-  cache("google", request, () => google(request), uid, time);
+  cache(
+    "google",
+    request,
+    () => google(request),
+    uid,
+    time
+  );
 
-export default async function synthesize(value, uid, time, type) {
+export default async function synthesize(
+  value,
+  uid,
+  time,
+  type
+) {
   const request = options(value);
+
+  if (type === "cache") {
+    const saved = await find("cloud", request);
+
+    return saved || find("google", request);
+  }
 
   if (type !== "google") {
     const saved = await find("cloud", request);
@@ -284,7 +333,13 @@ export default async function synthesize(value, uid, time, type) {
 
   if (enabled && Date.now() >= retry) {
     try {
-      return await cache("cloud", request, () => cloud(request), uid, time);
+      return await cache(
+        "cloud",
+        request,
+        () => cloud(request),
+        uid,
+        time
+      );
     } catch (error) {
       if (error?.code === "SQLITE_BUSY") {
         throw error;
@@ -299,5 +354,7 @@ export default async function synthesize(value, uid, time, type) {
     }
   }
 
-  return type === "cloud" ? null : fallback(request, uid, time);
+  return type === "cloud"
+    ? null
+    : fallback(request, uid, time);
 }

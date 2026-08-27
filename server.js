@@ -7,12 +7,13 @@ import block from "#block";
 import maintenance from "#maintenance";
 import page, { reject } from "#page";
 import assets from "#assets";
+import upload from "#upload";
 import error from "#error";
 import router from "#router";
 
 const server = express();
-const env = process.env.SERVER_ENV || "development";
-const port = process.env.PORT || 3000;
+const env = process.env.SERVER_ENV;
+const port = process.env.PORT;
 const secret = process.env.COOKIE_SECRET;
 
 server.set("env", env);
@@ -25,6 +26,7 @@ server.use(block);
 server.use(maintenance);
 
 server.use("/api", router);
+server.use("/upload", upload);
 
 server.use(page);
 server.use(assets);

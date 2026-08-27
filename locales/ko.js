@@ -1,22 +1,24 @@
 export default {
   app: { title: "\u2008" },
 
-  error: { heading: "페이지 없음" },
+  error: { heading: "페이지 없음", action: "홈으로" },
 
-  offline: { heading: "오프라인 상태" },
+  offline: { heading: "오프라인", action: "다시 연결" },
 
-  denied: { heading: "쿠키 필요" },
+  denied: { heading: "쿠키 필요", action: "다시 시도" },
 
-  maintenance: { heading: "점검 상태" },
+  maintenance: { heading: "점검 중", action: "다시 확인" },
 
-  block: { heading: "접속 차단" },
+  block: { heading: "접근 거부", action: "다시 확인" },
 
   voice: {
     listening: "듣는 중",
     processing: "처리 중",
     permission: {
       heading: "마이크 권한 필요",
-      message: "음성 인식을 사용하려면 마이크 권한을 허용해 주세요.",
+      message:
+        "음성 인식을 사용하려면 " +
+        "마이크 권한을 허용해 주세요.",
       confirm: "확인"
     }
   },
@@ -26,9 +28,12 @@ export default {
   notification: {
     enabled: "알림",
     push: "푸시 알림",
+
     permission: {
       heading: "알림 권한 필요",
-      message: "푸시 알림을 받으려면 알림 권한을 허용해 주세요.",
+      message:
+        "푸시 알림을 받으려면 " +
+        "알림 권한을 허용해 주세요.",
       confirm: "확인"
     }
   },
@@ -46,7 +51,6 @@ export default {
   state: { on: "켜짐", off: "꺼짐" },
 
   sound: {
-    enabled: "효과음",
     vibration: "진동",
     master: "전체",
     media: "미디어",
@@ -70,7 +74,7 @@ export default {
     data: "데이터",
     delete: {
       heading: "데이터 삭제",
-      message: "저장된 설정과 오프라인 데이터를 삭제하시겠습니까?",
+      message: "저장된 데이터를 삭제하시겠습니까?",
       cancel: "취소",
       confirm: "삭제"
     }
@@ -89,6 +93,7 @@ export default {
     heading: "알림 전송",
     title: "제목",
     body: "내용",
+    image: "이미지",
     url: "이동 주소",
     send: "전송"
   },
@@ -99,9 +104,13 @@ export default {
 
     service: {
       title: "제1조 목적",
-      description: "이 약관은 서비스 이용에 관한 사항을 규정합니다."
+      description:
+        "이 약관은 서비스 이용에 관한 사항을 규정합니다."
     }
   },
 
-  privacy: { title: "개인정보 처리방침", heading: "개인정보 처리방침" }
+  privacy: {
+    title: "개인정보 처리방침",
+    heading: "개인정보 처리방침"
+  }
 };

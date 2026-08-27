@@ -1,45 +1,51 @@
-import { on } from "#common/event";
+import { on } from "#common/dom";
 
-const items = [];
+const shapes = ["○", "△", "□"];
+const gestures = new Set();
 
 let points = [];
-let id = null;
-let stop = [];
+let inputId = null;
+let removeListeners = [];
+
+const reset = () => {
+  points = [];
+  inputId = null;
+};
 
 function distance(a, b) {
   return Math.hypot(b.x - a.x, b.y - a.y);
 }
 
-function length(points) {
+function pathLength(path) {
   let total = 0;
 
-  for (let i = 1; i < points.length; i++) {
-    total += distance(points[i - 1], points[i]);
+  for (let index = 1; index < path.length; index++) {
+    total += distance(path[index - 1], path[index]);
   }
 
   return total;
 }
 
-function sample(points, count = 32) {
-  const total = length(points);
+function sample(path, count = 32) {
+  const total = pathLength(path);
 
   if (!total) {
-    return points;
+    return path;
   }
 
   const gap = total / (count - 1);
-  const result = [points[0]];
+  const result = [path[0]];
 
-  let current = points[0];
+  let point = path[0];
   let index = 1;
   let moved = 0;
 
-  while (index < points.length && result.length < count - 1) {
-    const next = points[index];
-    const size = distance(current, next);
+  while (index < path.length && result.length < count - 1) {
+    const next = path[index];
+    const size = distance(point, next);
 
     if (!size) {
-      current = next;
+      point = next;
       index++;
 
       continue;
@@ -48,21 +54,22 @@ function sample(points, count = 32) {
     if (moved + size >= gap) {
       const rate = (gap - moved) / size;
 
-      current = {
-        x: current.x + (next.x - current.x) * rate,
-        y: current.y + (next.y - current.y) * rate
+      point = {
+        x: point.x + (next.x - point.x) * rate,
+
+        y: point.y + (next.y - point.y) * rate
       };
 
-      result.push(current);
+      result.push(point);
       moved = 0;
     } else {
       moved += size;
-      current = next;
+      point = next;
       index++;
     }
   }
 
-  result.push(points.at(-1));
+  result.push(path.at(-1));
 
   return result;
 }
@@ -80,21 +87,24 @@ function turn(a, b, c) {
     return 0;
   }
 
-  const value = Math.max(-1, Math.min(1, (ax * cx + ay * cy) / size));
+  const value = Math.max(
+    -1,
+    Math.min(1, (ax * cx + ay * cy) / size)
+  );
 
   return 180 - (Math.acos(value) * 180) / Math.PI;
 }
 
-function corners(points) {
-  const count = points.length;
+function countCorners(path) {
+  const count = path.length;
   const marked = [];
 
-  for (let i = 0; i < count; i++) {
-    const before = points[(i - 2 + count) % count];
+  for (let index = 0; index < count; index++) {
+    const before = path[(index - 2 + count) % count];
 
-    const after = points[(i + 2) % count];
+    const after = path[(index + 2) % count];
 
-    marked.push(turn(before, points[i], after) > 45);
+    marked.push(turn(before, path[index], after) > 45);
   }
 
   let result = 0;
@@ -110,43 +120,48 @@ function corners(points) {
   return result;
 }
 
-function detect(points) {
-  if (points.length < 8) {
+function detect(path) {
+  if (path.length < 8) {
     return null;
   }
 
-  const xs = points.map((point) => point.x);
-  const ys = points.map((point) => point.y);
+  const xs = path.map((point) => point.x);
+  const ys = path.map((point) => point.y);
 
   const width = Math.max(...xs) - Math.min(...xs);
+
   const height = Math.max(...ys) - Math.min(...ys);
+
   const size = Math.max(width, height);
 
   if (size < 48 || Math.min(width, height) < size * 0.35) {
     return null;
   }
 
-  if (distance(points[0], points.at(-1)) > Math.max(32, size * 0.35)) {
+  if (
+    distance(path[0], path.at(-1)) >
+    Math.max(32, size * 0.35)
+  ) {
     return null;
   }
 
-  if (length(points) < size * 2) {
+  if (pathLength(path) < size * 2) {
     return null;
   }
 
-  const path = sample([...points, points[0]]).slice(0, -1);
+  const sampled = sample([...path, path[0]]).slice(0, -1);
 
-  const count = corners(path);
+  const corners = countCorners(sampled);
 
-  if (count === 3) {
+  if (corners === 3) {
     return "△";
   }
 
-  if (count === 4) {
+  if (corners === 4) {
     return "□";
   }
 
-  if (count <= 2) {
+  if (corners <= 2) {
     return "○";
   }
 
@@ -154,41 +169,42 @@ function detect(points) {
 }
 
 function trigger(event) {
-  const value = detect(points);
+  const shape = detect(points);
 
-  points = [];
-  id = null;
+  reset();
 
-  if (!value) {
+  if (!shape) {
     return;
   }
 
-  items
-    .filter((item) => item.shape === value)
-    .forEach((item) => item.run(event));
+  gestures.forEach((item) => {
+    if (item.shape === shape) {
+      item.listener(event);
+    }
+  });
 }
 
-function start(event) {
+function touchStart(event) {
   if (event.touches.length !== 1) {
-    points = [];
-    id = null;
-
+    reset();
     return;
   }
 
   const touch = event.touches[0];
 
-  id = touch.identifier;
+  inputId = touch.identifier;
 
   points = [{ x: touch.clientX, y: touch.clientY }];
 }
 
-function move(event) {
-  if (id === null) {
+function touchMove(event) {
+  if (inputId === null) {
     return;
   }
 
-  const touch = [...event.touches].find((item) => item.identifier === id);
+  const touch = [...event.touches].find(
+    (item) => item.identifier === inputId
+  );
 
   if (!touch) {
     return;
@@ -201,13 +217,13 @@ function move(event) {
   }
 }
 
-function end(event) {
-  if (id === null) {
+function touchEnd(event) {
+  if (inputId === null) {
     return;
   }
 
   const touch = [...event.changedTouches].find(
-    (item) => item.identifier === id
+    (item) => item.identifier === inputId
   );
 
   if (!touch) {
@@ -219,7 +235,7 @@ function end(event) {
   trigger(event);
 }
 
-function down(event) {
+function pointerDown(event) {
   if (
     !event.isPrimary ||
     event.pointerType !== "mouse" ||
@@ -229,13 +245,16 @@ function down(event) {
     return;
   }
 
-  id = event.pointerId;
+  inputId = event.pointerId;
 
   points = [{ x: event.clientX, y: event.clientY }];
 }
 
-function drag(event) {
-  if (event.pointerType !== "mouse" || event.pointerId !== id) {
+function pointerMove(event) {
+  if (
+    event.pointerType !== "mouse" ||
+    event.pointerId !== inputId
+  ) {
     return;
   }
 
@@ -246,8 +265,11 @@ function drag(event) {
   }
 }
 
-function up(event) {
-  if (event.pointerType !== "mouse" || event.pointerId !== id) {
+function pointerUp(event) {
+  if (
+    event.pointerType !== "mouse" ||
+    event.pointerId !== inputId
+  ) {
     return;
   }
 
@@ -259,66 +281,64 @@ function up(event) {
 function cancel(event) {
   if (
     "pointerType" in event &&
-    (event.pointerType !== "mouse" || event.pointerId !== id)
+    (event.pointerType !== "mouse" ||
+      event.pointerId !== inputId)
   ) {
     return;
   }
 
-  points = [];
-  id = null;
+  reset();
 }
 
 function watch() {
-  if (stop.length) {
+  if (removeListeners.length) {
     return;
   }
 
   const options = { passive: true };
 
-  stop = [
-    on(document, "touchstart", start, options),
-    on(document, "touchmove", move, options),
-    on(document, "touchend", end, options),
-    on(document, "touchcancel", cancel, options),
-
-    on(document, "pointerdown", down),
-    on(document, "pointermove", drag),
-    on(document, "pointerup", up),
-    on(document, "pointercancel", cancel)
+  removeListeners = [
+    on(document, "pointerdown", pointerDown),
+    on(document, "pointermove", pointerMove),
+    on(document, "pointerup", pointerUp),
+    on(document, "pointercancel", cancel),
+    on(document, "touchstart", touchStart, options),
+    on(document, "touchmove", touchMove, options),
+    on(document, "touchend", touchEnd, options),
+    on(document, "touchcancel", cancel, options)
   ];
 }
 
 function unwatch() {
-  if (items.length) {
+  if (gestures.size) {
     return;
   }
 
-  stop.forEach((run) => run());
+  removeListeners.forEach((remove) => {
+    remove();
+  });
 
-  stop = [];
-  points = [];
-  id = null;
+  removeListeners = [];
+  reset();
 }
 
-export default function gesture(value, run) {
+export default function gesture(value, listener) {
   const shape = String(value).trim();
 
-  if (!["○", "△", "□"].includes(shape) || typeof run !== "function") {
+  if (
+    !shapes.includes(shape) ||
+    typeof listener !== "function"
+  ) {
     return () => {};
   }
 
-  const item = { shape, run };
+  const item = { shape, listener };
 
-  items.push(item);
+  gestures.add(item);
   watch();
 
   return () => {
-    const index = items.indexOf(item);
-
-    if (index >= 0) {
-      items.splice(index, 1);
-    }
-
+    gestures.delete(item);
     unwatch();
   };
 }

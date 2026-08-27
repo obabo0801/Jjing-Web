@@ -1,5 +1,3 @@
-import "dotenv/config";
-
 import webpush from "web-push";
 
 const key = process.env.VAPID_PUBLIC_KEY;

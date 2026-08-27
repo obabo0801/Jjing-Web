@@ -1,7 +1,4 @@
-export default (req) => {
-  if (process.env.COOKIE_SECRET) {
-    return req.signedCookies?.uid || "";
-  }
-
-  return req.cookies.uid || "";
-};
+export default (req) =>
+  process.env.COOKIE_SECRET
+    ? req.signedCookies?.uid || ""
+    : req.cookies?.uid || "";

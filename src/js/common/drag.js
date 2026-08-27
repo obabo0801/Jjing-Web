@@ -1,150 +1,150 @@
-import { on } from "#common/event";
+import { on } from "#common/dom";
 import { scrollable } from "#common/scroll";
-
-const ignore = "input, select, textarea, " + "[contenteditable], .range";
 
 const listeners = new Set();
 
-function selected() {
+const hasSelection = () => {
   const selection = window.getSelection();
 
-  return selection && !selection.isCollapsed;
-}
+  return Boolean(selection && !selection.isCollapsed);
+};
 
-export function listen(run) {
-  if (typeof run !== "function") {
+export function listen(listener) {
+  if (typeof listener !== "function") {
     return () => {};
   }
 
-  listeners.add(run);
+  listeners.add(listener);
 
   return () => {
-    listeners.delete(run);
+    listeners.delete(listener);
   };
 }
 
-export function bind(target = document) {
-  let scroll = null;
-  let id = null;
+export default function drag(target = document) {
+  let scroller = null;
+  let pointerId = null;
 
-  let x = 0;
-  let y = 0;
+  let startX = 0;
+  let startY = 0;
 
-  let left = 0;
-  let top = 0;
+  let scrollLeft = 0;
+  let scrollTop = 0;
 
-  let moved = false;
+  let dragging = false;
   let pending = false;
-  let block = false;
+  let blockClick = false;
 
-  const down = (event) => {
+  const reset = () => {
+    scroller = null;
+    pointerId = null;
+    dragging = false;
+    pending = false;
+  };
+
+  const start = (event) => {
     if (
       event.shiftKey ||
       event.pointerType !== "mouse" ||
       event.button !== 0 ||
-      (event.target instanceof Element && event.target.closest(ignore))
+      (event.target instanceof Element &&
+        event.target.closest(
+          "input, select, textarea, " +
+            "[contenteditable], .range"
+        ))
     ) {
       return;
     }
 
-    const item = scrollable(event.target);
+    const next = scrollable(event.target);
 
-    if (!item || (item !== target && !target.contains(item))) {
+    if (
+      !next ||
+      (next !== target && !target.contains(next))
+    ) {
       return;
     }
 
-    scroll = item;
-    id = event.pointerId;
+    scroller = next;
+    pointerId = event.pointerId;
 
-    x = event.clientX;
-    y = event.clientY;
+    startX = event.clientX;
+    startY = event.clientY;
 
-    left = scroll.scrollLeft;
-    top = scroll.scrollTop;
+    scrollLeft = scroller.scrollLeft;
+    scrollTop = scroller.scrollTop;
 
-    moved = false;
+    dragging = false;
     pending = false;
   };
 
   const move = (event) => {
-    if (event.pointerId !== id || !scroll) {
+    if (event.pointerId !== pointerId || !scroller) {
       return;
     }
 
-    const dx = event.clientX - x;
-    const dy = event.clientY - y;
+    const moveX = event.clientX - startX;
+    const moveY = event.clientY - startY;
 
-    if (selected()) {
-      scroll = null;
-      id = null;
-      pending = false;
-
+    if (hasSelection()) {
+      reset();
       return;
     }
 
-    if (!moved && Math.hypot(dx, dy) < 4) {
+    if (!dragging && Math.hypot(moveX, moveY) < 4) {
       return;
     }
 
-    if (!moved && !pending) {
+    if (!dragging && !pending) {
       pending = true;
-
       return;
     }
 
-    if (!moved) {
-      if (selected()) {
-        scroll = null;
-        id = null;
-        pending = false;
-
-        return;
-      }
-
-      moved = true;
+    if (!dragging) {
+      dragging = true;
       pending = false;
 
-      target.setPointerCapture?.(id);
+      target.setPointerCapture?.(pointerId);
     }
 
-    scroll.scrollLeft = left - dx;
-    scroll.scrollTop = top - dy;
+    scroller.scrollLeft = scrollLeft - moveX;
+
+    scroller.scrollTop = scrollTop - moveY;
 
     event.preventDefault();
   };
 
-  const end = (event, emit = true) => {
-    if (event.pointerId !== id) {
+  const end = (event, notify = true) => {
+    if (event.pointerId !== pointerId) {
       return;
     }
 
-    if (moved) {
-      const dx = event.clientX - x;
-      const dy = event.clientY - y;
+    if (dragging) {
+      const moveX = event.clientX - startX;
+      const moveY = event.clientY - startY;
 
-      block = true;
+      blockClick = true;
 
-      if (emit) {
-        listeners.forEach((run) => {
-          run(dx, dy, event);
+      if (notify) {
+        listeners.forEach((listener) => {
+          listener(moveX, moveY, event);
         });
       }
 
       setTimeout(() => {
-        block = false;
+        blockClick = false;
       });
     }
 
-    if (target.hasPointerCapture?.(id)) {
-      target.releasePointerCapture(id);
+    if (target.hasPointerCapture?.(pointerId)) {
+      target.releasePointerCapture(pointerId);
     }
 
-    scroll = null;
-    id = null;
+    reset();
   };
 
   const click = (event) => {
-    if (!block) {
+    if (!blockClick) {
       return;
     }
 
@@ -152,20 +152,23 @@ export function bind(target = document) {
     event.stopPropagation();
   };
 
-  const stop = [
-    on(target, "pointerdown", down),
+  const remove = [
+    on(target, "pointerdown", start),
     on(target, "pointermove", move),
     on(target, "pointerup", end),
+
     on(target, "pointercancel", (event) => {
       end(event, false);
     }),
+
     on(target, "click", click, true)
   ];
 
   return () => {
-    stop.forEach((run) => run());
+    remove.forEach((run) => {
+      run();
+    });
 
-    scroll = null;
-    id = null;
+    reset();
   };
 }

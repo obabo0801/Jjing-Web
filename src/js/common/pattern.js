@@ -21,6 +21,9 @@ export default Object.freeze({
     [200, 160, 0]
   ],
   click: [[800, 18, 0]],
+  segment: [[600, 8, 0]],
+  stepper: [[600, 6, 0]],
+  picker: [[600, 5, 0]],
   touch: [[640, 28, 0]],
   loading: [
     [440, 35, 65],

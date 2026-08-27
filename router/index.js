@@ -1,21 +1,21 @@
 import { Router } from "express";
 
-import { admin, i18n, push, stt, tts, user } from "#config/route";
+import * as route from "#config/route";
 
-import admins from "#router/admin";
-import locale from "#router/i18n";
-import subs from "#router/push";
-import listen from "#router/stt";
-import speech from "#router/tts";
-import users from "#router/user";
+import admin from "#router/admin";
+import i18n from "#router/i18n";
+import push from "#router/push";
+import stt from "#router/stt";
+import tts from "#router/tts";
+import user from "#router/user";
 
 const router = Router();
 
-router.use(admin, admins);
-router.use(i18n, locale);
-router.use(push, subs);
-router.use(stt, listen);
-router.use(tts, speech);
-router.use(user, users);
+router.use(route.admin, admin);
+router.use(route.i18n, i18n);
+router.use(route.push, push);
+router.use(route.stt, stt);
+router.use(route.tts, tts);
+router.use(route.user, user);
 
 export default router;

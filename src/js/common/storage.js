@@ -10,8 +10,6 @@ export const set = (key, value) => {
   try {
     localStorage.setItem(key, String(value));
   } catch {}
-
-  return value;
 };
 
 export const remove = (key) => {

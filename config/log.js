@@ -5,16 +5,16 @@ import sqlite3 from "sqlite3";
 
 const root = path.join(import.meta.dirname, "../data/log");
 
-const date = (time) => {
-  if (time) {
-    return time.slice(0, 10).replaceAll("-", "");
-  }
+const offset = 9 * 60 * 60 * 1000;
 
-  return new Date(Date.now() + 32_400_000)
+export const now = () =>
+  new Date(Date.now() + offset)
     .toISOString()
-    .slice(0, 10)
-    .replaceAll("-", "");
-};
+    .slice(0, 19)
+    .replace("T", " ");
+
+const date = (time) =>
+  (time || now()).slice(0, 10).replaceAll("-", "");
 
 export default function log(dir, schema) {
   const folder = path.join(root, dir);
@@ -35,7 +35,9 @@ export default function log(dir, schema) {
 
     day = next;
 
-    db = new sqlite3.Database(path.join(folder, `${day}.db`));
+    db = new sqlite3.Database(
+      path.join(folder, `${day}.db`)
+    );
 
     db.configure("busyTimeout", 5000);
     db.exec(schema);

@@ -3,8 +3,9 @@ import { user } from "#config/route";
 import api from "#common/api";
 import device from "#common/device";
 
-const show = async (name) => {
-  const header = name === "offline" ? "X-PWA-Cache" : `X-${name}`;
+const showPage = async (name) => {
+  const header =
+    name === "offline" ? "X-PWA-Cache" : `X-${name}`;
 
   const response = await fetch(`/${name}`, {
     headers: { Accept: "text/html", [header]: "true" }
@@ -17,82 +18,89 @@ const show = async (name) => {
   document.close();
 };
 
-export default async function access(redirect = true, name) {
-  const current = decodeURI(`${location.pathname}${location.search}`);
+const errorPage = (response) => {
+  if (response.status === 503) {
+    return "maintenance";
+  }
 
+  if (response.ok) {
+    return "";
+  }
+
+  return response.status === 0 ? "offline" : "error";
+};
+
+export default async function access(
+  navigate = true,
+  name
+) {
   const path =
     name && location.pathname === "/"
       ? `/${name.replace(/^\/+/, "")}`
-      : current;
+      : decodeURI(`${location.pathname}${location.search}`);
 
-  const result =
-    performance.getEntriesByType("navigation")[0]?.responseStatus ?? 0;
+  const navigation =
+    performance.getEntriesByType("navigation")[0];
+
+  const status = navigation?.responseStatus ?? 0;
+  const reload = navigation?.type === "reload";
 
   const wearable = device().wearable;
 
-  const options = { headers: { "X-Wearable": String(wearable) } };
+  const headers = { "X-Wearable": String(wearable) };
 
   const response = await api(user, {
-    ...options,
+    headers,
     method: "POST",
-    data: { path, result }
+    data: { path, result: status }
   });
 
   if (response.status === 403) {
-    if (redirect) {
+    if (navigate) {
       if (import.meta.env.DEV) {
         location.replace("/block");
       } else {
-        location.reload();
+        await showPage("block");
       }
     }
 
     return false;
   }
 
-  if (response.status === 503) {
-    if (redirect) {
-      await show("maintenance");
+  const firstError = errorPage(response);
+
+  if (firstError) {
+    if (navigate) {
+      await showPage(firstError);
     }
 
     return false;
   }
 
-  if (!response.ok) {
-    if (redirect) {
-      const page = response.status === 0 ? "offline" : "error";
+  const query = new URLSearchParams({
+    path,
+    result: status,
+    ...(name && { name }),
+    ...(reload && { reload: "true" })
+  });
 
-      await show(page);
-    }
+  const session = await api(`${user}?${query}`, {
+    headers
+  });
 
-    return false;
-  }
+  const sessionError = errorPage(session);
 
-  const query = new URLSearchParams({ path, result, ...(name && { name }) });
-
-  const session = await api(`${user}?${query}`, options);
-
-  if (session.status === 503) {
-    if (redirect) {
-      await show("maintenance");
-    }
-
-    return false;
-  }
-
-  if (!session.ok) {
-    if (redirect) {
-      const page = session.status === 0 ? "offline" : "error";
-
-      await show(page);
+  if (sessionError) {
+    if (navigate) {
+      await showPage(sessionError);
     }
 
     return false;
   }
 
   if (!session.data?.valid) {
-    if (redirect) {
-      await show("denied");
+    if (navigate) {
+      await showPage("denied");
     }
 
     return false;

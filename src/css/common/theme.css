@@ -2,11 +2,21 @@
   color-scheme: light dark;
 
   --background: light-dark(#ffffff, #181818);
-  --canvas: light-dark(#ffffff, #181818);
+
+  --canvas: light-dark(#f2f1f6, #010101);
+
+  --panel: light-dark(#f2f1f6, #181818);
+
   --surface: light-dark(#ffffff, #181818);
+
   --text: light-dark(#181818, #eeeeee);
-  --muted: light-dark(#6e6e6e, #a0a0a0);
-  --border: light-dark(rgb(0 0 0 / 12%), rgb(255 255 255 / 14%));
+
+  --mute: light-dark(#6e6e6e, #a0a0a0);
+
+  --border: light-dark(
+    rgb(0 0 0 / 12%),
+    rgb(255 255 255 / 14%)
+  );
 
   --shadow: 0 4px 16px rgb(0 0 0 / 16%);
 
@@ -16,14 +26,20 @@
 
   --hover: light-dark(#181818, #ffffff);
 
-  --pointer: color-mix(in srgb, var(--hover) 20%, transparent);
+  --select: light-dark(#ffffff, #292929);
 
   --error: #ff453a;
   --success: #34c759;
-  --info: #0b57d0;
+  --info: #3779ff;
 
   --active: var(--error);
   --focus: var(--info);
+
+  --pointer: color-mix(
+    in srgb,
+    var(--hover) 20%,
+    transparent
+  );
 }
 
 :root[data-theme="light"] {
@@ -40,32 +56,13 @@ body {
   color: var(--text);
 
   transition:
-    background-color var(--duration-2) ease,
-    color var(--duration-2) ease;
-}
-
-html[data-changing],
-html[data-changing] *,
-html[data-changing] *::before,
-html[data-changing] *::after {
-  transition: none !important;
-}
-
-::view-transition-old(root),
-::view-transition-new(root) {
-  animation-duration: 0.3s;
-  animation-timing-function: ease;
-  mix-blend-mode: normal;
+    background-color 160ms ease,
+    color 160ms ease;
 }
 
 @media (prefers-reduced-motion: reduce) {
   html,
   body {
     transition: none;
-  }
-
-  ::view-transition-old(root),
-  ::view-transition-new(root) {
-    animation: none;
   }
 }

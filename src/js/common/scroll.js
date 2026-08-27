@@ -1,10 +1,10 @@
-import { on } from "#common/event";
+import * as dom from "#common/dom";
 import vibrate from "#common/vibrate";
 
 export function scrollable(node) {
   let item = node instanceof Element ? node : null;
 
-  while (item && item !== document.body) {
+  while (item && item !== dom.body) {
     if (item instanceof HTMLElement && !item.hidden) {
       const style = getComputedStyle(item);
 
@@ -24,18 +24,22 @@ export function scrollable(node) {
     item = item.parentElement;
   }
 
-  return document.scrollingElement;
+  return dom.scroller;
 }
 
 export default function scroll() {
-  const target = document.scrollingElement;
+  const target = dom.scroller;
 
-  if (!target) return;
+  if (!target) {
+    return;
+  }
 
   const bound = () => {
     const max = target.scrollHeight - target.clientHeight;
 
-    if (max <= 0) return null;
+    if (max <= 0) {
+      return null;
+    }
 
     if (target.scrollTop <= 0) {
       return "top";
@@ -48,19 +52,19 @@ export default function scroll() {
     return null;
   };
 
-  let last = bound();
+  let previous = bound();
 
-  on(
+  dom.on(
     window,
     "scroll",
     () => {
-      const current = bound();
+      const position = bound();
 
-      if (current && current !== last) {
-        vibrate.touch();
+      if (position && position !== previous) {
+        vibrate.play("touch");
       }
 
-      last = current;
+      previous = position;
     },
     { passive: true }
   );

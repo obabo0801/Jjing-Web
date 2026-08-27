@@ -1,56 +1,46 @@
 <!doctype html>
-<html
-  lang="en"
-  data-theme="system"
->
+<html lang="en" data-theme="system">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0"
+    />
 
-<head>
-  <meta charset="UTF-8">
-  <meta
-    name="viewport"
-    content="width=device-width, initial-scale=1.0"
-  >
+    <noscript>
+      <style>
+        html {
+          display: none !important;
+        }
+      </style>
+    </noscript>
 
-  <noscript>
-    <style>
-      html {
-        display: none !important;
-      }
-    </style>
-  </noscript>
+    <title data-i18n="app.title">&#8203;</title>
 
-  <title data-i18n="app.title">&#8200;</title>
+    <link
+      rel="icon"
+      href="/src/assets/favicon.ico"
+      sizes="any"
+    />
 
-  <link
-    rel="icon"
-    href="/src/assets/favicon.ico"
-    sizes="any"
-  >
+    <link rel="manifest" href="/manifest.json" />
 
-  <link
-    rel="manifest"
-    href="/manifest.json"
-  >
+    <meta name="theme-color" content="#ffffff" />
 
-  <meta
-    name="theme-color"
-    content="#ffffff"
-  >
+    <link rel="stylesheet" href="/src/css/style.css" />
+    <link rel="stylesheet" href="/src/css/state.css" />
+  </head>
 
-  <link
-    rel="stylesheet"
-    href="/src/css/style.css"
-  >
-</head>
+  <body>
+    <main class="state offline" hidden>
+      <h1 data-i18n="offline.heading"></h1>
 
-<body>
-  <main class="state">
-    <h1 data-i18n="offline.heading"></h1>
-  </main>
+      <button
+        type="button"
+        data-i18n="offline.action"
+      ></button>
+    </main>
 
-  <script
-    type="module"
-    src="/src/js/offline.js"
-  ></script>
-</body>
+    <script type="module" src="/src/js/offline.js"></script>
+  </body>
 </html>

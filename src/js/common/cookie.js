@@ -1,19 +1,22 @@
-const encode = encodeURIComponent;
-const decode = decodeURIComponent;
+const ONE_YEAR = 31_536_000;
 
 export const get = (key) => {
-  const name = `${encode(key)}=`;
+  const prefix = `${encodeURIComponent(key)}=`;
 
-  const item = document.cookie
+  const cookie = document.cookie
     .split("; ")
-    .find((value) => value.startsWith(name));
+    .find((item) => item.startsWith(prefix));
 
-  return item ? decode(item.slice(name.length)) : null;
+  return cookie
+    ? decodeURIComponent(cookie.slice(prefix.length))
+    : null;
 };
 
-export const set = (key, value, maxAge = 31_536_000) => {
+export const set = (key, value, maxAge = ONE_YEAR) => {
   const parts = [
-    `${encode(key)}=${encode(value)}`,
+    `${encodeURIComponent(key)}=${encodeURIComponent(
+      value
+    )}`,
     "Path=/",
     `Max-Age=${maxAge}`,
     "SameSite=Lax"

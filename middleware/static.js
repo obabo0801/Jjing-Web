@@ -6,7 +6,11 @@ const dist = path.join(import.meta.dirname, "../dist");
 
 const assets = express.static(dist, {
   setHeaders(res, file) {
-    if (file.endsWith("service-work.js")) {
+    const fresh =
+      file.endsWith("service-work.js") ||
+      file.endsWith("manifest.json");
+
+    if (fresh) {
       res.setHeader("Cache-Control", "no-store");
       res.setHeader("Vary", "Sec-Fetch-Dest, Accept");
     }

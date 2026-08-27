@@ -1,28 +1,49 @@
 const stack = [];
 
-let watcher = null;
-let moving = false;
+let watcher;
+let running = false;
 
-export function watch() {
-  if (watcher || !("CloseWatcher" in window)) {
+function stop() {
+  watcher?.destroy();
+  watcher = undefined;
+}
+
+function watch() {
+  stop();
+
+  if (!stack.length || !("CloseWatcher" in window)) {
     return;
   }
 
   watcher = new CloseWatcher();
 
-  watcher.addEventListener("cancel", (event) => {
-    if (event.cancelable) {
-      event.preventDefault();
-    }
+  watcher.addEventListener(
+    "close",
+    () => {
+      watcher = undefined;
 
-    back().catch(console.error);
-  });
+      back().catch(console.error);
+    },
+    { once: true }
+  );
+}
 
-  watcher.addEventListener("close", () => {
-    watcher = null;
+function drop(item) {
+  const index = stack.lastIndexOf(item);
 
-    queueMicrotask(watch);
-  });
+  if (index < 0) {
+    return false;
+  }
+
+  const last = index === stack.length - 1;
+
+  stack.splice(index, 1);
+
+  if (last && !running) {
+    watch();
+  }
+
+  return true;
 }
 
 export function add(run) {
@@ -30,40 +51,50 @@ export function add(run) {
     return () => {};
   }
 
-  stack.push(run);
+  const item = { run };
 
-  return () => remove(run);
+  stack.push(item);
+
+  if (!running) {
+    watch();
+  }
+
+  return () => drop(item);
 }
 
 export function remove(run) {
-  const index = stack.lastIndexOf(run);
-
-  if (index < 0) {
-    return false;
+  for (
+    let index = stack.length - 1;
+    index >= 0;
+    index -= 1
+  ) {
+    if (stack[index].run === run) {
+      return drop(stack[index]);
+    }
   }
 
-  stack.splice(index, 1);
-
-  return true;
+  return false;
 }
 
 export async function back() {
-  if (moving) {
+  if (running) {
     return true;
   }
 
-  const run = stack.pop();
+  const item = stack.pop();
 
-  if (!run) {
+  if (!item) {
     return false;
   }
 
-  moving = true;
+  stop();
+  running = true;
 
   try {
-    await run();
+    await item.run();
   } finally {
-    moving = false;
+    running = false;
+    watch();
   }
 
   return true;
@@ -71,6 +102,7 @@ export async function back() {
 
 export function clear() {
   stack.length = 0;
+  stop();
 }
 
 export function has() {

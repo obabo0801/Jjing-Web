@@ -2,8 +2,8 @@
   display: block;
   flex: 0 0 auto;
 
-  width: var(--icon-size);
-  height: var(--icon-size);
+  width: 1.25rem;
+  height: 1.25rem;
 
   pointer-events: none;
 }
@@ -29,11 +29,14 @@ img.icon {
 [data-icon] {
   display: inline-flex;
   align-items: center;
+}
+
+.icon-center {
   justify-content: center;
 }
 
-.icon-right:not(.icon-top, .icon-bottom) .icon,
-.icon-bottom .icon {
+.icon-right:not(.icon-top, .icon-bottom) > .icon,
+.icon-bottom > .icon {
   order: 1;
 }
 

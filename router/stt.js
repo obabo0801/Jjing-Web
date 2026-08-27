@@ -1,11 +1,13 @@
 import express, { Router } from "express";
 
-import { get } from "#config/sqlite";
 import address from "#config/ip";
-import uid from "#config/uid";
+import { now } from "#config/log";
 import record from "#config/log/stt";
-import save, { supported } from "#config/stt";
 import recognize, { enabled } from "#config/speech";
+import { get } from "#config/sqlite";
+import save, { supported } from "#config/stt";
+import uid from "#config/uid";
+
 import limit from "#middleware/limit";
 
 const router = Router();
@@ -13,12 +15,6 @@ const router = Router();
 const allowed = limit(20);
 
 const raw = express.raw({ type: "audio/*", limit: "5mb" });
-
-const now = () =>
-  new Date(Date.now() + 32_400_000)
-    .toISOString()
-    .slice(0, 19)
-    .replace("T", " ");
 
 const decode = (req) => {
   try {
@@ -28,17 +24,29 @@ const decode = (req) => {
       return null;
     }
 
-    return JSON.parse(Buffer.from(value, "base64").toString("utf8"));
+    return JSON.parse(
+      Buffer.from(value, "base64").toString("utf8")
+    );
   } catch {
     return null;
   }
 };
 
-router.get("/", (req, res) => res.json({ cloud: enabled }));
+const tooLong = (text) => [...text].length > 500;
+
+router.get("/", (_, res) => {
+  res.json({ cloud: enabled });
+});
 
 router.post("/", raw, async (req, res) => {
   const id = uid(req);
   const ip = address(req);
+
+  if (!allowed(ip)) {
+    res.set("Retry-After", "60");
+
+    return res.status(429).end();
+  }
 
   const user = id
     ? await get("SELECT uid FROM user WHERE uid = ?", [id])
@@ -61,28 +69,34 @@ router.post("/", raw, async (req, res) => {
     return res.status(403).end();
   }
 
-  if (!allowed(ip)) {
-    res.set("Retry-After", "60");
-
-    return res.status(429).end();
-  }
-
   const audio = Buffer.isBuffer(req.body);
   const data = audio ? decode(req) : req.body;
 
-  if (!data || typeof data !== "object" || Array.isArray(data)) {
+  if (
+    !data ||
+    typeof data !== "object" ||
+    Array.isArray(data)
+  ) {
     return res.status(400).end();
   }
 
-  let text = typeof data.text === "string" ? data.text.trim() : "";
+  let text =
+    typeof data.text === "string" ? data.text.trim() : "";
 
-  const lang = typeof data.lang === "string" ? data.lang.trim() : "";
+  const lang =
+    typeof data.lang === "string" ? data.lang.trim() : "";
 
-  const pitch = ["low", "mid", "high", "unknown"].includes(data.pitch)
+  const pitch = ["low", "mid", "high", "unknown"].includes(
+    data.pitch
+  )
     ? data.pitch
     : "unknown";
 
   let type = text ? "browser" : "cloud";
+
+  if (tooLong(text)) {
+    return res.status(400).end();
+  }
 
   if (!audio) {
     if (!text) {
@@ -91,12 +105,22 @@ router.post("/", raw, async (req, res) => {
 
     const time = now();
 
-    await record(id, lang, text, "unknown", "browser", time);
+    await record(
+      id,
+      lang,
+      text,
+      "unknown",
+      "browser",
+      time
+    );
 
     return res.status(204).end();
   }
 
-  const mime = req.get("content-type")?.split(";")[0].toLowerCase();
+  const mime = req
+    .get("content-type")
+    ?.split(";")[0]
+    .toLowerCase();
 
   if (!supported(mime)) {
     return res.status(415).end();
@@ -124,7 +148,7 @@ router.post("/", raw, async (req, res) => {
     return res.status(204).end();
   }
 
-  if ([...text].length > 500) {
+  if (tooLong(text)) {
     return res.status(400).end();
   }
 

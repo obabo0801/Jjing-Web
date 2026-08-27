@@ -1,21 +1,52 @@
-import root from "#common/root";
-import init from "#common/init";
+import * as dom from "#common/dom";
 import i18n from "#common/i18n";
+import init from "#common/init";
+import dialog from "#common/dialog";
+
 import access from "#src/access";
-import pwa from "#src/pwa";
+import * as pwa from "#src/pwa";
 
-import menu from "#ui/menu";
-import search from "#ui/search";
+const app = dom.query(".app");
 
-init();
+const loading = init();
 
-const allowed = await access();
+try {
+  const allowed = await access();
 
-if (allowed) {
-  const [, registration] = await Promise.all([i18n(), pwa().catch(() => null)]);
+  if (allowed) {
+    await Promise.all([
+      i18n(),
+      pwa.load().catch(() => null)
+    ]);
 
-  await menu(registration);
-  search();
+    app.hidden = false;
+
+    setTimeout(async () => {
+      const result = await dialog({
+        title: "app.title",
+        content: "app.title",
+        fullscreen: true,
+        direction: "←",
+
+        actions: [
+          {
+            value: "cancel",
+            text: "app.title",
+            icon: "close",
+            data: ["background"]
+          },
+          {
+            value: "confirm",
+            text: "app.title",
+            icon: "plus",
+            data: ["confirm"]
+          }
+        ]
+      });
+
+      console.log(result);
+    });
+  }
+} finally {
+  loading.remove();
 }
-
-root.removeAttribute("data-access");

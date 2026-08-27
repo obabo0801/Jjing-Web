@@ -1,34 +1,56 @@
-import { get } from "#common/storage";
-import { i18n, payload } from "#config/route";
+import { content, i18n } from "#config/route";
 
-import root from "#common/root";
-import { all } from "#common/query";
+import * as dom from "#common/dom";
 import api from "#common/api";
+import { decode } from "#common/i18n";
 import init from "#common/init";
+import * as storage from "#common/storage";
+import sound from "#common/sound";
+import vibrate from "#common/vibrate";
+import * as tts from "#common/tts";
 
-init();
+const page = dom.query(".state");
+const heading = dom.query("h1", page);
+const action = dom.query("button", page);
+const loading = init();
+
+dom.on(page, "click", (event) => {
+  if (event.target.closest("button")) {
+    return;
+  }
+
+  if (!tts.busy()) {
+    tts.speak(heading.textContent);
+  }
+});
+
+dom.on(action, "click", async () => {
+  sound.play("click");
+  vibrate.play("click");
+
+  setTimeout(() => {
+    location.reload();
+  }, 150);
+});
 
 if (location.pathname === "/offline") {
   history.replaceState(null, "", "/");
 }
 
-const decode = (value) => {
-  const bytes = Uint8Array.from(atob(value), (value) => value.charCodeAt(0));
-
-  return JSON.parse(new TextDecoder().decode(bytes));
-};
-
 try {
   const list = await api(i18n);
-  const value = list.data?.[payload];
+  const value = list.data?.[content];
 
   if (!list.ok || typeof value !== "string") {
     throw new Error();
   }
 
   const languages = decode(value);
-  const mode = get("lang", "system").toLowerCase();
+
+  const mode = storage.get("lang", "system").toLowerCase();
+
   const system = navigator.language.toLowerCase();
+
   const lang = mode === "system" ? system : mode;
 
   const file =
@@ -42,7 +64,8 @@ try {
   }
 
   const result = await api(`${i18n}/${file}`);
-  const data = result.data?.[payload];
+
+  const data = result.data?.[content];
 
   if (!result.ok || typeof data !== "string") {
     throw new Error();
@@ -50,13 +73,17 @@ try {
 
   const { lang: selected, text } = decode(data);
 
-  root.lang = selected;
+  dom.root.lang = selected;
 
-  all("[data-i18n]").forEach((element) => {
-    const key = element.getAttribute("data-i18n");
+  dom.all("[data-i18n]").forEach((element) => {
+    const key = dom.get(element, "data-i18n");
 
     if (Object.hasOwn(text, key)) {
       element.textContent = text[key];
     }
   });
-} catch {}
+} catch {
+} finally {
+  page.hidden = false;
+  loading.remove();
+}

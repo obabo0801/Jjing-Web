@@ -1,0 +1,123 @@
+.segment {
+  --selected: var(--select);
+
+  position: relative;
+
+  anchor-scope: --segment-selected;
+
+  display: flex;
+  padding: 2px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+
+  background: var(--panel);
+
+  font-weight: 600;
+
+  transition:
+    background-color 160ms ease,
+    border-color 160ms ease;
+}
+
+.segment::after {
+  content: "";
+
+  position: absolute;
+  position-anchor: --segment-selected;
+  z-index: 0;
+
+  inset-block-start: anchor(top);
+  inset-block-end: anchor(bottom);
+  inset-inline-start: anchor(start);
+  inset-inline-end: anchor(end);
+
+  border-radius: 10px;
+
+  background: var(--selected);
+
+  pointer-events: none;
+
+  transition:
+    inset-block 240ms cubic-bezier(0.22, 1, 0.36, 1),
+    inset-inline 240ms cubic-bezier(0.22, 1, 0.36, 1),
+    background-color 160ms;
+}
+
+.segment button {
+  position: relative;
+  z-index: 1;
+
+  flex: 1;
+  min-width: 0;
+  padding-inline: 12px;
+  border-radius: 10px;
+}
+
+.segment button + button::before {
+  content: "";
+
+  position: absolute;
+  inset-block: 8px;
+  inset-inline-start: -1px;
+
+  width: 1px;
+
+  background: var(--border);
+
+  pointer-events: none;
+
+  transition: background-color 160ms ease;
+}
+
+.segment:has(> button[data-background][data-selected]) {
+  --selected: var(--select);
+}
+
+.segment:has(> button[data-danger][data-selected]) {
+  --selected: var(--error);
+}
+
+.segment:has(> button[data-success][data-selected]) {
+  --selected: var(--success);
+}
+
+.segment:has(> button[data-confirm][data-selected]) {
+  --selected: var(--info);
+}
+
+.segment button:not([data-selected]) {
+  background: transparent;
+  color: var(--mute);
+}
+
+.segment button[data-selected] {
+  anchor-name: --segment-selected;
+
+  background: transparent;
+  color: inherit;
+}
+
+.segment
+  button:is(
+    [data-danger],
+    [data-success],
+    [data-confirm]
+  )[data-selected] {
+  color: var(--thumb);
+}
+
+.segment button:focus-visible {
+  background-image: linear-gradient(
+    var(--pointer),
+    var(--pointer)
+  );
+  color: var(--thumb);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .segment,
+  .segment::after,
+  .segment button + button::before {
+    transition: none;
+  }
+}

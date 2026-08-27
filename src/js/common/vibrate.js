@@ -4,11 +4,24 @@ import { get } from "#common/storage";
 let timer;
 let tracks = [];
 
-function values(value) {
+function native(value) {
+  try {
+    return (
+      typeof value === "string" &&
+      globalThis.Jjing?.haptic?.(value) === true
+    );
+  } catch {
+    return false;
+  }
+}
+
+function durations(value) {
   if (typeof value === "string") {
     const pattern = patterns[value] || [];
 
-    return pattern.flatMap(([, duration, gap]) => [duration, gap]).slice(0, -1);
+    return pattern
+      .flatMap(([, duration, gap]) => [duration, gap])
+      .slice(0, -1);
   }
 
   const pattern = Array.isArray(value) ? value : [value];
@@ -24,7 +37,7 @@ function values(value) {
   });
 }
 
-function windows(track, now) {
+function intervals(track, now) {
   const result = [];
   let start = track.start;
 
@@ -41,20 +54,21 @@ function windows(track, now) {
   return result;
 }
 
-function merge(items) {
+function merge(ranges) {
   const result = [];
 
-  items.sort((a, b) => a[0] - b[0]);
+  ranges.sort((a, b) => a[0] - b[0]);
 
-  for (const item of items) {
+  for (const range of ranges) {
     const last = result.at(-1);
 
-    if (last && item[0] <= last[1]) {
-      last[1] = Math.max(last[1], item[1]);
+    if (last && range[0] <= last[1]) {
+      last[1] = Math.max(last[1], range[1]);
+
       continue;
     }
 
-    result.push([...item]);
+    result.push([...range]);
   }
 
   return result;
@@ -65,12 +79,15 @@ function render() {
 
   tracks = tracks.filter(({ end }) => end > now);
 
-  const items = tracks.flatMap((track) => windows(track, now));
+  const ranges = tracks.flatMap((track) =>
+    intervals(track, now)
+  );
 
   const pattern = [];
+
   let cursor = now;
 
-  for (const [start, end] of merge(items)) {
+  for (const [start, end] of merge(ranges)) {
     const gap = Math.max(0, start - cursor);
 
     if (!pattern.length && gap) {
@@ -82,11 +99,14 @@ function render() {
     }
 
     pattern.push(end - start);
+
     cursor = end;
   }
 
   navigator.vibrate(
-    pattern.map((duration) => Math.max(0, Math.round(duration)))
+    pattern.map((duration) =>
+      Math.max(0, Math.round(duration))
+    )
   );
 
   clearTimeout(timer);
@@ -103,22 +123,33 @@ function render() {
 }
 
 export function play(value = 50) {
+  if (get("vibration", "true") === "false") {
+    return false;
+  }
+
+  if (native(value)) {
+    return true;
+  }
+
   if (
     typeof navigator === "undefined" ||
-    !("vibrate" in navigator) ||
-    get("vibration", "true") === "false"
+    !("vibrate" in navigator)
   ) {
     return false;
   }
 
-  const pattern = values(value);
+  const pattern = durations(value);
 
   if (!pattern.some(Boolean)) {
     return false;
   }
 
   const start = performance.now();
-  const length = pattern.reduce((total, duration) => total + duration, 0);
+
+  const length = pattern.reduce(
+    (total, duration) => total + duration,
+    0
+  );
 
   tracks.push({ pattern, start, end: start + length });
 
@@ -132,15 +163,14 @@ export function stop() {
 
   clearTimeout(timer);
 
-  if (typeof navigator === "undefined" || !("vibrate" in navigator)) {
+  if (
+    typeof navigator === "undefined" ||
+    !("vibrate" in navigator)
+  ) {
     return false;
   }
 
   return navigator.vibrate(0);
 }
 
-const methods = Object.fromEntries(
-  Object.keys(patterns).map((name) => [name, () => play(name)])
-);
-
-export default Object.freeze({ play, stop, ...methods });
+export default Object.freeze({ play, stop });

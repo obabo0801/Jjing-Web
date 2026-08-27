@@ -1,4 +1,5 @@
-const clean = (value) => value?.replaceAll('"', "").trim() || "";
+const clean = (value) =>
+  value?.replaceAll('"', "").trim() || "";
 
 const os = (req) => {
   const wearable = req.get("x-wearable") === "true";
@@ -19,17 +20,32 @@ const os = (req) => {
     return "Wearable";
   }
 
-  if (agent.includes("Android")) return "Android";
-  if (/iPhone|iPad/.test(agent)) return "iOS";
-  if (agent.includes("Windows")) return "Windows";
-  if (agent.includes("Mac OS")) return "macOS";
-  if (agent.includes("Linux")) return "Linux";
+  if (agent.includes("Android")) {
+    return "Android";
+  }
+
+  if (/iPhone|iPad/.test(agent)) {
+    return "iOS";
+  }
+
+  if (agent.includes("Windows")) {
+    return "Windows";
+  }
+
+  if (agent.includes("Mac OS")) {
+    return "macOS";
+  }
+
+  if (agent.includes("Linux")) {
+    return "Linux";
+  }
 
   return "Unknown";
 };
 
 const browser = (req) => {
   const brands = req.get("sec-ch-ua") || "";
+
   const agent = req.get("user-agent") || "";
 
   if (agent.includes("SamsungBrowser/")) {
@@ -48,19 +64,31 @@ const browser = (req) => {
     return "Chromium";
   }
 
-  if (agent.includes("Edg/")) return "Edge";
+  if (agent.includes("Edg/")) {
+    return "Edge";
+  }
 
-  if (agent.includes("Firefox/") || agent.includes("FxiOS/")) {
+  if (
+    agent.includes("Firefox/") ||
+    agent.includes("FxiOS/")
+  ) {
     return "Firefox";
   }
 
-  if (agent.includes("Chrome/") || agent.includes("CriOS/")) {
+  if (
+    agent.includes("Chrome/") ||
+    agent.includes("CriOS/")
+  ) {
     return "Chrome";
   }
 
-  if (agent.includes("Safari/")) return "Safari";
+  if (agent.includes("Safari/")) {
+    return "Safari";
+  }
 
   return "Unknown";
 };
 
-export default (req) => ({ os: os(req), browser: browser(req) });
+export default function client(req) {
+  return { os: os(req), browser: browser(req) };
+}

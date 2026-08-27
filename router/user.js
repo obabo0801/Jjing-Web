@@ -2,12 +2,13 @@ import { randomUUID } from "node:crypto";
 
 import { Router } from "express";
 
-import { usage } from "#config/route";
 import client from "#config/client";
-import { get, run } from "#config/sqlite";
 import address from "#config/ip";
-import identity from "#config/uid";
 import access from "#config/log/access";
+import { usage } from "#config/route";
+import { get, run } from "#config/sqlite";
+import identity from "#config/uid";
+
 import limit from "#middleware/limit";
 
 const router = Router();
@@ -38,16 +39,23 @@ const remember = (res, uid) => {
 const status = (value) => {
   const code = Number(value);
 
-  return Number.isInteger(code) && code >= 100 && code <= 599 ? code : 0;
+  return Number.isInteger(code) &&
+    code >= 100 &&
+    code <= 599
+    ? code
+    : 0;
 };
 
 router.get(usage, (req, res) => {
-  const size = Buffer.byteLength(req.get("cookie") || "", "utf8");
+  const size = Buffer.byteLength(
+    req.get("cookie") || "",
+    "utf8"
+  );
 
   res.json({ size });
 });
 
-router.delete("/", (req, res) => {
+router.delete("/", (_, res) => {
   res.clearCookie("uid", clear);
   res.status(204).end();
 });
@@ -56,10 +64,15 @@ router.get("/", async (req, res) => {
   const uid = identity(req);
   const ip = address(req);
 
-  const name = typeof req.query.name === "string" ? req.query.name : "";
+  const name =
+    typeof req.query.name === "string"
+      ? req.query.name
+      : "";
 
   const path =
-    typeof req.query.path === "string" ? req.query.path.slice(0, 2048) : "/";
+    typeof req.query.path === "string"
+      ? req.query.path.slice(0, 2048)
+      : "/";
 
   const result = status(req.query.result);
 
@@ -69,10 +82,12 @@ router.get("/", async (req, res) => {
     ? await get("SELECT uid FROM user WHERE uid = ?", [uid])
     : null;
 
-  if (user) {
-    await access(uid, ip, os, browser, path, result);
-  } else {
-    if (name) {
+  const reload = req.query.reload === "true";
+
+  if (!reload) {
+    if (user) {
+      await access(uid, ip, os, browser, path, result);
+    } else if (name) {
       await access(name, ip, os, browser, path, result);
     }
   }
@@ -86,9 +101,11 @@ router.post("/", async (req, res) => {
   let uid = saved;
 
   const path =
-    typeof req.body.path === "string" ? req.body.path.slice(0, 2048) : "/";
+    typeof req.body?.path === "string"
+      ? req.body.path.slice(0, 2048)
+      : "/";
 
-  const result = status(req.body.result);
+  const result = status(req.body?.result);
 
   const ip = address(req);
 
@@ -101,13 +118,15 @@ router.post("/", async (req, res) => {
   const { os, browser } = client(req);
 
   let user = uid
-    ? await get("SELECT uid, role FROM user WHERE uid = ?", [uid])
+    ? await get(
+        `
+        SELECT uid, role
+        FROM user
+        WHERE uid = ?
+      `,
+        [uid]
+      )
     : null;
-
-  if (!saved && user?.role === 0) {
-    uid = "";
-    user = null;
-  }
 
   if (!saved && !user) {
     const found = await get(
@@ -135,7 +154,10 @@ router.post("/", async (req, res) => {
 
   const blocked = await get(
     `
-    SELECT reason, time
+    SELECT
+      rowid AS id,
+      reason,
+      time
     FROM block
     WHERE uid = ?
       OR ip = ?
@@ -148,9 +170,33 @@ router.post("/", async (req, res) => {
   if (blocked) {
     remember(res, uid);
 
-    await access(uid || null, ip, os, browser, path, result);
+    const first = await run(
+      `
+      UPDATE block
+      SET log = 1
+      WHERE rowid = ?
+        AND log = 0
+    `,
+      [blocked.id]
+    );
 
-    return res.status(403).json({ reason: blocked.reason, time: blocked.time });
+    if (first.changes) {
+      await access(
+        uid || null,
+        ip,
+        os,
+        browser,
+        path,
+        result
+      );
+    }
+
+    const data = {
+      reason: blocked.reason,
+      time: blocked.time
+    };
+
+    return res.status(403).json(data);
   }
 
   if (!user) {
@@ -158,7 +204,11 @@ router.post("/", async (req, res) => {
 
     await run(
       `
-      INSERT INTO user (uid, role, ip)
+      INSERT INTO user (
+        uid,
+        role,
+        ip
+      )
       VALUES (?, 1, ?)
     `,
       [uid, ip]

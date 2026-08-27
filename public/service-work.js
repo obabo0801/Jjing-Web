@@ -1,9 +1,10 @@
 const offline = "offline";
 const page = "/offline";
 
-const prepare = async (locale, payload) => {
+const prepare = async (locale, content) => {
   const response = await fetch(page, {
     cache: "no-store",
+
     headers: { "x-pwa-cache": "true" }
   });
 
@@ -15,32 +16,38 @@ const prepare = async (locale, payload) => {
 
   const files = new Set(
     [...html.matchAll(/\b(?:src|href)=["']([^"']+)["']/g)]
-      .map(([, file]) => new URL(file, self.location.origin))
+      .map(
+        ([, file]) => new URL(file, self.location.origin)
+      )
       .filter((url) => url.origin === self.location.origin)
       .map((url) => `${url.pathname}${url.search}`)
   );
 
-  if (locale && payload) {
+  if (locale && content) {
     const url = new URL(locale, self.location.origin);
 
     if (url.origin !== self.location.origin) {
       throw new Error();
     }
 
-    const response = await fetch(url, { cache: "no-store" });
+    const localeResponse = await fetch(url, {
+      cache: "no-store"
+    });
 
-    if (!response.ok) {
+    if (!localeResponse.ok) {
       throw new Error();
     }
 
-    const body = await response.json();
-    const value = body?.[payload];
+    const body = await localeResponse.json();
+
+    const value = body?.[content];
 
     if (typeof value !== "string") {
       throw new Error();
     }
 
     const languages = JSON.parse(atob(value));
+
     const base = url.pathname.replace(/\/$/, "");
 
     files.add(base);
@@ -65,16 +72,12 @@ const prepare = async (locale, payload) => {
 
       const file = `${url.pathname}${url.search}`;
 
-      if (file.startsWith("/assets/") && !keep.has(file)) {
-        return cache.delete(request);
-      }
-
-      return true;
+      return keep.has(file) ? true : cache.delete(request);
     })
   );
 };
 
-const open = () =>
+const openDatabase = () =>
   new Promise((resolve, reject) => {
     const request = indexedDB.open("sync", 1);
 
@@ -98,46 +101,88 @@ const open = () =>
     };
   });
 
-const records = async () => {
-  const database = await open();
+const requests = async () => {
+  const database = await openDatabase();
 
   return new Promise((resolve, reject) => {
-    const request = database
-      .transaction("requests")
+    const transaction = database.transaction("requests");
+
+    const request = transaction
       .objectStore("requests")
       .getAll();
 
-    request.onsuccess = () => {
+    transaction.oncomplete = () => {
+      database.close();
       resolve(request.result);
     };
 
-    request.onerror = () => {
-      reject(request.error);
+    const fail = () => {
+      const error = transaction.error || new Error();
+
+      database.close();
+      reject(error);
     };
+
+    transaction.onerror = fail;
+    transaction.onabort = fail;
   });
 };
 
-const remove = async (id) => {
-  const database = await open();
+const removeRequest = async (id) => {
+  const database = await openDatabase();
 
   return new Promise((resolve, reject) => {
-    const transaction = database.transaction("requests", "readwrite");
+    const transaction = database.transaction(
+      "requests",
+      "readwrite"
+    );
 
     transaction.objectStore("requests").delete(id);
 
-    transaction.oncomplete = resolve;
-    transaction.onerror = () => {
-      reject(transaction.error);
+    transaction.oncomplete = () => {
+      database.close();
+      resolve();
     };
+
+    const fail = () => {
+      const error = transaction.error || new Error();
+
+      database.close();
+      reject(error);
+    };
+
+    transaction.onerror = fail;
+    transaction.onabort = fail;
   });
 };
 
+const fetchApi = async (request) => {
+  const cache = await caches.open(offline);
+  const saved = await cache.match(request);
+
+  try {
+    const response = await fetch(request);
+
+    if (response.ok && saved) {
+      await cache.put(request, response.clone());
+    }
+
+    if (response.status >= 500 && saved) {
+      return saved;
+    }
+
+    return response;
+  } catch {
+    return saved || Response.error();
+  }
+};
+
 const synchronize = async () => {
-  for (const item of await records()) {
+  for (const item of await requests()) {
     const response = await fetch(item.url, item.options);
 
     if (response.status < 500) {
-      await remove(item.id);
+      await removeRequest(item.id);
       continue;
     }
 
@@ -166,44 +211,58 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
+  if (url.pathname === "/manifest.json") {
+    event.respondWith(
+      fetch(request, { cache: "no-store" })
+    );
+
+    return;
+  }
+
   if (url.pathname === page) {
-    event.respondWith(caches.match(page));
+    event.respondWith(
+      caches
+        .match(page)
+        .then((response) => response || fetch(request))
+    );
 
     return;
   }
 
   if (request.mode === "navigate") {
     event.respondWith(
-      fetch(request).catch(
-        async () => (await caches.match(page)) || Response.error()
-      )
+      fetch(request)
+        .then(async (response) => {
+          const down = [502, 503, 504].includes(
+            response.status
+          );
+
+          if (!down) {
+            return response;
+          }
+
+          return (await caches.match(page)) || response;
+        })
+        .catch(
+          async () =>
+            (await caches.match(page)) || Response.error()
+        )
     );
 
     return;
   }
 
   if (url.pathname.startsWith("/api/")) {
-    event.respondWith(
-      fetch(request)
-        .then(async (response) => {
-          if (response.ok) {
-            const cache = await caches.open(offline);
-
-            await cache.put(request, response.clone());
-
-            return response;
-          }
-
-          return response;
-        })
-        .catch(async () => (await caches.match(request)) || Response.error())
-    );
+    event.respondWith(fetchApi(request));
 
     return;
   }
 
   event.respondWith(
-    caches.match(request).then((response) => response || fetch(request))
+    caches
+      .match(request)
+      .then((response) => response || fetch(request))
+      .catch(() => new Response(null, { status: 503 }))
   );
 });
 
@@ -219,12 +278,14 @@ self.addEventListener("message", (event) => {
   }
 
   if (event.data?.type === "offline") {
-    event.waitUntil(prepare(event.data.locale, event.data.payload));
+    event.waitUntil(
+      prepare(event.data.locale, event.data.content)
+    );
   }
 });
 
 self.addEventListener("push", (event) => {
-  let data = { title: "", body: "", url: "/" };
+  let data = { title: "", body: "", image: "", url: "/" };
 
   if (event.data) {
     try {
@@ -238,6 +299,9 @@ self.addEventListener("push", (event) => {
     self.registration.showNotification(data.title, {
       body: data.body,
       icon: "/icons/icon-192.png",
+
+      ...(data.image && { image: data.image }),
+
       data: { url: data.url }
     })
   );

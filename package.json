@@ -13,12 +13,13 @@
     "#maintenance": "./middleware/maintenance.js",
     "#page": "./middleware/page.js",
     "#assets": "./middleware/static.js",
+    "#upload": "./middleware/upload.js",
     "#error": "./middleware/error.js",
     "#router": "./router/index.js",
     "#audio/*": "./src/assets/audio/*"
   },
   "scripts": {
-    "format": "prettier --write \"**/*.{js,css}\"",
+    "format": "prettier --write \"**/*.{js,css,html}\"",
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
