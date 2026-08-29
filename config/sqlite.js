@@ -4,16 +4,13 @@ import path from "node:path";
 import sqlite3 from "sqlite3";
 
 const dir = path.join(import.meta.dirname, "../data");
-
 mkdirSync(dir, { recursive: true });
 
-const db = new sqlite3.Database(
-  path.join(dir, "service.db")
-);
-
+const db = new sqlite3.Database(path.join(dir, "service.db"));
 db.configure("busyTimeout", 5000);
-
 db.exec(`
+  PRAGMA journal_mode = WAL;
+
   CREATE TABLE IF NOT EXISTS user (
     uid TEXT PRIMARY KEY,
     name TEXT,
@@ -35,10 +32,19 @@ db.exec(`
       DEFAULT (datetime('now', '+9 hours'))
   );
 
-  CREATE TABLE IF NOT EXISTS push (
+  CREATE TABLE IF NOT EXISTS web (
     uid TEXT NOT NULL,
     endpoint TEXT PRIMARY KEY,
     data TEXT NOT NULL,
+    time TEXT NOT NULL
+      DEFAULT (datetime('now', '+9 hours'))
+  );
+
+  CREATE TABLE IF NOT EXISTS fcm (
+    uid TEXT NOT NULL,
+    fid TEXT PRIMARY KEY,
+    device TEXT NOT NULL
+      CHECK (device IN ('android', 'ios', 'wearable')),
     time TEXT NOT NULL
       DEFAULT (datetime('now', '+9 hours'))
   );
@@ -66,8 +72,11 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS block_ip
     ON block (ip);
 
-  CREATE INDEX IF NOT EXISTS push_uid
-    ON push (uid);
+  CREATE INDEX IF NOT EXISTS web_uid
+    ON web (uid);
+
+  CREATE INDEX IF NOT EXISTS fcm_uid
+    ON fcm (uid);
 
   CREATE INDEX IF NOT EXISTS tts_file
     ON tts (file);

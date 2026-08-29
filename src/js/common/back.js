@@ -16,12 +16,10 @@ function watch() {
   }
 
   watcher = new CloseWatcher();
-
   watcher.addEventListener(
     "close",
     () => {
       watcher = undefined;
-
       back().catch(console.error);
     },
     { once: true }
@@ -36,7 +34,6 @@ function drop(item) {
   }
 
   const last = index === stack.length - 1;
-
   stack.splice(index, 1);
 
   if (last && !running) {
@@ -52,7 +49,6 @@ export function add(run) {
   }
 
   const item = { run };
-
   stack.push(item);
 
   if (!running) {
@@ -63,11 +59,7 @@ export function add(run) {
 }
 
 export function remove(run) {
-  for (
-    let index = stack.length - 1;
-    index >= 0;
-    index -= 1
-  ) {
+  for (let index = stack.length - 1; index >= 0; index -= 1) {
     if (stack[index].run === run) {
       return drop(stack[index]);
     }

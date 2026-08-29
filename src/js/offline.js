@@ -4,6 +4,7 @@ import * as dom from "#common/dom";
 import api from "#common/api";
 import { decode } from "#common/i18n";
 import init from "#common/init";
+import available from "#common/page";
 import * as storage from "#common/storage";
 import sound from "#common/sound";
 import vibrate from "#common/vibrate";
@@ -13,24 +14,29 @@ const page = dom.query(".state");
 const heading = dom.query("h1", page);
 const action = dom.query("button", page);
 const loading = init();
-
-dom.on(page, "click", (event) => {
-  if (event.target.closest("button")) {
-    return;
-  }
-
-  if (!tts.busy()) {
-    tts.speak(heading.textContent);
-  }
-});
-
 dom.on(action, "click", async () => {
+  action.disabled = true;
   sound.play("click");
   vibrate.play("click");
 
-  setTimeout(() => {
-    location.reload();
-  }, 150);
+  try {
+    if (await available()) {
+      setTimeout(() => {
+        location.reload();
+      }, 150);
+
+      return;
+    }
+
+    if (!tts.busy()) {
+      const source = await tts
+        .speak(heading.textContent, { type: "cache" })
+        .catch(() => null);
+      await tts.wait(source);
+    }
+  } finally {
+    action.disabled = false;
+  }
 });
 
 if (location.pathname === "/offline") {
@@ -72,9 +78,7 @@ try {
   }
 
   const { lang: selected, text } = decode(data);
-
   dom.root.lang = selected;
-
   dom.all("[data-i18n]").forEach((element) => {
     const key = dom.get(element, "data-i18n");
 

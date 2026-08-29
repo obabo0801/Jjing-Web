@@ -1,12 +1,12 @@
-import { isPage } from "#page";
-import { unavailable } from "#maintenance";
+import { page } from "#page";
+import { unavailable } from "#maint";
 
 export default function error(error, req, res, next) {
   if (error?.code !== "SQLITE_BUSY") {
     return next(error);
   }
 
-  if (!isPage(req)) {
+  if (!page(req)) {
     return res.status(503).end();
   }
 

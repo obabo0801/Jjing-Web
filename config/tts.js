@@ -1,10 +1,10 @@
-import { createHash } from "node:crypto";
 import { mkdirSync } from "node:fs";
 import { readFile, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 
 import { TextToSpeechClient } from "@google-cloud/text-to-speech";
 
+import hash from "#config/hash";
 import { run } from "#config/sqlite";
 
 const host = "https://translate.google.com";
@@ -15,8 +15,7 @@ const regions = { en: "en-US", ja: "ja-JP", ko: "ko-KR" };
 
 const mode = (process.env.TTS || "").trim().toLowerCase();
 
-const keyFile =
-  process.env.GOOGLE_APPLICATION_CREDENTIALS?.trim();
+const keyFile = process.env.GOOGLE_APPLICATION_CREDENTIALS?.trim();
 
 const enabled = ["login", "json"].includes(mode);
 
@@ -24,29 +23,20 @@ const pending = new Map();
 
 let client;
 let retry = 0;
-
 mkdirSync(dir, { recursive: true });
 
-const record = (file, uid, text, time) =>
-  run(
-    `
-    INSERT INTO tts (
-      file, uid, text, time
-    )
-    VALUES (?, ?, ?, ?)
-  `,
-    [file, uid, text, time]
-  );
+const query = "INSERT INTO tts (file, uid, text, time) VALUES (?, ?, ?, ?)";
 
-const clamp = (value, min, max) =>
-  Math.min(max, Math.max(min, value));
+const record = (file, uid, text, time) => run(query, [file, uid, text, time]);
+
+const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
 
 const within = async (promise) => {
   let timer;
 
   const limit = new Promise((_, reject) => {
     timer = setTimeout(() => {
-      reject(new Error("TTS request timed out."));
+      reject(new Error());
     }, timeout);
   });
 
@@ -58,8 +48,7 @@ const within = async (promise) => {
 };
 
 const language = (value) => {
-  const lang =
-    typeof value === "string" ? value.trim() : "";
+  const lang = typeof value === "string" ? value.trim() : "";
 
   if (!/^[a-z]{2,3}(?:-[a-z]{2})?$/i.test(lang)) {
     return "ko-KR";
@@ -80,8 +69,7 @@ const options = (value) => {
   const pitch = Number(value.pitch);
 
   const voice =
-    typeof value.voice === "string" &&
-    /^[a-z0-9-]{1,100}$/i.test(value.voice)
+    typeof value.voice === "string" && /^[a-z0-9-]{1,100}$/i.test(value.voice)
       ? value.voice
       : undefined;
 
@@ -89,9 +77,7 @@ const options = (value) => {
     text: value.text,
     lang: language(value.lang),
     rate: Number.isFinite(rate) ? clamp(rate, 0.25, 2) : 1,
-    pitch: Number.isFinite(pitch)
-      ? clamp(pitch, -20, 20)
-      : 0,
+    pitch: Number.isFinite(pitch) ? clamp(pitch, -20, 20) : 0,
     voice
   };
 };
@@ -107,7 +93,7 @@ const parts = (text) => {
   return result;
 };
 
-const cacheKey = (provider, value) => {
+const key = (provider, value) => {
   if (provider !== "google") {
     return value;
   }
@@ -120,19 +106,14 @@ const cacheKey = (provider, value) => {
 };
 
 const voice = (provider, value) =>
-  provider === "cloud"
-    ? value.voice || "default"
-    : "default";
+  provider === "cloud" ? value.voice || "default" : "default";
 
 const name = (provider, value) => {
-  const key = cacheKey(provider, value);
+  const data = key(provider, value);
 
-  const hash = createHash("sha256")
-    .update(JSON.stringify({ provider, ...key }))
-    .digest("hex")
-    .slice(0, 32);
+  const id = hash(32, JSON.stringify({ provider, ...data }));
 
-  return `${hash}.mp3`;
+  return `${id}.mp3`;
 };
 
 const read = async (file) => {
@@ -155,22 +136,10 @@ const find = async (provider, value) => {
     return null;
   }
 
-  return {
-    audio,
-    file,
-    provider,
-    voice: voice(provider, value),
-    cached: true
-  };
+  return { audio, file, provider, voice: voice(provider, value), cached: true };
 };
 
-const cache = async (
-  provider,
-  value,
-  create,
-  uid,
-  time
-) => {
+const cache = async (provider, value, create, uid, time) => {
   const file = name(provider, value);
   const saved = await find(provider, value);
 
@@ -185,7 +154,6 @@ const cache = async (
     task = create()
       .then(async (audio) => {
         const target = path.join(dir, file);
-
         await writeFile(target, audio);
 
         try {
@@ -203,7 +171,6 @@ const cache = async (
       .finally(() => {
         pending.delete(file);
       });
-
     pending.set(file, task);
   }
 
@@ -219,7 +186,7 @@ const cache = async (
 const connect = () => {
   if (mode === "json") {
     if (!keyFile) {
-      throw new Error("TTS credentials not found.");
+      throw new Error();
     }
 
     return new TextToSpeechClient({ keyFilename: keyFile });
@@ -230,7 +197,6 @@ const connect = () => {
 
 const cloud = async (value) => {
   client ||= connect();
-
   await within(client.initialize());
 
   const chirp = value.voice?.includes("-Chirp3-HD-");
@@ -244,11 +210,7 @@ const cloud = async (value) => {
       },
       audioConfig: {
         audioEncoding: "MP3",
-
-        ...(!chirp && {
-          speakingRate: value.rate,
-          pitch: value.pitch
-        })
+        ...(!chirp && { speakingRate: value.rate, pitch: value.pitch })
       }
     },
     { timeout }
@@ -257,7 +219,7 @@ const cloud = async (value) => {
   const audio = response.audioContent;
 
   if (!audio) {
-    throw new Error("Cloud TTS failed");
+    throw new Error();
   }
 
   return typeof audio === "string"
@@ -270,7 +232,6 @@ const google = async (value) => {
 
   for (const text of parts(value.text)) {
     const url = new URL("/translate_tts", host);
-
     url.search = new URLSearchParams({
       client: "tw-ob",
       ie: "UTF-8",
@@ -287,7 +248,7 @@ const google = async (value) => {
     const type = response.headers.get("content-type");
 
     if (!response.ok || !type?.startsWith("audio/")) {
-      throw new Error("Google TTS failed");
+      throw new Error();
     }
 
     audio.push(Buffer.from(await response.arrayBuffer()));
@@ -297,20 +258,9 @@ const google = async (value) => {
 };
 
 const fallback = (request, uid, time) =>
-  cache(
-    "google",
-    request,
-    () => google(request),
-    uid,
-    time
-  );
+  cache("google", request, () => google(request), uid, time);
 
-export default async function synthesize(
-  value,
-  uid,
-  time,
-  type
-) {
+export default async function synthesize(value, uid, time, type) {
   const request = options(value);
 
   if (type === "cache") {
@@ -333,13 +283,7 @@ export default async function synthesize(
 
   if (enabled && Date.now() >= retry) {
     try {
-      return await cache(
-        "cloud",
-        request,
-        () => cloud(request),
-        uid,
-        time
-      );
+      return await cache("cloud", request, () => cloud(request), uid, time);
     } catch (error) {
       if (error?.code === "SQLITE_BUSY") {
         throw error;
@@ -354,7 +298,5 @@ export default async function synthesize(
     }
   }
 
-  return type === "cloud"
-    ? null
-    : fallback(request, uid, time);
+  return type === "cloud" ? null : fallback(request, uid, time);
 }

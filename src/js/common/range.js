@@ -11,10 +11,7 @@ const paint = (input) => {
   const size = max - min;
 
   const percent = size
-    ? Math.min(
-        100,
-        Math.max(0, ((value - min) / size) * 100)
-      )
+    ? Math.min(100, Math.max(0, ((value - min) / size) * 100))
     : 0;
 
   const container = input.closest(".range");
@@ -46,19 +43,12 @@ export const move = (input, value) => {
   const min = Number(input.min || 0);
   const max = Number(input.max || 100);
   const container = input.closest(".range");
-
   clearTimeout(moving.get(input));
-
   dom.set(container, "data-move", "");
-
-  input.value = String(
-    Math.min(max, Math.max(min, number))
-  );
+  input.value = String(Math.min(max, Math.max(min, number)));
 
   if (bound.has(input)) {
-    input.dispatchEvent(
-      new Event("input", { bubbles: true })
-    );
+    input.dispatchEvent(new Event("input", { bubbles: true }));
   } else {
     paint(input);
   }
@@ -67,7 +57,6 @@ export const move = (input, value) => {
     dom.remove(container, "data-move");
     moving.delete(input);
   }, 320);
-
   moving.set(input, timer);
 
   return true;
@@ -95,13 +84,10 @@ const drag = (input) => {
   }
 
   let pointer;
-
   dom.on(input, "pointerdown", (event) => {
     pointer = { id: event.pointerId, x: event.clientX };
-
     input.setPointerCapture(event.pointerId);
   });
-
   dom.on(input, "pointermove", (event) => {
     if (
       !pointer ||
@@ -120,31 +106,26 @@ const drag = (input) => {
     }
 
     pointer = undefined;
-
     dom.remove(container, "data-drag");
   };
-
   dom.on(input, "pointerup", stop);
   dom.on(input, "pointercancel", stop);
   dom.on(input, "lostpointercapture", stop);
 };
 
 export default function range(root = document) {
-  dom
-    .all('.range input[type="range"]', root)
-    .forEach((input) => {
+  dom.all('.range input[type="range"]', root).forEach((input) => {
+    paint(input);
+
+    if (bound.has(input)) {
+      return;
+    }
+
+    dom.on(input, "input", () => {
       paint(input);
-
-      if (bound.has(input)) {
-        return;
-      }
-
-      dom.on(input, "input", () => {
-        paint(input);
-        feedback(input);
-      });
-
-      drag(input);
-      bound.add(input);
+      feedback(input);
     });
+    drag(input);
+    bound.add(input);
+  });
 }

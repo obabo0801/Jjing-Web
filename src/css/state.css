@@ -7,10 +7,10 @@
   grid-template-areas: "mark" "title" "action";
   place-content: center;
   justify-items: center;
-  gap: 1rem;
+  row-gap: 2rem;
 
   min-height: 100dvh;
-  padding: 1.5rem;
+  padding: 1.2rem;
   text-align: center;
 
   -webkit-user-select: none;
@@ -57,16 +57,31 @@
   grid-area: action;
 
   min-width: 8rem;
-  margin-top: 1.5rem;
-  border: 0.15rem solid var(--state-color);
+  margin-top: 0.5rem;
 
-  color: var(--state-color);
   font-weight: 700;
 }
 
-.state button:active {
-  background-color: var(--state-color);
-  color: var(--background);
+.state button > .icon {
+  display: none;
+}
+
+.wearable .state button[data-icon] {
+  width: 6rem;
+  height: 6rem;
+  min-width: 0;
+  padding: 0;
+  border-radius: 999px;
+}
+
+.wearable .state button > .icon {
+  display: block;
+  width: 2rem;
+  height: 2rem;
+}
+
+.wearable .state button > span {
+  display: none;
 }
 
 .state.error {
@@ -89,11 +104,11 @@
   transform: rotate(-45deg);
 }
 
-.state.maintenance {
+.state.maint {
   --state-color: var(--info);
 }
 
-.state.maintenance::after {
+.state.maint::after {
   content: "";
 
   width: clamp(1.3rem, 5vw, 1.8rem);

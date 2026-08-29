@@ -7,10 +7,7 @@ const frequency = (buffer) => {
 
   const size = Math.min(data.length, rate);
 
-  const start = Math.max(
-    0,
-    Math.floor((data.length - size) / 2)
-  );
+  const start = Math.max(0, Math.floor((data.length - size) / 2));
 
   let power = 0;
   let count = 0;
@@ -70,9 +67,7 @@ export const analyze = async (blob) => {
   }
 
   try {
-    const buffer = await audio.decodeAudioData(
-      await blob.arrayBuffer()
-    );
+    const buffer = await audio.decodeAudioData(await blob.arrayBuffer());
 
     return pitch(frequency(buffer));
   } catch {
@@ -90,7 +85,6 @@ export const meter = (stream, callback) => {
   const source = audio.createMediaStreamSource(stream);
 
   const analyser = audio.createAnalyser();
-
   analyser.fftSize = 1024;
   source.connect(analyser);
 
@@ -106,18 +100,14 @@ export const meter = (stream, callback) => {
 
     for (let i = 0; i < data.length; i += 4) {
       const value = (data[i] - 128) / 128;
-
       power += value ** 2;
       count += 1;
     }
 
     const level = count ? Math.sqrt(power / count) : 0;
-
     callback(level);
-
     frame = requestAnimationFrame(check);
   };
-
   frame = requestAnimationFrame(check);
 
   return () => {
@@ -142,26 +132,14 @@ export const silence = (stream, signal, stop) =>
         }
 
         settled = true;
-
         clearTimeout(timer);
         offSignal();
         offStop();
-
         resolve(spoken);
       };
-
       timer = setTimeout(() => done(true), 5000);
-
-      offSignal = dom.on(
-        signal,
-        "abort",
-        () => done(false),
-        { once: true }
-      );
-
-      offStop = dom.on(stop, "abort", () => done(false), {
-        once: true
-      });
+      offSignal = dom.on(signal, "abort", () => done(false), { once: true });
+      offStop = dom.on(stop, "abort", () => done(false), { once: true });
 
       if (stop?.aborted) {
         done();
@@ -173,7 +151,6 @@ export const silence = (stream, signal, stop) =>
     const source = audio.createMediaStreamSource(stream);
 
     const analyser = audio.createAnalyser();
-
     analyser.fftSize = 1024;
     source.connect(analyser);
 
@@ -194,19 +171,13 @@ export const silence = (stream, signal, stop) =>
       }
 
       stopped = true;
-
       cancelAnimationFrame(frame);
       offSignal();
       offStop();
       source.disconnect();
-
       resolve(spoken);
     };
-
-    offSignal = dom.on(signal, "abort", done, {
-      once: true
-    });
-
+    offSignal = dom.on(signal, "abort", done, { once: true });
     offStop = dom.on(stop, "abort", done, { once: true });
 
     if (stop?.aborted) {
@@ -222,7 +193,6 @@ export const silence = (stream, signal, stop) =>
 
       for (let i = 0; i < data.length; i += 4) {
         const value = (data[i] - 128) / 128;
-
         power += value ** 2;
         count += 1;
       }
@@ -245,6 +215,5 @@ export const silence = (stream, signal, stop) =>
 
       frame = requestAnimationFrame(check);
     };
-
     frame = requestAnimationFrame(check);
   });

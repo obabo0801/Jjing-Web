@@ -1,23 +1,19 @@
 import { resolve } from "node:path";
 
-const page = (name) =>
-  resolve(import.meta.dirname, `../src/${name}.html`);
+const root = import.meta.dirname;
+
+const page = (name) => resolve(root, "../src", `${name}.html`);
 
 const input = {
-  index: resolve(import.meta.dirname, "../index.html"),
-
+  index: resolve(root, "../index.html"),
   admin: page("admin"),
-
   terms: page("terms"),
   privacy: page("privacy"),
-
   error: page("error"),
   offline: page("offline"),
-
   denied: page("denied"),
   block: page("block"),
-
-  maintenance: page("maintenance")
+  maint: page("maint")
 };
 
 const output = {
@@ -26,6 +22,4 @@ const output = {
   assetFileNames: "assets/[hash][extname]"
 };
 
-export default {
-  build: { rolldownOptions: { input, output } }
-};
+export default { build: { rolldownOptions: { input, output } } };

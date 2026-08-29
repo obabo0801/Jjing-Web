@@ -2,30 +2,22 @@
   color-scheme: light dark;
 
   --background: light-dark(#ffffff, #181818);
-
-  --canvas: light-dark(#f2f1f6, #010101);
-
-  --panel: light-dark(#f2f1f6, #181818);
-
-  --surface: light-dark(#ffffff, #181818);
+  --canvas: light-dark(#f2f1f6, #181818);
+  --panel: light-dark(#ffffff, #252528);
+  --surface: light-dark(#ffffff, #2c2c2e);
 
   --text: light-dark(#181818, #eeeeee);
-
   --mute: light-dark(#6e6e6e, #a0a0a0);
+  --border: light-dark(#0000001f, #ffffff24);
 
-  --border: light-dark(
-    rgb(0 0 0 / 12%),
-    rgb(255 255 255 / 14%)
-  );
-
-  --shadow: 0 4px 16px rgb(0 0 0 / 16%);
+  --shadow: 0 4px 16px #00000029;
+  --shade: light-dark(#00000051, #000000a3);
+  --shade-dark: #000000;
+  --shade-light: #00000014;
 
   --thumb: #ffffff;
-
   --track: light-dark(#a4a3a8, #646368);
-
   --hover: light-dark(#181818, #ffffff);
-
   --select: light-dark(#ffffff, #292929);
 
   --error: #ff453a;
@@ -35,11 +27,8 @@
   --active: var(--error);
   --focus: var(--info);
 
-  --pointer: color-mix(
-    in srgb,
-    var(--hover) 20%,
-    transparent
-  );
+  --pointer: color-mix(in srgb, var(--hover) 20%, transparent);
+  --feedback: linear-gradient(var(--pointer), var(--pointer));
 }
 
 :root[data-theme="light"] {
@@ -48,6 +37,22 @@
 
 :root[data-theme="dark"] {
   color-scheme: dark;
+}
+
+html.wearable[data-theme="dark"] {
+  --background: #000000;
+  --canvas: #000000;
+  --panel: #252528;
+
+  --text: #eeeeee;
+  --mute: #a0a0a0;
+  --border: #ffffff24;
+
+  --shade: #000000a3;
+
+  --track: #646368;
+  --hover: #ffffff;
+  --select: #292929;
 }
 
 html,

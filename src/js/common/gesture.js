@@ -53,13 +53,10 @@ function sample(path, count = 32) {
 
     if (moved + size >= gap) {
       const rate = (gap - moved) / size;
-
       point = {
         x: point.x + (next.x - point.x) * rate,
-
         y: point.y + (next.y - point.y) * rate
       };
-
       result.push(point);
       moved = 0;
     } else {
@@ -87,10 +84,7 @@ function turn(a, b, c) {
     return 0;
   }
 
-  const value = Math.max(
-    -1,
-    Math.min(1, (ax * cx + ay * cy) / size)
-  );
+  const value = Math.max(-1, Math.min(1, (ax * cx + ay * cy) / size));
 
   return 180 - (Math.acos(value) * 180) / Math.PI;
 }
@@ -103,12 +97,10 @@ function countCorners(path) {
     const before = path[(index - 2 + count) % count];
 
     const after = path[(index + 2) % count];
-
     marked.push(turn(before, path[index], after) > 45);
   }
 
   let result = 0;
-
   marked.forEach((active, index) => {
     const previous = marked[(index - 1 + count) % count];
 
@@ -138,10 +130,7 @@ function detect(path) {
     return null;
   }
 
-  if (
-    distance(path[0], path.at(-1)) >
-    Math.max(32, size * 0.35)
-  ) {
+  if (distance(path[0], path.at(-1)) > Math.max(32, size * 0.35)) {
     return null;
   }
 
@@ -170,7 +159,6 @@ function detect(path) {
 
 function trigger(event) {
   const shape = detect(points);
-
   reset();
 
   if (!shape) {
@@ -191,9 +179,7 @@ function touchStart(event) {
   }
 
   const touch = event.touches[0];
-
   inputId = touch.identifier;
-
   points = [{ x: touch.clientX, y: touch.clientY }];
 }
 
@@ -202,9 +188,7 @@ function touchMove(event) {
     return;
   }
 
-  const touch = [...event.touches].find(
-    (item) => item.identifier === inputId
-  );
+  const touch = [...event.touches].find((item) => item.identifier === inputId);
 
   if (!touch) {
     return;
@@ -231,7 +215,6 @@ function touchEnd(event) {
   }
 
   points.push({ x: touch.clientX, y: touch.clientY });
-
   trigger(event);
 }
 
@@ -246,15 +229,11 @@ function pointerDown(event) {
   }
 
   inputId = event.pointerId;
-
   points = [{ x: event.clientX, y: event.clientY }];
 }
 
 function pointerMove(event) {
-  if (
-    event.pointerType !== "mouse" ||
-    event.pointerId !== inputId
-  ) {
+  if (event.pointerType !== "mouse" || event.pointerId !== inputId) {
     return;
   }
 
@@ -266,23 +245,18 @@ function pointerMove(event) {
 }
 
 function pointerUp(event) {
-  if (
-    event.pointerType !== "mouse" ||
-    event.pointerId !== inputId
-  ) {
+  if (event.pointerType !== "mouse" || event.pointerId !== inputId) {
     return;
   }
 
   points.push({ x: event.clientX, y: event.clientY });
-
   trigger(event);
 }
 
 function cancel(event) {
   if (
     "pointerType" in event &&
-    (event.pointerType !== "mouse" ||
-      event.pointerId !== inputId)
+    (event.pointerType !== "mouse" || event.pointerId !== inputId)
   ) {
     return;
   }
@@ -296,7 +270,6 @@ function watch() {
   }
 
   const options = { passive: true };
-
   removeListeners = [
     on(document, "pointerdown", pointerDown),
     on(document, "pointermove", pointerMove),
@@ -317,7 +290,6 @@ function unwatch() {
   removeListeners.forEach((remove) => {
     remove();
   });
-
   removeListeners = [];
   reset();
 }
@@ -325,15 +297,11 @@ function unwatch() {
 export default function gesture(value, listener) {
   const shape = String(value).trim();
 
-  if (
-    !shapes.includes(shape) ||
-    typeof listener !== "function"
-  ) {
+  if (!shapes.includes(shape) || typeof listener !== "function") {
     return () => {};
   }
 
   const item = { shape, listener };
-
   gestures.add(item);
   watch();
 

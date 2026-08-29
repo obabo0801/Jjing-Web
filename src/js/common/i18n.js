@@ -10,7 +10,6 @@ let messages = {};
 
 const updateText = (element, value) => {
   const icon = dom.query(":scope > .icon", element);
-
   element.textContent = value;
 
   if (icon) {
@@ -66,32 +65,25 @@ export const decode = (value) => {
   return JSON.parse(new TextDecoder().decode(bytes));
 };
 
-export default async function translate(
-  mode = get("lang", "system")
-) {
+export default async function translate(mode = get("lang", "system")) {
   mode =
     typeof mode === "string" && mode.trim()
       ? mode.trim().toLowerCase()
       : "system";
-
   set("lang", mode);
 
-  const targets = [...attributes].flatMap(
-    ([attribute, update]) =>
-      dom
-        .all(`[${attribute}]`)
-        .map((element) => ({
-          element,
-          key: dom.get(element, attribute)?.trim(),
-          update
-        }))
+  const targets = [...attributes].flatMap(([attribute, update]) =>
+    dom
+      .all(`[${attribute}]`)
+      .map((element) => ({
+        element,
+        key: dom.get(element, attribute)?.trim(),
+        update
+      }))
   );
 
   const names = [
-    ...new Set([
-      ...targets.map(({ key }) => key),
-      ...required
-    ])
+    ...new Set([...targets.map(({ key }) => key), ...required])
   ].filter(Boolean);
 
   if (!names.length) {
@@ -107,7 +99,6 @@ export default async function translate(
   try {
     const result = await api(i18n, {
       method: "POST",
-
       data: { [content]: encode({ lang: mode, keys }) }
     });
 
@@ -118,15 +109,12 @@ export default async function translate(
     }
 
     const { lang, text } = decode(value);
-
     dom.root.lang = lang;
-
     messages = Object.fromEntries(
       entries
         .map(([name, key]) => [name, text[key]])
         .filter(([, value]) => typeof value === "string")
     );
-
     targets.forEach(({ element, key, update }) => {
       const value = messages[key];
 

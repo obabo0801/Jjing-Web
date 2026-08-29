@@ -12,20 +12,14 @@ import limit from "#middleware/limit";
 const router = Router();
 
 const allowed = limit(20);
-
 router.post("/", async (req, res) => {
   const body = req.body;
 
-  if (
-    !body ||
-    typeof body !== "object" ||
-    Array.isArray(body)
-  ) {
+  if (!body || typeof body !== "object" || Array.isArray(body)) {
     return res.status(400).end();
   }
 
-  const text =
-    typeof body.text === "string" ? body.text.trim() : "";
+  const text = typeof body.text === "string" ? body.text.trim() : "";
 
   if (!text) {
     return res.status(400).end();
@@ -45,7 +39,14 @@ router.post("/", async (req, res) => {
   }
 
   const user = id
-    ? await get("SELECT uid FROM user WHERE uid = ?", [id])
+    ? await get(
+        `
+        SELECT uid
+        FROM user
+        WHERE uid = ?
+      `,
+        [id]
+      )
     : null;
 
   const blocked = await get(
@@ -61,31 +62,18 @@ router.post("/", async (req, res) => {
 
   const only = body.type === "cache";
 
-  if (!user && !blocked) {
-    return res.status(403).end();
-  }
-
-  if (blocked && !only) {
+  if (!only && (!user || blocked)) {
     return res.status(403).end();
   }
 
   if (body.type === "browser") {
-    const voice =
-      typeof body.voice === "string"
-        ? body.voice.trim()
-        : "";
+    const voice = typeof body.voice === "string" ? body.voice.trim() : "";
 
     if ([...voice].length > 200) {
       return res.status(400).end();
     }
 
-    await record(
-      id,
-      text,
-      voice || "default",
-      "browser",
-      now()
-    );
+    await record(id, text, voice || "default", "browser", now());
 
     return res.status(204).end();
   }
@@ -123,7 +111,6 @@ router.post("/", async (req, res) => {
 
   if (body.type !== "cache") {
     const type = result.cached ? "cache" : result.provider;
-
     await record(id, text, result.voice, type, time);
   }
 

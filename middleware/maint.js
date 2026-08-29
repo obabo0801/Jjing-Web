@@ -1,25 +1,25 @@
 import { get } from "#config/sqlite";
 import uid from "#config/uid";
-import { isPage, send } from "#page";
+import { page, send } from "#page";
 
 export const unavailable = (res) => {
   res.set({
     "Cache-Control": "private, no-store",
-    "X-Maintenance": "true",
+    "X-Maint": "true",
     Vary: "Cookie"
   });
 
-  return send(res, "maintenance", 503);
+  return send(res, "maint", 503);
 };
 
-export default async function maintenance(req, res, next) {
-  if (!isPage(req)) {
+export default async function maint(req, res, next) {
+  if (!page(req)) {
     return next();
   }
 
   const active = process.env.MAINTENANCE === "true";
 
-  const dev = process.env.SERVER_ENV === "development";
+  const dev = req.app.get("env") === "development";
 
   if (!active || dev) {
     return next();
@@ -28,7 +28,14 @@ export default async function maintenance(req, res, next) {
   const id = uid(req);
 
   const user = id
-    ? await get("SELECT role FROM user WHERE uid = ?", [id])
+    ? await get(
+        `
+        SELECT role
+        FROM user
+        WHERE uid = ?
+      `,
+        [id]
+      )
     : null;
 
   if (user?.role === 0) {

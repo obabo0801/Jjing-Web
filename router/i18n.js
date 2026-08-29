@@ -9,33 +9,22 @@ import { content } from "#config/route";
 const router = Router();
 
 const hash = (value) =>
-  createHash("sha256")
-    .update(value.toLowerCase())
-    .digest("hex")
-    .slice(0, 8);
+  createHash("sha256").update(value.toLowerCase()).digest("hex").slice(0, 8);
 
 const encode = (value) =>
-  Buffer.from(JSON.stringify(value), "utf8").toString(
-    "base64"
-  );
+  Buffer.from(JSON.stringify(value), "utf8").toString("base64");
 
 const decode = (value) =>
   JSON.parse(Buffer.from(value, "base64").toString("utf8"));
 
-const files = Object.fromEntries(
-  langs.map((lang) => [hash(lang), lang])
-);
+const files = Object.fromEntries(langs.map((lang) => [hash(lang), lang]));
 
-const languages = Object.fromEntries(
-  langs.map((lang) => [lang, hash(lang)])
-);
+const languages = Object.fromEntries(langs.map((lang) => [lang, hash(lang)]));
 
 const fallback = langs.includes("ko") ? "ko" : langs[0];
-
 router.get("/", (_, res) => {
   res.json({ [content]: encode(languages) });
 });
-
 router.get("/:file", (req, res) => {
   const lang = files[req.params.file];
 
@@ -50,10 +39,8 @@ router.get("/:file", (req, res) => {
       .filter((key) => Object.hasOwn(source, key))
       .map((key) => [key, source[key]])
   );
-
   res.json({ [content]: encode({ lang, text }) });
 });
-
 router.post("/", (req, res) => {
   let body;
 
@@ -63,41 +50,26 @@ router.post("/", (req, res) => {
     return res.status(400).end();
   }
 
-  if (
-    !body ||
-    typeof body !== "object" ||
-    Array.isArray(body)
-  ) {
+  if (!body || typeof body !== "object" || Array.isArray(body)) {
     return res.status(400).end();
   }
 
   const mode =
-    typeof body.lang === "string"
-      ? body.lang.trim().toLowerCase()
-      : "system";
+    typeof body.lang === "string" ? body.lang.trim().toLowerCase() : "system";
 
-  const selected =
-    mode === "system"
-      ? req.acceptsLanguages(...langs)
-      : mode;
+  const selected = mode === "system" ? req.acceptsLanguages(...langs) : mode;
 
-  const lang = langs.includes(selected)
-    ? selected
-    : fallback;
+  const lang = langs.includes(selected) ? selected : fallback;
 
   const source = Object.fromEntries(
-    Object.entries(locale(lang)).map(([key, value]) => [
-      hash(key),
-      value
-    ])
+    Object.entries(locale(lang)).map(([key, value]) => [hash(key), value])
   );
 
   const keys = Array.isArray(body.keys)
-    ? [
-        ...new Set(
-          body.keys.filter((key) => typeof key === "string")
-        )
-      ].slice(0, 100)
+    ? [...new Set(body.keys.filter((key) => typeof key === "string"))].slice(
+        0,
+        100
+      )
     : [];
 
   const text = Object.fromEntries(
@@ -105,7 +77,6 @@ router.post("/", (req, res) => {
       .filter((key) => Object.hasOwn(source, key))
       .map((key) => [key, source[key]])
   );
-
   res.json({ [content]: encode({ lang, text }) });
 });
 

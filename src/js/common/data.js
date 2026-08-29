@@ -11,7 +11,6 @@ const clearRequests = () => {
 
   return new Promise((resolve) => {
     const request = indexedDB.open("sync", 1);
-
     request.onupgradeneeded = () => {
       const database = request.result;
 
@@ -22,26 +21,19 @@ const clearRequests = () => {
         });
       }
     };
-
     request.onsuccess = () => {
       const database = request.result;
-      const transaction = database.transaction(
-        "requests",
-        "readwrite"
-      );
+      const transaction = database.transaction("requests", "readwrite");
 
       const finish = () => {
         database.close();
         resolve();
       };
-
       transaction.objectStore("requests").clear();
-
       transaction.oncomplete = finish;
       transaction.onerror = finish;
       transaction.onabort = finish;
     };
-
     request.onerror = () => resolve();
   });
 };
@@ -59,10 +51,7 @@ export const sizeData = async () => {
 };
 
 export const sizeAll = async () => {
-  const [cookie, data] = await Promise.all([
-    sizeCookie(),
-    sizeData()
-  ]);
+  const [cookie, data] = await Promise.all([sizeCookie(), sizeData()]);
 
   return {
     cookie: format(cookie),
@@ -79,7 +68,6 @@ export const clearCookie = async () => {
 
 export const clearData = async () => {
   storage.clear();
-
   await Promise.all([
     "caches" in window ? caches.delete("offline") : false,
     clearRequests()

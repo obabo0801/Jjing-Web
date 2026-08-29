@@ -4,45 +4,18 @@ import { get } from "#common/storage";
 import patterns from "#common/pattern";
 
 const backgrounds = Object.freeze({
-  sunflower: new URL(
-    "../../assets/audio/sunflower.mp3",
-    import.meta.url
-  ).href
+  sunflower: new URL("../../assets/audio/sunflower.mp3", import.meta.url).href
 });
 
 const effects = Object.freeze({
-  bell: new URL(
-    "../../assets/audio/bell.mp3",
-    import.meta.url
-  ).href,
-
-  click: new URL(
-    "../../assets/audio/click.mp3",
-    import.meta.url
-  ).href,
-
-  eoheo: new URL(
-    "../../assets/audio/eoheo.mp3",
-    import.meta.url
-  ).href,
-
-  pop: new URL(
-    "../../assets/audio/pop.mp3",
-    import.meta.url
-  ).href,
-
-  snap: new URL(
-    "../../assets/audio/snap.mp3",
-    import.meta.url
-  ).href
+  bell: new URL("../../assets/audio/bell.mp3", import.meta.url).href,
+  click: new URL("../../assets/audio/click.mp3", import.meta.url).href,
+  eoheo: new URL("../../assets/audio/eoheo.mp3", import.meta.url).href,
+  pop: new URL("../../assets/audio/pop.mp3", import.meta.url).href,
+  snap: new URL("../../assets/audio/snap.mp3", import.meta.url).href
 });
 
-const waves = new Set([
-  "sine",
-  "square",
-  "sawtooth",
-  "triangle"
-]);
+const waves = new Set(["sine", "square", "sawtooth", "triangle"]);
 
 const buffers = new Map();
 const players = new Map();
@@ -69,7 +42,6 @@ const load = (audio, url) => {
 
         throw error;
       });
-
     buffers.set(url, request);
   }
 
@@ -79,12 +51,7 @@ const load = (audio, url) => {
 export function beep(
   frequency = 440,
   duration = 80,
-  {
-    channel = "system",
-    delay = 0,
-    type = "sine",
-    volume = 1
-  } = {}
+  { channel = "system", delay = 0, type = "sine", volume = 1 } = {}
 ) {
   if (get("sound", "true") === "false") {
     return null;
@@ -99,7 +66,6 @@ export function beep(
   const oscillator = audio.createOscillator();
 
   const gain = audio.createGain();
-
   duration = Math.max(1, Number(duration) || 80);
   delay = Math.max(0, Number(delay) || 0);
 
@@ -108,28 +74,17 @@ export function beep(
   const end = start + length;
 
   const attack = Math.min(0.01, length / 2);
-
   oscillator.frequency.setValueAtTime(
     Math.max(1, Number(frequency) || 440),
     start
   );
-
   oscillator.type = waves.has(type) ? type : "sine";
-
   gain.gain.setValueAtTime(0, start);
-
-  gain.gain.linearRampToValueAtTime(
-    level(channel, volume),
-    start + attack
-  );
-
+  gain.gain.linearRampToValueAtTime(level(channel, volume), start + attack);
   gain.gain.linearRampToValueAtTime(0, end);
-
   oscillator.connect(gain);
   gain.connect(audio.destination);
-
   tones.add(oscillator);
-
   on(
     oscillator,
     "ended",
@@ -140,7 +95,6 @@ export function beep(
     },
     { once: true }
   );
-
   oscillator.start(start);
   oscillator.stop(end);
 
@@ -158,11 +112,7 @@ const fallback = (name, options = {}) => {
 
   return pattern
     .map(([frequency, duration, gap]) => {
-      const tone = beep(frequency, duration, {
-        ...options,
-        delay
-      });
-
+      const tone = beep(frequency, duration, { ...options, delay });
       delay += duration + gap;
 
       return tone;
@@ -201,16 +151,11 @@ const effect = async (
   const player = audio.createBufferSource();
 
   const gain = audio.createGain();
-
   player.buffer = buffer;
-
   gain.gain.value = level(channel, volume);
-
   player.connect(gain);
   gain.connect(audio.destination);
-
   players.set(player, gain);
-
   on(
     player,
     "ended",
@@ -225,23 +170,14 @@ const effect = async (
     { once: true }
   );
 
-  const start =
-    audio.currentTime +
-    Math.max(0, Number(delay) || 0) / 1000;
-
+  const start = audio.currentTime + Math.max(0, Number(delay) || 0) / 1000;
   player.start(start);
 
   return player;
 };
 
-export async function play(
-  name,
-  { overlap = false, ...options } = {}
-) {
-  if (
-    get("sound", "true") === "false" ||
-    (overlap && active.has(name))
-  ) {
+export async function play(name, { overlap = false, ...options } = {}) {
+  if (get("sound", "true") === "false" || (overlap && active.has(name))) {
     return null;
   }
 
@@ -317,10 +253,8 @@ const resetTrack = () => {
   }
 
   const player = track;
-
   track = undefined;
   source = "";
-
   player.pause();
 
   try {
@@ -330,14 +264,8 @@ const resetTrack = () => {
   return true;
 };
 
-export function music(
-  name,
-  { loop = false, volume = 1 } = {}
-) {
-  if (
-    typeof Audio === "undefined" ||
-    get("sound", "true") === "false"
-  ) {
+export function music(name, { loop = false, volume = 1 } = {}) {
+  if (typeof Audio === "undefined" || get("sound", "true") === "false") {
     resetTrack();
 
     return null;
@@ -351,15 +279,11 @@ export function music(
 
   if (track && source === url) {
     const player = track;
-
     player.loop = loop;
-
     player.volume = level("media", volume);
 
     if (player.paused) {
-      player.play().catch(() => {
-        clearTrack(player);
-      });
+      player.play().catch(() => clearTrack(player));
     }
 
     return player;
@@ -368,42 +292,19 @@ export function music(
   resetTrack();
 
   const player = new Audio(url);
-
   player.loop = loop;
-
   player.volume = level("media", volume);
-
   track = player;
   source = url;
-
-  on(
-    player,
-    "ended",
-    () => {
-      clearTrack(player);
-    },
-    { once: true }
-  );
-
-  on(
-    player,
-    "error",
-    () => {
-      clearTrack(player);
-    },
-    { once: true }
-  );
-
-  player.play().catch(() => {
-    clearTrack(player);
-  });
+  on(player, "ended", () => clearTrack(player), { once: true });
+  on(player, "error", () => clearTrack(player), { once: true });
+  player.play().catch(() => clearTrack(player));
 
   return player;
 }
 
 export function stop() {
   token += 1;
-
   active.clear();
   resetTrack();
 

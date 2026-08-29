@@ -1,8 +1,7 @@
 html {
   min-height: 100%;
   font-family:
-    "Segoe UI", "Noto Sans KR", "Malgun Gothic", system-ui,
-    sans-serif;
+    "Segoe UI", "Noto Sans KR", "Malgun Gothic", system-ui, sans-serif;
 }
 
 *,
@@ -15,7 +14,7 @@ body {
   min-height: 100dvh;
   margin: 0;
 
-  background: var(--canvas);
+  background: var(--background);
 }
 
 img,

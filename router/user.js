@@ -7,7 +7,7 @@ import address from "#config/ip";
 import access from "#config/log/access";
 import { usage } from "#config/route";
 import { get, run } from "#config/sqlite";
-import identity from "#config/uid";
+import identity, { key } from "#config/uid";
 
 import limit from "#middleware/limit";
 
@@ -18,7 +18,7 @@ const allowed = limit(120);
 const cookie = {
   httpOnly: true,
   sameSite: "lax",
-  secure: process.env.SERVER_ENV === "production",
+  secure: process.env.NODE_ENV === "production",
   signed: Boolean(process.env.COOKIE_SECRET),
   maxAge: 365 * 24 * 60 * 60 * 1000
 };
@@ -32,59 +32,50 @@ const clear = {
 
 const remember = (res, uid) => {
   if (uid) {
-    res.cookie("uid", uid, cookie);
+    res.cookie(key, uid, cookie);
   }
 };
 
 const status = (value) => {
   const code = Number(value);
 
-  return Number.isInteger(code) &&
-    code >= 100 &&
-    code <= 599
-    ? code
-    : 0;
+  return Number.isInteger(code) && code >= 100 && code <= 599 ? code : 0;
 };
-
 router.get(usage, (req, res) => {
-  const size = Buffer.byteLength(
-    req.get("cookie") || "",
-    "utf8"
-  );
-
+  const size = Buffer.byteLength(req.get("cookie") || "", "utf8");
   res.json({ size });
 });
-
 router.delete("/", (_, res) => {
-  res.clearCookie("uid", clear);
+  res.clearCookie(key, clear);
   res.status(204).end();
 });
-
 router.get("/", async (req, res) => {
   const uid = identity(req);
   const ip = address(req);
 
-  const name =
-    typeof req.query.name === "string"
-      ? req.query.name
-      : "";
+  const name = typeof req.query.name === "string" ? req.query.name : "";
 
   const path =
-    typeof req.query.path === "string"
-      ? req.query.path.slice(0, 2048)
-      : "/";
+    typeof req.query.path === "string" ? req.query.path.slice(0, 2048) : "/";
 
   const result = status(req.query.result);
 
   const { os, browser } = client(req);
 
   const user = uid
-    ? await get("SELECT uid FROM user WHERE uid = ?", [uid])
+    ? await get(
+        `
+        SELECT uid
+        FROM user
+        WHERE uid = ?
+      `,
+        [uid]
+      )
     : null;
 
-  const reload = req.query.reload === "true";
+  const recent = req.query.recent === "true";
 
-  if (!reload) {
+  if (!recent) {
     if (user) {
       await access(uid, ip, os, browser, path, result);
     } else if (name) {
@@ -94,16 +85,13 @@ router.get("/", async (req, res) => {
 
   res.json({ valid: Boolean(user) });
 });
-
 router.post("/", async (req, res) => {
   const saved = identity(req);
 
   let uid = saved;
 
   const path =
-    typeof req.body?.path === "string"
-      ? req.body.path.slice(0, 2048)
-      : "/";
+    typeof req.body?.path === "string" ? req.body.path.slice(0, 2048) : "/";
 
   const result = status(req.body?.result);
 
@@ -120,7 +108,7 @@ router.post("/", async (req, res) => {
   let user = uid
     ? await get(
         `
-        SELECT uid, role
+        SELECT uid, role, ip
         FROM user
         WHERE uid = ?
       `,
@@ -131,7 +119,7 @@ router.post("/", async (req, res) => {
   if (!saved && !user) {
     const found = await get(
       `
-      SELECT uid, role
+      SELECT uid, role, ip
       FROM user
       WHERE ip = ?
         AND role = 1
@@ -171,49 +159,29 @@ router.post("/", async (req, res) => {
     remember(res, uid);
 
     const first = await run(
-      `
-      UPDATE block
-      SET log = 1
-      WHERE rowid = ?
-        AND log = 0
-    `,
+      "UPDATE block SET log = 1 WHERE rowid = ? AND log = 0",
       [blocked.id]
     );
 
     if (first.changes) {
-      await access(
-        uid || null,
-        ip,
-        os,
-        browser,
-        path,
-        result
-      );
+      await access(uid || null, ip, os, browser, path, result);
     }
 
-    const data = {
-      reason: blocked.reason,
-      time: blocked.time
-    };
+    const data = { reason: blocked.reason, time: blocked.time };
 
     return res.status(403).json(data);
   }
 
   if (!user) {
     uid = randomUUID();
-
     await run(
       `
-      INSERT INTO user (
-        uid,
-        role,
-        ip
-      )
+      INSERT INTO user (uid, role, ip)
       VALUES (?, 1, ?)
     `,
       [uid, ip]
     );
-  } else {
+  } else if (user.ip !== ip) {
     await run(
       `
       UPDATE user

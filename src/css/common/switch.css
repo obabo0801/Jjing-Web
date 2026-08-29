@@ -5,13 +5,18 @@
 
   min-height: 60px;
   padding: 0 16px;
-  border-radius: 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
 
   cursor: pointer;
 
   -webkit-user-select: none;
   user-select: none;
   -webkit-tap-highlight-color: transparent;
+
+  transition:
+    background-color 160ms ease,
+    color 160ms ease;
 }
 
 .switch[data-background] {
@@ -71,8 +76,7 @@
 }
 
 .switch:has(input:focus-visible) {
-  outline: 2px solid var(--focus);
-  outline-offset: 2px;
+  background-image: var(--feedback);
 }
 
 .switch input:focus-visible {
@@ -85,6 +89,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .switch,
   .switch input,
   .switch input::before {
     transition: none;

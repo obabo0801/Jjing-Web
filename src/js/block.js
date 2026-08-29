@@ -12,24 +12,31 @@ const page = dom.query(".block");
 const heading = dom.query("h1", page);
 const action = dom.query("button", page);
 const loading = init();
-
-dom.on(page, "click", (event) => {
-  if (event.target.closest("button")) {
-    return;
-  }
-
-  if (!tts.busy()) {
-    tts.speak(heading.textContent);
-  }
-});
-
 dom.on(action, "click", async () => {
+  action.disabled = true;
   sound.play("click");
   vibrate.play("click");
 
-  setTimeout(() => {
-    location.reload();
-  }, 150);
+  try {
+    const allowed = await access(false, "block");
+
+    if (allowed) {
+      setTimeout(() => {
+        location.reload();
+      }, 150);
+
+      return;
+    }
+
+    if (!tts.busy()) {
+      const source = await tts
+        .speak(heading.textContent, { type: "cache" })
+        .catch(() => null);
+      await tts.wait(source);
+    }
+  } finally {
+    action.disabled = false;
+  }
 });
 
 try {

@@ -7,18 +7,20 @@ const root = path.join(import.meta.dirname, "../data/log");
 
 const offset = 9 * 60 * 60 * 1000;
 
-export const now = () =>
-  new Date(Date.now() + offset)
-    .toISOString()
-    .slice(0, 19)
-    .replace("T", " ");
+export const now = () => {
+  const value = Date.now() + offset;
 
-const date = (time) =>
-  (time || now()).slice(0, 10).replaceAll("-", "");
+  return new Date(value).toISOString().slice(0, 19).replace("T", " ");
+};
+
+const date = (time) => {
+  const value = time || now();
+
+  return value.slice(0, 10).replaceAll("-", "");
+};
 
 export default function log(dir, schema) {
   const folder = path.join(root, dir);
-
   mkdirSync(folder, { recursive: true });
 
   let day;
@@ -32,15 +34,14 @@ export default function log(dir, schema) {
     }
 
     db?.close();
-
     day = next;
-
-    db = new sqlite3.Database(
-      path.join(folder, `${day}.db`)
-    );
-
+    db = new sqlite3.Database(path.join(folder, `${day}.db`));
     db.configure("busyTimeout", 5000);
-    db.exec(schema);
+    db.exec(`
+      PRAGMA journal_mode = WAL;
+
+      ${schema}
+    `);
 
     return db;
   };

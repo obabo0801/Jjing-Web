@@ -53,7 +53,6 @@ export default function scroll() {
   };
 
   let previous = bound();
-
   dom.on(
     window,
     "scroll",

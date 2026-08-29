@@ -3,9 +3,7 @@ import { stt as route } from "#config/route";
 let cloud;
 
 const encode = (value) => {
-  const bytes = new TextEncoder().encode(
-    JSON.stringify(value)
-  );
+  const bytes = new TextEncoder().encode(JSON.stringify(value));
 
   return btoa(String.fromCharCode(...bytes));
 };
@@ -23,7 +21,6 @@ export const available = async () => {
     }
 
     const data = await response.json();
-
     cloud = Boolean(data.cloud);
 
     return cloud;
@@ -32,13 +29,7 @@ export const available = async () => {
   }
 };
 
-export const upload = async (
-  blob,
-  lang,
-  text,
-  pitch,
-  signal
-) => {
+export const upload = async (blob, lang, text, pitch, signal) => {
   if (!blob?.size) {
     return { text, confidence: null };
   }
@@ -61,14 +52,8 @@ export const upload = async (
     const data = await response.json();
 
     return {
-      text:
-        typeof data.text === "string"
-          ? data.text.trim()
-          : text,
-      confidence:
-        Number(data.confidence) > 0
-          ? Number(data.confidence)
-          : null
+      text: typeof data.text === "string" ? data.text.trim() : text,
+      confidence: Number(data.confidence) > 0 ? Number(data.confidence) : null
     };
   } catch {
     return { text, confidence: null };

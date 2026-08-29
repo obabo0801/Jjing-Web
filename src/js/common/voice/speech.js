@@ -1,26 +1,16 @@
 import * as dom from "#common/dom";
 import { visualize } from "#common/voice/view";
 
-const SpeechRecognition = Reflect.get(
-  window,
-  "SpeechRecognition"
-);
+const SpeechRecognition = Reflect.get(window, "SpeechRecognition");
 
 export const supported = Boolean(SpeechRecognition);
 
-export const listen = (
-  lang,
-  stream,
-  target,
-  signal,
-  keep = false
-) => {
+export const listen = (lang, stream, target, signal, keep = false) => {
   if (!SpeechRecognition) {
     return null;
   }
 
   const recognition = new SpeechRecognition();
-
   recognition.lang = lang;
   recognition.continuous = keep;
   recognition.interimResults = false;
@@ -45,10 +35,8 @@ export const listen = (
     }
 
     settled = true;
-
     off();
     stopVisual();
-
     resolveDone({ text, confidence });
   };
 
@@ -63,7 +51,6 @@ export const listen = (
       finish();
     }
   };
-
   dom.on(recognition, "result", (event) => {
     const result = event.results[event.resultIndex];
 
@@ -81,40 +68,28 @@ export const listen = (
 
     if (!text || value.startsWith(text)) {
       text = value;
-    } else if (
-      !text.startsWith(value) &&
-      !text.endsWith(value)
-    ) {
+    } else if (!text.startsWith(value) && !text.endsWith(value)) {
       text = `${text} ${value}`.trim();
     }
 
     confidence = Number(item.confidence) || 0;
   });
-
   dom.on(recognition, "start", () => {
     if (shown || stream) {
       return;
     }
 
     shown = true;
-
     stopVisual = visualize(target, stream);
   });
-
   dom.on(recognition, "error", (event) => {
-    if (
-      keep &&
-      event.error === "no-speech" &&
-      !stopped &&
-      !signal?.aborted
-    ) {
+    if (keep && event.error === "no-speech" && !stopped && !signal?.aborted) {
       return;
     }
 
     stopped = true;
     finish();
   });
-
   dom.on(recognition, "end", () => {
     if (keep && !stopped && !signal?.aborted) {
       setTimeout(start, 0);
@@ -123,7 +98,6 @@ export const listen = (
 
     finish();
   });
-
   off = dom.on(
     signal,
     "abort",
@@ -138,12 +112,10 @@ export const listen = (
     },
     { once: true }
   );
-
   start();
 
   return {
     done,
-
     stop: () => {
       if (stopped) {
         return;
@@ -160,21 +132,14 @@ export const listen = (
   };
 };
 
-export const native = async (
-  lang,
-  target,
-  signal,
-  stop
-) => {
+export const native = async (lang, target, signal, stop) => {
   if (!SpeechRecognition) {
     return { text: "", confidence: 0 };
   }
 
   const heard = listen(lang, null, target, signal);
 
-  const off = dom.on(stop, "abort", heard.stop, {
-    once: true
-  });
+  const off = dom.on(stop, "abort", heard.stop, { once: true });
 
   if (stop.aborted) {
     heard.stop();

@@ -8,9 +8,9 @@
   display: flex;
   padding: 2px;
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: 8px;
 
-  background: var(--panel);
+  background: var(--canvas);
 
   font-weight: 600;
 
@@ -31,7 +31,7 @@
   inset-inline-start: anchor(start);
   inset-inline-end: anchor(end);
 
-  border-radius: 10px;
+  border-radius: 8px;
 
   background: var(--selected);
 
@@ -50,7 +50,8 @@
   flex: 1;
   min-width: 0;
   padding-inline: 12px;
-  border-radius: 10px;
+  border: 0;
+  border-radius: 8px;
 }
 
 .segment button + button::before {
@@ -98,19 +99,12 @@
 }
 
 .segment
-  button:is(
-    [data-danger],
-    [data-success],
-    [data-confirm]
-  )[data-selected] {
+  button:is([data-danger], [data-success], [data-confirm])[data-selected] {
   color: var(--thumb);
 }
 
 .segment button:focus-visible {
-  background-image: linear-gradient(
-    var(--pointer),
-    var(--pointer)
-  );
+  background-image: var(--feedback);
   color: var(--thumb);
 }
 

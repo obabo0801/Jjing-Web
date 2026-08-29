@@ -6,8 +6,8 @@ button {
 
   min-height: 60px;
   padding: 0 16px;
-  border: 0;
-  border-radius: 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
 
   background: transparent;
   color: inherit;
@@ -46,6 +46,11 @@ button[data-success] {
   color: var(--thumb);
 }
 
+button[data-muted] {
+  background: var(--mute);
+  color: var(--background);
+}
+
 button[data-confirm] {
   background: var(--info);
   color: var(--thumb);
@@ -63,11 +68,38 @@ button:disabled {
 button:focus-visible {
   outline: 0;
 
-  background-image: linear-gradient(
-    var(--pointer),
-    var(--pointer)
-  );
+  background-image: var(--feedback);
   color: var(--thumb);
+}
+
+button:is(
+    [data-background],
+    [data-danger],
+    [data-success],
+    [data-muted],
+    [data-confirm]
+  ):enabled:active {
+  background-image: var(--feedback);
+}
+
+button[data-opacity]:enabled:active {
+  opacity: 0.6;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  button:is(
+      [data-background],
+      [data-danger],
+      [data-success],
+      [data-muted],
+      [data-confirm]
+    ):enabled:hover {
+    background-image: var(--feedback);
+  }
+
+  button[data-opacity]:enabled:hover {
+    opacity: 0.6;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

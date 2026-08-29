@@ -1,37 +1,30 @@
 import { Router } from "express";
 
+import { enabled } from "#config/fcm";
 import address from "#config/ip";
-import { enabled, key } from "#config/push";
 import { get, run } from "#config/sqlite";
 import uid from "#config/uid";
 
 import limit from "#middleware/limit";
 
+const devices = new Set(["android", "ios", "wearable"]);
+
 const router = Router();
-
 const allowed = limit(20);
-router.get("/", (_, res) => {
-  if (!enabled) {
-    return res.status(503).end();
-  }
 
-  res.json({ key });
-});
 router.post("/", async (req, res) => {
   if (!enabled) {
     return res.status(503).end();
   }
 
-  const subscription = req.body?.subscription;
+  const fid = typeof req.body.fid === "string" ? req.body.fid.trim() : "";
 
-  const endpoint = subscription?.endpoint;
-  const keys = subscription?.keys;
+  const device =
+    typeof req.body.device === "string"
+      ? req.body.device.trim().toLowerCase()
+      : "";
 
-  if (
-    typeof endpoint !== "string" ||
-    typeof keys?.auth !== "string" ||
-    typeof keys?.p256dh !== "string"
-  ) {
+  if (!fid || fid.length > 4096 || !devices.has(device)) {
     return res.status(400).end();
   }
 
@@ -72,35 +65,37 @@ router.post("/", async (req, res) => {
 
   await run(
     `
-    INSERT INTO web (
+    INSERT INTO fcm (
       uid,
-      endpoint,
-      data
+      fid,
+      device
     )
     VALUES (?, ?, ?)
-    ON CONFLICT(endpoint) DO UPDATE SET
+    ON CONFLICT(fid) DO UPDATE SET
       uid = excluded.uid,
-      data = excluded.data
+      device = excluded.device,
+      time = datetime('now', '+9 hours')
   `,
-    [id, endpoint, JSON.stringify(subscription)]
+    [id, fid, device]
   );
   res.status(204).end();
 });
+
 router.delete("/", async (req, res) => {
   const id = uid(req);
-  const endpoint = req.body?.endpoint;
+  const fid = req.body?.fid;
 
-  if (!id || typeof endpoint !== "string") {
+  if (!id || typeof fid !== "string") {
     return res.status(400).end();
   }
 
   await run(
     `
-    DELETE FROM web
+    DELETE FROM fcm
     WHERE uid = ?
-      AND endpoint = ?
+      AND fid = ?
   `,
-    [id, endpoint]
+    [id, fid]
   );
   res.status(204).end();
 });

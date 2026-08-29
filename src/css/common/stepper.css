@@ -4,7 +4,7 @@
   align-items: center;
 
   padding: 2px;
-  border-radius: 12px;
+  border-radius: 8px;
 
   font-weight: 600;
 
@@ -16,12 +16,13 @@
 }
 
 .stepper[data-background] {
-  background: var(--panel);
+  background: var(--canvas);
 }
 
 .stepper button[data-step] {
   width: 60px;
   padding: 0;
+  border: 0;
 }
 
 .stepper-value {

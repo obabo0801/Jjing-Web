@@ -1,9 +1,5 @@
 .progress {
-  --progress-track: color-mix(
-    in srgb,
-    var(--text) 16%,
-    transparent
-  );
+  --bar: color-mix(in srgb, var(--text) 16%, transparent);
 }
 
 .progress[data-progress="linear"] {
@@ -20,7 +16,7 @@
   overflow: hidden;
   border-radius: 999px;
 
-  background: var(--progress-track);
+  background: var(--bar);
 }
 
 .progress[data-progress="linear"] .progress-fill {

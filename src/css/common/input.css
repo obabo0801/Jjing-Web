@@ -1,0 +1,60 @@
+.input {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+
+  min-width: 0;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+
+  background: var(--panel);
+  color: var(--text);
+
+  transition:
+    background-color 160ms ease,
+    color 160ms ease;
+}
+
+.input [data-control] {
+  width: 100%;
+  min-width: 0;
+  min-height: 60px;
+  padding-inline: 16px;
+  border: 0;
+
+  background: transparent;
+  color: inherit;
+
+  outline: 0;
+}
+
+.input [data-control]::placeholder {
+  color: var(--mute);
+}
+
+.input [data-control]::-webkit-search-cancel-button {
+  display: none;
+}
+
+.input-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+
+  padding-inline-end: 4px;
+}
+
+.input-actions button {
+  flex: none;
+  color: var(--mute);
+}
+
+.input:has([data-control]:disabled) {
+  opacity: 0.5;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .input {
+    transition: none;
+  }
+}

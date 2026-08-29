@@ -1,12 +1,12 @@
 dialog[data-dialog] {
-  width: min(calc(100% - 2rem), 28rem);
-  max-height: min(calc(100dvh - 2rem), 36rem);
+  width: min(calc(100% - 2rem), 64rem);
+  max-height: min(calc(100dvh - 2rem), 64rem);
   margin: auto;
   padding: 0;
-  border: 0;
-  border-radius: 20px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
 
-  background: var(--surface);
+  background: var(--canvas);
   color: var(--text);
 
   box-shadow: var(--shadow);
@@ -14,15 +14,19 @@ dialog[data-dialog] {
 
   overflow: hidden;
 
-  user-select: none;
+  transition:
+    background-color 160ms ease,
+    color 160ms ease;
 }
 
 dialog[data-dialog][open] {
-  display: grid;
-  grid-template-rows:
-    auto
-    minmax(0, 1fr)
-    auto;
+  display: block;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+:root:has(dialog[data-dialog][open]) {
+  overflow: hidden;
 }
 
 dialog[data-dialog]::backdrop {
@@ -30,34 +34,48 @@ dialog[data-dialog]::backdrop {
 }
 
 .dialog-head {
-  padding: 20px 20px 8px;
-
+  padding: 16px 16px 16px;
   text-align: center;
 }
 
 .dialog-title {
-  margin: 0;
+  width: fit-content;
+  max-width: 100%;
+  margin: 0 auto;
 
-  font-size: 1.25rem;
+  text-align: center;
+  font-size: 2rem;
   font-weight: 700;
 }
 
+.dialog-title:focus {
+  outline: 0;
+}
+
 .dialog-content {
-  overflow-y: auto;
+  display: grid;
+  gap: 16px;
 
-  padding: 8px 20px 20px;
+  overflow: visible;
+  overflow-wrap: break-word;
+  overscroll-behavior: contain;
 
-  color: var(--mute);
+  padding: 0px 16px 16px;
 
-  text-align: center;
+  color: var(--text);
+  text-align: left;
+  font-size: 1.2rem;
   white-space: pre-line;
+  word-break: keep-all;
+
+  transition: color 160ms ease;
 }
 
 .dialog-actions {
   display: flex;
   gap: 8px;
 
-  padding: 0 12px 12px;
+  padding: 0 16px 16px;
 }
 
 .dialog-actions button {
@@ -93,6 +111,12 @@ dialog[data-dialog][data-swipe-xy] * {
   touch-action: none;
 }
 
+dialog[data-dialog][data-swipe],
+dialog[data-dialog][data-swipe] * {
+  -webkit-user-select: none;
+  user-select: none;
+}
+
 dialog[data-dialog][data-fullscreen] .dialog-actions {
   padding-block-end: max(12px, env(safe-area-inset-bottom));
 }
@@ -102,42 +126,97 @@ dialog[data-dialog][data-fullscreen] .dialog-actions {
 }
 
 .wearable dialog[data-dialog] {
-  width: 100%;
-  height: 100dvh;
-}
-
-.wearable .dialog-head {
-  padding: 16px 16px 6px;
+  padding-block: 10dvh 5dvh;
 }
 
 .wearable .dialog-title {
-  font-size: 1.1rem;
+  font-size: 2rem;
 }
 
 .wearable .dialog-content {
-  padding: 6px 16px 12px;
+  padding: 16px 16px 16px;
 
-  font-size: 1rem;
+  text-align: center;
+  font-size: 1.75rem;
+  line-height: 1.4;
 }
 
 .wearable .dialog-actions {
   flex-wrap: wrap;
   justify-content: center;
-  gap: 16px;
+  gap: 32px;
 
-  padding: 8px 12px 16px;
+  padding-block-start: 8px;
 }
 
 .wearable .dialog-actions button {
   flex: 0 0 auto;
+
+  width: 96px;
+  height: 96px;
+}
+
+.wearable .dialog-actions .icon {
+  width: 2.5rem;
+  height: 2.5rem;
 }
 
 .wearable .dialog-label {
   display: none;
 }
 
+@media (max-width: 32rem) and (max-height: 24rem) {
+  html:not(.wearable) dialog[data-dialog][open] {
+    inset: 0;
+
+    width: 100%;
+    max-width: none;
+
+    height: 100dvh;
+    max-height: none;
+
+    margin: 0;
+    border-radius: 0;
+
+    grid-template-rows: auto auto auto;
+
+    overflow-y: auto;
+    scrollbar-gutter: stable both-edges;
+  }
+
+  html:not(.wearable) .dialog-head,
+  html:not(.wearable) .dialog-content,
+  html:not(.wearable) .dialog-actions {
+    padding-inline: 0;
+  }
+
+  html:not(.wearable) .dialog-content {
+    overflow: visible;
+    text-align: center;
+  }
+
+  html:not(.wearable) .dialog-content > .input {
+    padding-inline: 0;
+  }
+
+  html:not(.wearable) .dialog-content > .input [data-control] {
+    padding-inline: 0;
+    text-align: center;
+  }
+
+  html:not(.wearable) .dialog-actions {
+    flex-direction: column;
+  }
+
+  html:not(.wearable) .dialog-actions button {
+    flex: 0 0 auto;
+    width: 100%;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
-  dialog[data-dialog] {
-    scroll-behavior: auto;
+  dialog[data-dialog],
+  .dialog-content {
+    transition: none;
   }
 }

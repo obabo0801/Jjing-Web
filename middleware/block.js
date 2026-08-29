@@ -2,10 +2,10 @@ import { get } from "#config/sqlite";
 import address from "#config/ip";
 import uid from "#config/uid";
 
-import { isPage, send } from "#page";
+import { page, send } from "#page";
 
 export default async function block(req, res, next) {
-  if (!isPage(req)) {
+  if (!page(req)) {
     return next();
   }
 
@@ -26,10 +26,7 @@ export default async function block(req, res, next) {
     return next();
   }
 
-  res.set({
-    "Cache-Control": "private, no-store",
-    Vary: "Cookie"
-  });
+  res.set({ "Cache-Control": "private, no-store", Vary: "Cookie" });
 
   return send(res, "block", 403);
 }

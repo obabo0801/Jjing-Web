@@ -1,4 +1,5 @@
 import * as dom from "#common/dom";
+import * as cookie from "#common/cookie";
 import i18n from "#common/i18n";
 import init from "#common/init";
 import sound from "#common/sound";
@@ -11,24 +12,29 @@ const page = dom.query(".state");
 const heading = dom.query("h1", page);
 const action = dom.query("button", page);
 const loading = init();
-
-dom.on(page, "click", (event) => {
-  if (event.target.closest("button")) {
-    return;
-  }
-
-  if (!tts.busy()) {
-    tts.speak(heading.textContent);
-  }
-});
-
 dom.on(action, "click", async () => {
+  action.disabled = true;
   sound.play("click");
   vibrate.play("click");
 
-  setTimeout(() => {
-    location.reload();
-  }, 150);
+  try {
+    if (cookie.enabled()) {
+      setTimeout(() => {
+        location.replace("/");
+      }, 150);
+
+      return;
+    }
+
+    if (!tts.busy()) {
+      const source = await tts
+        .speak(heading.textContent, { type: "cache" })
+        .catch(() => null);
+      await tts.wait(source);
+    }
+  } finally {
+    action.disabled = false;
+  }
 });
 
 try {

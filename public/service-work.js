@@ -4,7 +4,6 @@ const page = "/offline";
 const prepare = async (locale, content) => {
   const response = await fetch(page, {
     cache: "no-store",
-
     headers: { "x-pwa-cache": "true" }
   });
 
@@ -16,9 +15,7 @@ const prepare = async (locale, content) => {
 
   const files = new Set(
     [...html.matchAll(/\b(?:src|href)=["']([^"']+)["']/g)]
-      .map(
-        ([, file]) => new URL(file, self.location.origin)
-      )
+      .map(([, file]) => new URL(file, self.location.origin))
       .filter((url) => url.origin === self.location.origin)
       .map((url) => `${url.pathname}${url.search}`)
   );
@@ -30,9 +27,7 @@ const prepare = async (locale, content) => {
       throw new Error();
     }
 
-    const localeResponse = await fetch(url, {
-      cache: "no-store"
-    });
+    const localeResponse = await fetch(url, { cache: "no-store" });
 
     if (!localeResponse.ok) {
       throw new Error();
@@ -49,23 +44,19 @@ const prepare = async (locale, content) => {
     const languages = JSON.parse(atob(value));
 
     const base = url.pathname.replace(/\/$/, "");
-
     files.add(base);
-
     Object.values(languages).forEach((file) => {
       files.add(`${base}/${file}`);
     });
   }
 
   const cache = await caches.open(offline);
-
   await cache.put(page, response);
   await cache.addAll([...files]);
 
   const keep = new Set([page, ...files]);
 
   const saved = await cache.keys();
-
   await Promise.all(
     saved.map((request) => {
       const url = new URL(request.url);
@@ -80,7 +71,6 @@ const prepare = async (locale, content) => {
 const openDatabase = () =>
   new Promise((resolve, reject) => {
     const request = indexedDB.open("sync", 1);
-
     request.onupgradeneeded = () => {
       const database = request.result;
 
@@ -91,11 +81,9 @@ const openDatabase = () =>
         });
       }
     };
-
     request.onsuccess = () => {
       resolve(request.result);
     };
-
     request.onerror = () => {
       reject(request.error);
     };
@@ -107,10 +95,7 @@ const requests = async () => {
   return new Promise((resolve, reject) => {
     const transaction = database.transaction("requests");
 
-    const request = transaction
-      .objectStore("requests")
-      .getAll();
-
+    const request = transaction.objectStore("requests").getAll();
     transaction.oncomplete = () => {
       database.close();
       resolve(request.result);
@@ -118,11 +103,9 @@ const requests = async () => {
 
     const fail = () => {
       const error = transaction.error || new Error();
-
       database.close();
       reject(error);
     };
-
     transaction.onerror = fail;
     transaction.onabort = fail;
   });
@@ -132,13 +115,8 @@ const removeRequest = async (id) => {
   const database = await openDatabase();
 
   return new Promise((resolve, reject) => {
-    const transaction = database.transaction(
-      "requests",
-      "readwrite"
-    );
-
+    const transaction = database.transaction("requests", "readwrite");
     transaction.objectStore("requests").delete(id);
-
     transaction.oncomplete = () => {
       database.close();
       resolve();
@@ -146,11 +124,9 @@ const removeRequest = async (id) => {
 
     const fail = () => {
       const error = transaction.error || new Error();
-
       database.close();
       reject(error);
     };
-
     transaction.onerror = fail;
     transaction.onabort = fail;
   });
@@ -189,15 +165,12 @@ const synchronize = async () => {
     throw new Error();
   }
 };
-
 self.addEventListener("install", (event) => {
   event.waitUntil(self.skipWaiting());
 });
-
 self.addEventListener("activate", (event) => {
   event.waitUntil(self.clients.claim());
 });
-
 self.addEventListener("fetch", (event) => {
   const { request } = event;
 
@@ -212,18 +185,14 @@ self.addEventListener("fetch", (event) => {
   }
 
   if (url.pathname === "/manifest.json") {
-    event.respondWith(
-      fetch(request, { cache: "no-store" })
-    );
+    event.respondWith(fetch(request, { cache: "no-store" }));
 
     return;
   }
 
   if (url.pathname === page) {
     event.respondWith(
-      caches
-        .match(page)
-        .then((response) => response || fetch(request))
+      caches.match(page).then((response) => response || fetch(request))
     );
 
     return;
@@ -233,9 +202,7 @@ self.addEventListener("fetch", (event) => {
     event.respondWith(
       fetch(request)
         .then(async (response) => {
-          const down = [502, 503, 504].includes(
-            response.status
-          );
+          const down = [502, 503, 504].includes(response.status);
 
           if (!down) {
             return response;
@@ -243,10 +210,7 @@ self.addEventListener("fetch", (event) => {
 
           return (await caches.match(page)) || response;
         })
-        .catch(
-          async () =>
-            (await caches.match(page)) || Response.error()
-        )
+        .catch(async () => (await caches.match(page)) || Response.error())
     );
 
     return;
@@ -265,25 +229,20 @@ self.addEventListener("fetch", (event) => {
       .catch(() => new Response(null, { status: 503 }))
   );
 });
-
 self.addEventListener("sync", (event) => {
   if (event.tag === "api-sync") {
     event.waitUntil(synchronize());
   }
 });
-
 self.addEventListener("message", (event) => {
   if (event.data?.type === "sync") {
     event.waitUntil(synchronize());
   }
 
   if (event.data?.type === "offline") {
-    event.waitUntil(
-      prepare(event.data.locale, event.data.content)
-    );
+    event.waitUntil(prepare(event.data.locale, event.data.content));
   }
 });
-
 self.addEventListener("push", (event) => {
   let data = { title: "", body: "", image: "", url: "/" };
 
@@ -299,18 +258,35 @@ self.addEventListener("push", (event) => {
     self.registration.showNotification(data.title, {
       body: data.body,
       icon: "/icons/icon-192.png",
-
       ...(data.image && { image: data.image }),
-
       data: { url: data.url }
     })
   );
 });
 
+const openPage = async (path) => {
+  const target = new URL(path || "/", self.location.origin);
+
+  if (target.origin !== self.location.origin) {
+    target.href = self.location.origin;
+  }
+
+  const [client] = await self.clients.matchAll({
+    type: "window",
+    includeUncontrolled: true
+  });
+
+  if (!client) {
+    return self.clients.openWindow(target.href);
+  }
+
+  const moved = await client.navigate(target.href);
+
+  return (moved || client).focus();
+};
+
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
 
-  const url = event.notification.data?.url || "/";
-
-  event.waitUntil(self.clients.openWindow(url));
+  event.waitUntil(openPage(event.notification.data?.url));
 });

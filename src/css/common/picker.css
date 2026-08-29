@@ -1,11 +1,16 @@
 .picker {
+  --picker-row: 60px;
+
   display: flex;
   align-items: stretch;
+  
+  padding: 2px;
+  border-radius: 8px;
 
-  height: 180px;
+  height: calc(var(--picker-row) * 3);
   overflow: hidden;
 
-  background: var(--surface);
+  background: var(--canvas);
 
   font-weight: 600;
 
@@ -23,12 +28,21 @@
   overflow-y: auto;
 
   height: 100%;
-  padding-block: 60px;
+  padding-block: var(--picker-row);
 
-  scroll-snap-type: y proximity;
-  scroll-padding-block: 60px;
+  scroll-behavior: smooth;
+  scroll-snap-type: y mandatory;
+  scroll-padding-block: var(--picker-row);
   scrollbar-width: none;
   overscroll-behavior-y: contain;
+}
+
+.picker-column[data-move] .picker-list {
+  scroll-snap-type: none;
+}
+
+.picker-column[data-drag] .picker-list {
+  scroll-behavior: auto;
 }
 
 .picker-list::-webkit-scrollbar {
@@ -37,15 +51,17 @@
 
 .picker-list button {
   width: 100%;
-  height: 60px;
-  min-height: 60px;
+  height: var(--picker-row);
+  min-height: var(--picker-row);
   padding: 0;
+  border: 0;
   border-radius: 0;
 
   color: var(--mute);
   opacity: 0.5;
 
   font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 
   scroll-snap-align: center;
 }
@@ -56,25 +72,16 @@
 }
 
 .picker-column[data-move] .picker-list button,
-.picker-column:has(button:focus-visible)
-  .picker-list
-  button {
+.picker-column:has(button:focus-visible) .picker-list button {
   color: var(--focus);
 }
 
-.picker-column:has(button:focus-visible)
-  .picker-list
-  button[data-selected] {
-  background-image: linear-gradient(
-    var(--pointer),
-    var(--pointer)
-  );
+.picker-column:has(button:focus-visible) .picker-list button[data-selected] {
+  background-image: var(--feedback);
   color: var(--thumb);
 }
 
-.picker-column[data-edit]
-  .picker-list
-  button[data-selected] {
+.picker-column[data-edit] .picker-list button[data-selected] {
   visibility: hidden;
 }
 
@@ -82,11 +89,11 @@
   position: absolute;
   z-index: 1;
 
-  inset-block-start: 60px;
+  inset-block-start: var(--picker-row);
   inset-inline: 0;
 
   width: 100%;
-  height: 60px;
+  height: var(--picker-row);
   padding: 0;
   border: 0;
 
@@ -132,6 +139,16 @@
   user-select: none;
 
   transition: color 160ms ease;
+}
+
+@media (max-width: 32rem) and (max-height: 24rem) {
+  dialog[data-dialog] .picker {
+    --picker-row: 40px;
+  }
+
+  dialog[data-dialog] .picker-column[data-period] button {
+    font-size: 1rem;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

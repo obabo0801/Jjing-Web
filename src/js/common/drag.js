@@ -33,7 +33,7 @@ export default function drag(target = document) {
 
   let dragging = false;
   let pending = false;
-  let blockClick = false;
+  let block = false;
 
   const reset = () => {
     scroller = null;
@@ -49,8 +49,7 @@ export default function drag(target = document) {
       event.button !== 0 ||
       (event.target instanceof Element &&
         event.target.closest(
-          "input, select, textarea, " +
-            "[contenteditable], .range"
+          "input, select, textarea, " + "[contenteditable], .range"
         ))
     ) {
       return;
@@ -58,22 +57,16 @@ export default function drag(target = document) {
 
     const next = scrollable(event.target);
 
-    if (
-      !next ||
-      (next !== target && !target.contains(next))
-    ) {
+    if (!next || (next !== target && !target.contains(next))) {
       return;
     }
 
     scroller = next;
     pointerId = event.pointerId;
-
     startX = event.clientX;
     startY = event.clientY;
-
     scrollLeft = scroller.scrollLeft;
     scrollTop = scroller.scrollTop;
-
     dragging = false;
     pending = false;
   };
@@ -103,18 +96,15 @@ export default function drag(target = document) {
     if (!dragging) {
       dragging = true;
       pending = false;
-
       target.setPointerCapture?.(pointerId);
     }
 
     scroller.scrollLeft = scrollLeft - moveX;
-
     scroller.scrollTop = scrollTop - moveY;
-
     event.preventDefault();
   };
 
-  const end = (event, notify = true) => {
+  const end = (event) => {
     if (event.pointerId !== pointerId) {
       return;
     }
@@ -123,16 +113,16 @@ export default function drag(target = document) {
       const moveX = event.clientX - startX;
       const moveY = event.clientY - startY;
 
-      blockClick = true;
+      block = true;
 
-      if (notify) {
+      if (event.type !== "pointercancel") {
         listeners.forEach((listener) => {
           listener(moveX, moveY, event);
         });
       }
 
       setTimeout(() => {
-        blockClick = false;
+        block = false;
       });
     }
 
@@ -144,7 +134,7 @@ export default function drag(target = document) {
   };
 
   const click = (event) => {
-    if (!blockClick) {
+    if (!block) {
       return;
     }
 
@@ -156,11 +146,7 @@ export default function drag(target = document) {
     on(target, "pointerdown", start),
     on(target, "pointermove", move),
     on(target, "pointerup", end),
-
-    on(target, "pointercancel", (event) => {
-      end(event, false);
-    }),
-
+    on(target, "pointercancel", end),
     on(target, "click", click, true)
   ];
 
@@ -168,7 +154,6 @@ export default function drag(target = document) {
     remove.forEach((run) => {
       run();
     });
-
     reset();
   };
 }

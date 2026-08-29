@@ -1,9 +1,9 @@
 import log from "#config/log";
 
 const run = log(
-  "notification",
+  "notify",
   `
-  CREATE TABLE IF NOT EXISTS notification (
+  CREATE TABLE IF NOT EXISTS notify (
     uid TEXT NOT NULL,
     title TEXT NOT NULL,
     body TEXT NOT NULL,
@@ -13,20 +13,16 @@ const run = log(
       DEFAULT (datetime('now', '+9 hours'))
   );
 
-  CREATE INDEX IF NOT EXISTS notification_uid
-    ON notification (uid);
+  CREATE INDEX IF NOT EXISTS notify_uid
+    ON notify (uid);
 `
 );
 
 export default (uid, title, body, image, url) =>
   run(
     `
-    INSERT INTO notification (
-      uid,
-      title,
-      body,
-      image,
-      url
+    INSERT INTO notify (
+      uid, title, body, image, url
     )
     VALUES (?, ?, ?, ?, ?)
   `,

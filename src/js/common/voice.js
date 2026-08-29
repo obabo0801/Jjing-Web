@@ -13,7 +13,6 @@ export { meter } from "#common/voice/audio";
 export { microphones } from "#common/voice/media";
 
 const regions = { en: "en-US", ja: "ja-JP", ko: "ko-KR" };
-
 preload("voice.listening", "voice.processing");
 
 let session;
@@ -27,13 +26,7 @@ const language = () => {
   return regions[base] || lang;
 };
 
-const desktop = async (
-  lang,
-  deviceId,
-  target,
-  signal,
-  stop
-) => {
+const desktop = async (lang, deviceId, target, signal, stop) => {
   const stream = await media.microphone(deviceId);
 
   let stopVisual = () => {};
@@ -47,30 +40,16 @@ const desktop = async (
 
     const saved = media.record(stream);
 
-    const heard = speech.listen(
-      lang,
-      stream,
-      target,
-      signal,
-      true
-    );
+    const heard = speech.listen(lang, stream, target, signal, true);
 
-    const spoken = await audio.silence(
-      stream,
-      signal,
-      stop
-    );
-
+    const spoken = await audio.silence(stream, signal, stop);
     heard.stop();
 
     if (saved.recorder.state !== "inactive") {
       saved.recorder.stop();
     }
 
-    const [blob, recognized] = await Promise.all([
-      saved.done,
-      heard.done
-    ]);
+    const [blob, recognized] = await Promise.all([saved.done, heard.done]);
 
     if (signal.aborted || (!spoken && !recognized.text)) {
       return { text: "", confidence: 0 };
@@ -98,13 +77,7 @@ const desktop = async (
   }
 };
 
-const remote = async (
-  lang,
-  deviceId,
-  target,
-  signal,
-  stop
-) => {
+const remote = async (lang, deviceId, target, signal, stop) => {
   const stream = await media.microphone(deviceId);
 
   let stopVisual = () => {};
@@ -115,14 +88,9 @@ const remote = async (
     }
 
     const saved = media.record(stream);
-
     stopVisual = view.visualize(target, stream);
 
-    const spoken = await audio.silence(
-      stream,
-      signal,
-      stop
-    );
+    const spoken = await audio.silence(stream, signal, stop);
 
     if (saved.recorder.state !== "inactive") {
       saved.recorder.stop();
@@ -138,18 +106,9 @@ const remote = async (
 
     const pitch = await audio.analyze(blob);
 
-    const result = await server.upload(
-      blob,
-      lang,
-      "",
-      pitch,
-      signal
-    );
+    const result = await server.upload(blob, lang, "", pitch, signal);
 
-    return {
-      text: result.text,
-      confidence: result.confidence ?? 0
-    };
+    return { text: result.text, confidence: result.confidence ?? 0 };
   } finally {
     stopVisual();
     media.close(stream);
@@ -180,10 +139,7 @@ export const stop = () => {
   return session.done;
 };
 
-export default async function voice(
-  keywords,
-  options = {}
-) {
+export default async function voice(keywords, options = {}) {
   if (options instanceof Element) {
     options = { target: options };
   } else if (typeof options === "string") {
@@ -210,7 +166,6 @@ export default async function voice(
   const done = new Promise((resolve) => {
     finish = resolve;
   });
-
   session = {
     stop: () => {
       if (stopper.signal.aborted) {
@@ -220,7 +175,6 @@ export default async function voice(
 
       stopper.abort();
     },
-
     done
   };
 
@@ -233,11 +187,7 @@ export default async function voice(
   try {
     const { deviceId, target } = options;
 
-    const allowed = await media.authorize(
-      deviceId,
-      signal,
-      stop
-    );
+    const allowed = await media.authorize(deviceId, signal, stop);
 
     if (!allowed) {
       return complete({ action: "none" });
@@ -260,32 +210,15 @@ export default async function voice(
       window.MediaRecorder &&
       navigator.mediaDevices?.getUserMedia
     ) {
-      result = await desktop(
-        lang,
-        deviceId,
-        target,
-        signal,
-        stop
-      );
+      result = await desktop(lang, deviceId, target, signal, stop);
     } else if (
       (await server.available()) &&
       window.MediaRecorder &&
       navigator.mediaDevices?.getUserMedia
     ) {
-      result = await remote(
-        lang,
-        deviceId,
-        target,
-        signal,
-        stop
-      );
+      result = await remote(lang, deviceId, target, signal, stop);
     } else {
-      result = await speech.native(
-        lang,
-        target,
-        signal,
-        stop
-      );
+      result = await speech.native(lang, target, signal, stop);
 
       if (result.text) {
         await server.report(lang, result.text, signal);
@@ -309,11 +242,7 @@ export default async function voice(
     }
 
     return complete({
-      action:
-        !words.length || result.confidence >= 0.8
-          ? "run"
-          : "ask",
-
+      action: !words.length || result.confidence >= 0.8 ? "run" : "ask",
       text: result.text
     });
   } catch {

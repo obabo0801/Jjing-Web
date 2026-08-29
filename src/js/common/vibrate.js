@@ -7,8 +7,7 @@ let tracks = [];
 function native(value) {
   try {
     return (
-      typeof value === "string" &&
-      globalThis.Jjing?.haptic?.(value) === true
+      typeof value === "string" && globalThis.Jjing?.haptic?.(value) === true
     );
   } catch {
     return false;
@@ -19,9 +18,7 @@ function durations(value) {
   if (typeof value === "string") {
     const pattern = patterns[value] || [];
 
-    return pattern
-      .flatMap(([, duration, gap]) => [duration, gap])
-      .slice(0, -1);
+    return pattern.flatMap(([, duration, gap]) => [duration, gap]).slice(0, -1);
   }
 
   const pattern = Array.isArray(value) ? value : [value];
@@ -40,7 +37,6 @@ function durations(value) {
 function intervals(track, now) {
   const result = [];
   let start = track.start;
-
   track.pattern.forEach((duration, index) => {
     const end = start + duration;
 
@@ -56,7 +52,6 @@ function intervals(track, now) {
 
 function merge(ranges) {
   const result = [];
-
   ranges.sort((a, b) => a[0] - b[0]);
 
   for (const range of ranges) {
@@ -76,12 +71,9 @@ function merge(ranges) {
 
 function render() {
   const now = performance.now();
-
   tracks = tracks.filter(({ end }) => end > now);
 
-  const ranges = tracks.flatMap((track) =>
-    intervals(track, now)
-  );
+  const ranges = tracks.flatMap((track) => intervals(track, now));
 
   const pattern = [];
 
@@ -99,16 +91,12 @@ function render() {
     }
 
     pattern.push(end - start);
-
     cursor = end;
   }
 
   navigator.vibrate(
-    pattern.map((duration) =>
-      Math.max(0, Math.round(duration))
-    )
+    pattern.map((duration) => Math.max(0, Math.round(duration)))
   );
-
   clearTimeout(timer);
 
   if (!tracks.length) {
@@ -116,7 +104,6 @@ function render() {
   }
 
   const end = Math.max(...tracks.map((track) => track.end));
-
   timer = setTimeout(() => {
     tracks = [];
   }, end - now);
@@ -131,10 +118,7 @@ export function play(value = 50) {
     return true;
   }
 
-  if (
-    typeof navigator === "undefined" ||
-    !("vibrate" in navigator)
-  ) {
+  if (typeof navigator === "undefined" || !("vibrate" in navigator)) {
     return false;
   }
 
@@ -146,13 +130,8 @@ export function play(value = 50) {
 
   const start = performance.now();
 
-  const length = pattern.reduce(
-    (total, duration) => total + duration,
-    0
-  );
-
+  const length = pattern.reduce((total, duration) => total + duration, 0);
   tracks.push({ pattern, start, end: start + length });
-
   render();
 
   return true;
@@ -160,13 +139,9 @@ export function play(value = 50) {
 
 export function stop() {
   tracks = [];
-
   clearTimeout(timer);
 
-  if (
-    typeof navigator === "undefined" ||
-    !("vibrate" in navigator)
-  ) {
+  if (typeof navigator === "undefined" || !("vibrate" in navigator)) {
     return false;
   }
 

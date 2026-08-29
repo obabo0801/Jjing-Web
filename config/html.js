@@ -1,48 +1,35 @@
-import { createHash } from "node:crypto";
 import path from "node:path";
 
-const hash = (name, source) =>
-  createHash("sha256")
-    .update(name)
-    .update(source)
-    .digest("hex")
-    .slice(0, 8);
+import hash from "#config/hash";
 
-export const map = `.${hash("pages", "")}.json`;
+export const map = `.${hash(8, "pages", "")}.json`;
 
 export default {
   name: "html-hash",
   apply: "build",
   enforce: "post",
-
   generateBundle(_, bundle) {
+    const type = "asset";
     const pages = {};
 
-    Object.entries(bundle)
-      .filter(
-        ([name, output]) =>
-          name.endsWith(".html") && output.type === "asset"
-      )
-      .forEach(([name, output]) => {
-        const key = path.basename(name, ".html");
+    for (const [name, output] of Object.entries(bundle)) {
+      if (output.type !== type || !name.endsWith(".html")) {
+        continue;
+      }
 
-        const file = `${hash(name, output.source)}.html`;
+      const key = path.basename(name, ".html");
+      const source = output.source;
+      const file = `${hash(8, name, source)}.html`;
 
-        delete bundle[name];
+      delete bundle[name];
 
-        this.emitFile({
-          type: "asset",
-          fileName: file,
-          source: output.source
-        });
+      this.emitFile({ type, fileName: file, source });
 
-        pages[key] = file;
-      });
+      pages[key] = file;
+    }
 
-    this.emitFile({
-      type: "asset",
-      fileName: map,
-      source: JSON.stringify(pages)
-    });
+    const source = JSON.stringify(pages);
+
+    this.emitFile({ type, fileName: map, source });
   }
 };

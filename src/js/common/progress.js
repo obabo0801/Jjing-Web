@@ -1,29 +1,24 @@
 import * as dom from "#common/dom";
 
-const clamp = (value) =>
-  Math.min(Math.max(Number(value) || 0, 0), 100);
+const clamp = (value) => Math.min(Math.max(Number(value) || 0, 0), 100);
 
 export default function progress(options = {}) {
   if (typeof options === "number") {
     options = { value: options };
   }
 
-  const type =
-    options.type === "circular" ? "circular" : "linear";
+  const type = options.type === "circular" ? "circular" : "linear";
 
   const root = dom.create("div");
   const track = dom.create("div");
   const fill = dom.create("div");
   const output = dom.create("output");
-
   root.className = "progress";
   dom.set(root, "data-progress", type);
-
   track.className = "progress-track";
   fill.className = "progress-fill";
   output.className = "progress-value";
   output.hidden = options.showValue === false;
-
   track.append(fill);
   root.append(track, output);
 
@@ -35,7 +30,7 @@ export default function progress(options = {}) {
     if (type === "circular") {
       root.style.background = `conic-gradient(
         var(--focus) ${value}%,
-        var(--progress-track) 0
+        var(--bar) 0
       )`;
     } else {
       fill.style.width = `${value}%`;
@@ -45,14 +40,8 @@ export default function progress(options = {}) {
 
     return value;
   };
-
   set(options.value);
   options.target?.append(root);
 
-  return {
-    element: root,
-    get: () => value,
-    set,
-    destroy: () => root.remove()
-  };
+  return { element: root, get: () => value, set, destroy: () => root.remove() };
 }
