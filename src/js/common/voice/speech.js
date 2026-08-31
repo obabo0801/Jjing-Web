@@ -1,16 +1,23 @@
 import * as dom from "#common/dom";
 import { visualize } from "#common/voice/view";
 
-const SpeechRecognition = Reflect.get(window, "SpeechRecognition");
+const SpeechRecognition = Reflect.get(
+  window,
+  "SpeechRecognition"
+);
 
 export const supported = Boolean(SpeechRecognition);
 
-export const listen = (lang, stream, target, signal, keep = false) => {
+export const listen = (options) => {
+  const { lang, stream, target, signal } = options;
+  const { keep = false } = options;
+
   if (!SpeechRecognition) {
     return null;
   }
 
   const recognition = new SpeechRecognition();
+
   recognition.lang = lang;
   recognition.continuous = keep;
   recognition.interimResults = false;
@@ -24,11 +31,9 @@ export const listen = (lang, stream, target, signal, keep = false) => {
   let shown = false;
   let off = () => {};
   let resolveDone;
-
   const done = new Promise((resolve) => {
     resolveDone = resolve;
   });
-
   const finish = () => {
     if (settled) {
       return;
@@ -39,7 +44,6 @@ export const listen = (lang, stream, target, signal, keep = false) => {
     stopVisual();
     resolveDone({ text, confidence });
   };
-
   const start = () => {
     if (stopped || signal?.aborted) {
       return;
@@ -51,9 +55,9 @@ export const listen = (lang, stream, target, signal, keep = false) => {
       finish();
     }
   };
+
   dom.on(recognition, "result", (event) => {
     const result = event.results[event.resultIndex];
-
     const item = result?.[0];
 
     if (!item) {
@@ -68,7 +72,10 @@ export const listen = (lang, stream, target, signal, keep = false) => {
 
     if (!text || value.startsWith(text)) {
       text = value;
-    } else if (!text.startsWith(value) && !text.endsWith(value)) {
+    } else if (
+      !text.startsWith(value) &&
+      !text.endsWith(value)
+    ) {
       text = `${text} ${value}`.trim();
     }
 
@@ -83,7 +90,12 @@ export const listen = (lang, stream, target, signal, keep = false) => {
     stopVisual = visualize(target, stream);
   });
   dom.on(recognition, "error", (event) => {
-    if (keep && event.error === "no-speech" && !stopped && !signal?.aborted) {
+    if (
+      keep &&
+      event.error === "no-speech" &&
+      !stopped &&
+      !signal?.aborted
+    ) {
       return;
     }
 
@@ -132,14 +144,22 @@ export const listen = (lang, stream, target, signal, keep = false) => {
   };
 };
 
-export const native = async (lang, target, signal, stop) => {
+export const native = async (options) => {
+  const { lang, target, signal, stop } = options;
+
   if (!SpeechRecognition) {
     return { text: "", confidence: 0 };
   }
 
-  const heard = listen(lang, null, target, signal);
-
-  const off = dom.on(stop, "abort", heard.stop, { once: true });
+  const heard = listen({
+    lang,
+    stream: null,
+    target,
+    signal
+  });
+  const off = dom.on(stop, "abort", heard.stop, {
+    once: true
+  });
 
   if (stop.aborted) {
     heard.stop();

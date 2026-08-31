@@ -10,7 +10,9 @@ export default {
     processing: "처리 중",
     permission: {
       heading: "마이크 권한 필요",
-      message: "음성 인식을 사용하려면 " + "마이크 권한을 허용해 주세요.",
+      message:
+        "음성 인식을 사용하려면 " +
+        "마이크 권한을 허용해 주세요.",
       confirm: "확인"
     }
   },
@@ -20,7 +22,9 @@ export default {
     push: "푸시 알림",
     permission: {
       heading: "알림 권한 필요",
-      message: "푸시 알림을 받으려면 " + "알림 권한을 허용해 주세요.",
+      message:
+        "푸시 알림을 받으려면 " +
+        "알림 권한을 허용해 주세요.",
       confirm: "확인"
     }
   },
@@ -81,10 +85,14 @@ export default {
     heading: "이용약관",
     service: {
       title: "제1조 목적",
-      description: "이 약관은 서비스 이용에 관한 사항을 규정합니다."
+      description:
+        "이 약관은 서비스 이용에 관한 사항을 규정합니다."
     }
   },
-  privacy: { title: "개인정보 처리방침", heading: "개인정보 처리방침" },
+  privacy: {
+    title: "개인정보 처리방침",
+    heading: "개인정보 처리방침"
+  },
 
   dialog: { title: "제목", confirm: "확인", cancel: "취소" }
 };

@@ -1,6 +1,10 @@
 .range {
   --range-move: 0ms;
-  --range-track: color-mix(in srgb, var(--text) 16%, transparent);
+  --range-track: color-mix(
+    in srgb,
+    var(--text) 16%,
+    transparent
+  );
 
   position: relative;
 
@@ -114,7 +118,8 @@
 }
 
 .range:focus-within .range-thumb {
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--focus) 24%, transparent);
+  box-shadow: 0 0 0 3px
+    color-mix(in srgb, var(--focus) 24%, transparent);
 }
 
 .range:has(input:disabled) {

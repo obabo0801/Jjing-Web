@@ -4,7 +4,9 @@ import vibrate from "#common/vibrate";
 
 export default function button() {
   on(document, "click", (event) => {
-    const button = event.target.closest?.("button:enabled[data-feedback]");
+    const button = event.target.closest?.(
+      "button:enabled[data-response]"
+    );
 
     if (!button) {
       return;

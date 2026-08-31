@@ -1,0 +1,14 @@
+dialog[data-sheet] {
+  inset-block-start: auto;
+  inset-inline: 0;
+  inset-block-end: 0;
+
+  width: 100%;
+  max-width: none;
+  height: var(--layer-size, auto);
+  max-height: 90dvh;
+
+  border-inline: 0;
+  border-block-end: 0;
+  border-radius: 8px 8px 0 0;
+}

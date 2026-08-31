@@ -14,6 +14,7 @@ const page = dom.query(".state");
 const heading = dom.query("h1", page);
 const action = dom.query("button", page);
 const loading = init();
+
 dom.on(action, "click", async () => {
   action.disabled = true;
   sound.play("click");
@@ -32,6 +33,7 @@ dom.on(action, "click", async () => {
       const source = await tts
         .speak(heading.textContent, { type: "cache" })
         .catch(() => null);
+
       await tts.wait(source);
     }
   } finally {
@@ -52,13 +54,9 @@ try {
   }
 
   const languages = decode(value);
-
   const mode = storage.get("lang", "system").toLowerCase();
-
   const system = navigator.language.toLowerCase();
-
   const lang = mode === "system" ? system : mode;
-
   const file =
     languages[lang] ||
     languages[lang.split("-")[0]] ||
@@ -70,7 +68,6 @@ try {
   }
 
   const result = await api(`${i18n}/${file}`);
-
   const data = result.data?.[content];
 
   if (!result.ok || typeof data !== "string") {
@@ -78,6 +75,7 @@ try {
   }
 
   const { lang: selected, text } = decode(data);
+
   dom.root.lang = selected;
   dom.all("[data-i18n]").forEach((element) => {
     const key = dom.get(element, "data-i18n");

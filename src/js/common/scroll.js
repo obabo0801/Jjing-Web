@@ -7,11 +7,9 @@ export function scrollable(node) {
   while (item && item !== dom.body) {
     if (item instanceof HTMLElement && !item.hidden) {
       const style = getComputedStyle(item);
-
       const x =
         item.scrollWidth > item.clientWidth + 1 &&
         ["auto", "scroll"].includes(style.overflowX);
-
       const y =
         item.scrollHeight > item.clientHeight + 1 &&
         ["auto", "scroll"].includes(style.overflowY);
@@ -51,8 +49,8 @@ export default function scroll() {
 
     return null;
   };
-
   let previous = bound();
+
   dom.on(
     window,
     "scroll",

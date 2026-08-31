@@ -2,7 +2,10 @@ import path from "node:path";
 
 import express from "express";
 
-const directory = path.join(import.meta.dirname, "../data/upload");
+const directory = path.join(
+  import.meta.dirname,
+  "../data/upload"
+);
 
 export default express.static(directory, {
   dotfiles: "deny",

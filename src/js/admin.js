@@ -9,6 +9,7 @@ import upload from "#common/upload";
 const send = async (form) => {
   const fields = new FormData(form);
   const file = fields.get("image");
+
   fields.delete("image");
 
   let image = "";
@@ -28,7 +29,6 @@ const send = async (form) => {
     data: { ...Object.fromEntries(fields), image }
   });
 };
-
 const start = async () => {
   const loading = init();
 
@@ -43,8 +43,8 @@ const start = async () => {
     await i18n();
 
     const form = dom.query(".admin-form");
-
     const output = dom.query(".admin-result");
+
     dom.on(form, "submit", async (event) => {
       event.preventDefault();
 
@@ -56,8 +56,10 @@ const start = async () => {
 
       try {
         const response = await send(form);
+
         output.textContent = response.ok
-          ? `${response.data.sent}/` + `${response.data.failed}`
+          ? `${response.data.sent}/` +
+            `${response.data.failed}`
           : String(response.status);
 
         if (response.ok) {
@@ -73,4 +75,5 @@ const start = async () => {
     loading.remove();
   }
 };
+
 await start();

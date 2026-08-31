@@ -1,0 +1,157 @@
+:is(.radio, .checkbox) {
+  display: inline-flex;
+  align-items: center;
+
+  min-height: 60px;
+  padding: 0 16px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+
+  color: var(--text);
+  font-size: 1.2rem;
+
+  cursor: pointer;
+
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+
+  transition:
+    background-color 160ms ease,
+    color 160ms ease,
+    opacity 100ms ease;
+}
+
+:is(.radio, .checkbox)[data-background] {
+  background: var(--background);
+}
+
+:is(.radio, .checkbox) > label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+
+  width: 100%;
+  min-height: inherit;
+
+  cursor: inherit;
+}
+
+:is(.radio, .checkbox) input {
+  flex: none;
+
+  margin: 0;
+
+  -webkit-appearance: none;
+  appearance: none;
+
+  cursor: inherit;
+}
+
+.radio input {
+  width: 1.25rem;
+  height: 1.25rem;
+  margin-inline: 0.75rem;
+  border: 2px solid var(--track);
+  border-radius: 999px;
+
+  background: transparent;
+
+  transition:
+    background-color 160ms ease,
+    border-color 160ms ease,
+    box-shadow 160ms ease;
+}
+
+.radio input:checked {
+  border-color: var(--focus);
+
+  background: var(--focus);
+
+  animation: radio-ping 1.6s ease-out 240ms infinite;
+}
+
+.checkbox input {
+  display: grid;
+  place-items: center;
+
+  width: 2rem;
+  height: 2rem;
+  margin-inline: 0.375rem;
+  border: 0;
+
+  background: transparent;
+}
+
+.checkbox input::before {
+  content: "";
+
+  width: 1.4rem;
+  height: 0.75rem;
+  border-inline-start: 4px solid var(--focus);
+  border-block-end: 4px solid var(--focus);
+
+  opacity: 0;
+  transform: translateY(-2px) rotate(-45deg) scale(0.75);
+
+  transition:
+    opacity 160ms ease,
+    transform 160ms ease;
+}
+
+.checkbox input:checked::before {
+  opacity: 1;
+  transform: translateY(-2px) rotate(-45deg) scale(1);
+}
+
+:is(.radio, .checkbox):has(input:focus-visible) {
+  background-image: var(--overlay);
+}
+
+:is(.radio, .checkbox) input:focus-visible {
+  outline: 0;
+}
+
+:is(.radio, .checkbox):has(input:disabled) {
+  cursor: default;
+  opacity: 0.5;
+}
+
+:is(.radio, .checkbox)[data-background]:has(
+    input:enabled
+  ):active {
+  background-image: var(--overlay);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  :is(.radio, .checkbox)[data-background]:has(
+      input:enabled
+    ):hover {
+    background-image: var(--overlay);
+  }
+}
+
+@keyframes radio-ping {
+  0% {
+    box-shadow: 0 0 0 0
+      color-mix(in srgb, var(--focus) 45%, transparent);
+  }
+
+  75%,
+  100% {
+    box-shadow: 0 0 0 6px transparent;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :is(.radio, .checkbox),
+  :is(.radio, .checkbox) input,
+  .checkbox input::before {
+    transition: none;
+  }
+
+  .radio input {
+    animation: none;
+  }
+}

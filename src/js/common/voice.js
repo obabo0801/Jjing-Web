@@ -13,22 +13,20 @@ export { meter } from "#common/voice/audio";
 export { microphones } from "#common/voice/media";
 
 const regions = { en: "en-US", ja: "ja-JP", ko: "ko-KR" };
+
 preload("voice.listening", "voice.processing");
 
 let session;
-
 const language = () => {
   const value = dom.root.lang || navigator.language || "ko";
-
   const lang = value.toLowerCase();
   const base = lang.split("-")[0];
 
   return regions[base] || lang;
 };
-
-const desktop = async (lang, deviceId, target, signal, stop) => {
+const desktop = async (options) => {
+  const { lang, deviceId, target, signal, stop } = options;
   const stream = await media.microphone(deviceId);
-
   let stopVisual = () => {};
 
   try {
@@ -39,17 +37,29 @@ const desktop = async (lang, deviceId, target, signal, stop) => {
     stopVisual = view.visualize(target, stream);
 
     const saved = media.record(stream);
+    const heard = speech.listen({
+      lang,
+      stream,
+      target,
+      signal,
+      keep: true
+    });
+    const spoken = await audio.silence(
+      stream,
+      signal,
+      stop
+    );
 
-    const heard = speech.listen(lang, stream, target, signal, true);
-
-    const spoken = await audio.silence(stream, signal, stop);
     heard.stop();
 
     if (saved.recorder.state !== "inactive") {
       saved.recorder.stop();
     }
 
-    const [blob, recognized] = await Promise.all([saved.done, heard.done]);
+    const [blob, recognized] = await Promise.all([
+      saved.done,
+      heard.done
+    ]);
 
     if (signal.aborted || (!spoken && !recognized.text)) {
       return { text: "", confidence: 0 };
@@ -58,14 +68,12 @@ const desktop = async (lang, deviceId, target, signal, stop) => {
     view.status(target, "voice.processing");
 
     const pitch = await audio.analyze(blob);
-
-    const result = await server.upload(
-      blob,
+    const result = await server.upload(blob, {
       lang,
-      recognized.text,
+      text: recognized.text,
       pitch,
       signal
-    );
+    });
 
     return {
       text: result.text,
@@ -76,10 +84,9 @@ const desktop = async (lang, deviceId, target, signal, stop) => {
     media.close(stream);
   }
 };
-
-const remote = async (lang, deviceId, target, signal, stop) => {
+const remote = async (options) => {
+  const { lang, deviceId, target, signal, stop } = options;
   const stream = await media.microphone(deviceId);
-
   let stopVisual = () => {};
 
   try {
@@ -88,9 +95,14 @@ const remote = async (lang, deviceId, target, signal, stop) => {
     }
 
     const saved = media.record(stream);
+
     stopVisual = view.visualize(target, stream);
 
-    const spoken = await audio.silence(stream, signal, stop);
+    const spoken = await audio.silence(
+      stream,
+      signal,
+      stop
+    );
 
     if (saved.recorder.state !== "inactive") {
       saved.recorder.stop();
@@ -105,16 +117,22 @@ const remote = async (lang, deviceId, target, signal, stop) => {
     view.status(target, "voice.processing");
 
     const pitch = await audio.analyze(blob);
+    const result = await server.upload(blob, {
+      lang,
+      text: "",
+      pitch,
+      signal
+    });
 
-    const result = await server.upload(blob, lang, "", pitch, signal);
-
-    return { text: result.text, confidence: result.confidence ?? 0 };
+    return {
+      text: result.text,
+      confidence: result.confidence ?? 0
+    };
   } finally {
     stopVisual();
     media.close(stream);
   }
 };
-
 const match = (text, keywords, lang) => {
   const value = text.toLocaleLowerCase(lang);
 
@@ -139,7 +157,10 @@ export const stop = () => {
   return session.done;
 };
 
-export default async function voice(keywords, options = {}) {
+export default async function voice(
+  keywords,
+  options = {}
+) {
   if (options instanceof Element) {
     options = { target: options };
   } else if (typeof options === "string") {
@@ -153,19 +174,15 @@ export default async function voice(keywords, options = {}) {
   }
 
   const controller = new AbortController();
-
   const stopper = new AbortController();
-
   const { signal } = controller;
   const stop = stopper.signal;
-
   let finish;
-
   let output = { action: "none" };
-
   const done = new Promise((resolve) => {
     finish = resolve;
   });
+
   session = {
     stop: () => {
       if (stopper.signal.aborted) {
@@ -186,22 +203,29 @@ export default async function voice(keywords, options = {}) {
 
   try {
     const { deviceId, target } = options;
-
-    const allowed = await media.authorize(deviceId, signal, stop);
+    const allowed = await media.authorize(
+      deviceId,
+      signal,
+      stop
+    );
 
     if (!allowed) {
+      if (!signal.aborted && !stop.aborted) {
+        sound.play("failure");
+      }
+
       return complete({ action: "none" });
     }
 
+    sound.play("open");
+
     const lang = language();
     const base = lang.split("-")[0];
-
     const words = Array.isArray(keywords)
       ? keywords
       : keywords?.[lang] || keywords?.[base] || [];
-
     const state = device();
-
+    const input = { lang, deviceId, target, signal, stop };
     let result;
 
     if (
@@ -210,15 +234,15 @@ export default async function voice(keywords, options = {}) {
       window.MediaRecorder &&
       navigator.mediaDevices?.getUserMedia
     ) {
-      result = await desktop(lang, deviceId, target, signal, stop);
+      result = await desktop(input);
     } else if (
       (await server.available()) &&
       window.MediaRecorder &&
       navigator.mediaDevices?.getUserMedia
     ) {
-      result = await remote(lang, deviceId, target, signal, stop);
+      result = await remote(input);
     } else {
-      result = await speech.native(lang, target, signal, stop);
+      result = await speech.native(input);
 
       if (result.text) {
         await server.report(lang, result.text, signal);
@@ -230,22 +254,31 @@ export default async function voice(keywords, options = {}) {
     }
 
     if (!result.text) {
-      sound.play("fail");
+      sound.play("noinput");
+
+      return complete({ action: "none" });
+    }
+
+    if (words.length && !match(result.text, words, lang)) {
+      sound.play("failure");
 
       return complete({ action: "none" });
     }
 
     sound.play("success");
 
-    if (words.length && !match(result.text, words, lang)) {
-      return complete({ action: "none" });
-    }
-
     return complete({
-      action: !words.length || result.confidence >= 0.8 ? "run" : "ask",
+      action:
+        !words.length || result.confidence >= 0.8
+          ? "run"
+          : "ask",
       text: result.text
     });
   } catch {
+    if (!signal.aborted) {
+      sound.play("failure");
+    }
+
     return complete({ action: "none" });
   } finally {
     finish(output);

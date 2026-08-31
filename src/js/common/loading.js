@@ -4,12 +4,15 @@ let dialog;
 let backdrop;
 let black = false;
 let count = 0;
-
 const create = () => {
   const wrap = dom.create("div");
   const element = dom.create("dialog");
+
   dom.set(element, "data-loading", "");
-  dom.on(element, "cancel", (event) => event.preventDefault());
+  dom.set(element, "closedby", "none");
+  dom.on(element, "cancel", (event) =>
+    event.preventDefault()
+  );
   dom.on(element, "close", () => {
     backdrop?.cancel();
     backdrop = undefined;
@@ -20,7 +23,6 @@ const create = () => {
 
   return element;
 };
-
 const getAnimation = (dark = false) => {
   if (!dialog) {
     return null;
@@ -34,14 +36,17 @@ const getAnimation = (dark = false) => {
   black = dark;
 
   const theme = getComputedStyle(dom.root);
+  const shade = theme.getPropertyValue("--shade").trim();
+  const start = dark ? "#000000" : shade;
+  const end = "#00000014";
 
-  const shade = dark ? "--shade-dark" : "--shade";
-  const start = theme.getPropertyValue(shade).trim();
-
-  const end = theme.getPropertyValue("--shade-light").trim();
   backdrop = dialog.animate(
     [{ backgroundColor: start }, { backgroundColor: end }],
-    { duration: 1, fill: "both", pseudoElement: "::backdrop" }
+    {
+      duration: 1,
+      fill: "both",
+      pseudoElement: "::backdrop"
+    }
   );
   backdrop.pause();
 
@@ -55,20 +60,18 @@ export const light = (value = 0, dark = false) => {
     return;
   }
 
-  const progress = Math.min(1, Math.max(0, Number(value) || 0));
+  const progress = Math.min(
+    1,
+    Math.max(0, Number(value) || 0)
+  );
+
   animation.pause();
   animation.currentTime = progress;
 };
 
-export default function loading(icon) {
+export default function loading() {
   dialog ??= create();
   count += 1;
-
-  if (icon) {
-    dom.set(dialog, "data-icon", icon);
-  } else {
-    dom.remove(dialog, "data-icon");
-  }
 
   if (!dialog.open) {
     dialog.showModal();

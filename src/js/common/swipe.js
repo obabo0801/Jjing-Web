@@ -1,5 +1,6 @@
 import { on } from "#common/dom";
 import { listen } from "#common/drag";
+import * as pointer from "#common/pointer";
 import viewport from "#common/viewport";
 
 const directions = {
@@ -12,7 +13,6 @@ const directions = {
   top: "↑",
   "top-right": "↗"
 };
-
 const vectors = {
   "→": [1, 0],
   "↘": [1, 1],
@@ -23,13 +23,10 @@ const vectors = {
   "↑": [0, -1],
   "↗": [1, -1]
 };
-
 const arrows = Object.values(directions);
-
-const ignored = "input, select, textarea, [contenteditable]";
-
+const ignored =
+  "input, select, textarea, [contenteditable]";
 const handlers = [];
-
 let point = null;
 let off = [];
 
@@ -54,7 +51,6 @@ function hasSelection() {
 
 function arrow(x, y) {
   const angle = Math.atan2(y, x) / (Math.PI / 4);
-
   const index = (Math.round(angle) + 8) % 8;
 
   return arrows[index];
@@ -72,6 +68,7 @@ function trigger(x, y, event) {
   }
 
   const value = arrow(x, y);
+
   [...handlers].forEach((handler) => {
     if (handler.arrow === value) {
       handler.callback(event);
@@ -87,7 +84,12 @@ function start(event) {
   }
 
   const touch = event.touches[0];
-  point = { id: touch.identifier, x: touch.clientX, y: touch.clientY };
+
+  point = {
+    id: touch.identifier,
+    x: touch.clientX,
+    y: touch.clientY
+  };
 }
 
 function end(event) {
@@ -107,6 +109,7 @@ function end(event) {
 
   const x = touch.clientX - point.x;
   const y = touch.clientY - point.y;
+
   point = null;
   trigger(x, y, event);
 }
@@ -121,11 +124,10 @@ function watch() {
   }
 
   const options = { passive: true };
+
   off = [
     on(document, "touchstart", start, options),
-
     on(document, "touchend", end, options),
-
     on(document, "touchcancel", cancel, options),
 
     listen((x, y, event) => {
@@ -157,7 +159,10 @@ function size(target, direction) {
     return target.clientHeight;
   }
 
-  return Math.hypot(target.clientWidth, target.clientHeight);
+  return Math.hypot(
+    target.clientWidth,
+    target.clientHeight
+  );
 }
 
 function distance(direction, x, y) {
@@ -190,72 +195,61 @@ function match(direction, x, y) {
 }
 
 function blocked(event, selector) {
-  const value = selector ? `${ignored}, ${selector}` : ignored;
+  const value = selector
+    ? `${ignored}, ${selector}`
+    : ignored;
 
   return event.target.closest?.(value);
 }
 
 function progress(direction, options) {
-  const { target, start, move, reach, end, ignore, length, ratio } = options;
+  const { target, start, move, reach, end } = options;
+  const { ignore, length, ratio } = options;
 
   if (!(target instanceof Element)) {
     return () => {};
   }
 
-  let id;
+  let id = undefined;
   let startX = 0;
   let startY = 0;
-
   let moving = false;
-  let pending = false;
   let reached = false;
-  let value = 0;
   let dragged = false;
-
+  let value = 0;
   const limit = () => {
-    const result = Number(typeof ratio === "function" ? ratio() : ratio);
+    const result = Number(
+      typeof ratio === "function" ? ratio() : ratio
+    );
 
     return Number.isFinite(result) ? result : 0.35;
   };
-
   const prepare = (nextId, x, y) => {
     id = nextId;
     startX = x;
     startY = y;
     moving = false;
-    pending = false;
     reached = false;
     value = 0;
   };
-
   const reset = () => {
     id = undefined;
     moving = false;
-    pending = false;
     reached = false;
     value = 0;
   };
-
   const finish = (event, cancelled = false) => {
-    if (
-      event.pointerType === "mouse" &&
-      target.hasPointerCapture?.(event.pointerId)
-    ) {
-      target.releasePointerCapture(event.pointerId);
-    }
-
     const active = moving;
-
-    const complete = !cancelled && active && value >= limit();
-
+    const complete =
+      !cancelled && active && value >= limit();
     const current = value;
+
     reset();
 
     if (active) {
       end?.(complete, current, event);
     }
   };
-
   const update = (x, y, event) => {
     if (!moving) {
       if (Math.hypot(x, y) < 4) {
@@ -268,30 +262,25 @@ function progress(direction, options) {
 
       window.getSelection()?.removeAllRanges();
 
-      if (event.pointerType === "mouse" && !pending) {
-        pending = true;
-
-        return true;
-      }
-
       moving = true;
       dragged = true;
-
-      if (event.pointerType === "mouse") {
-        target.setPointerCapture?.(event.pointerId);
-      }
 
       start?.(event);
     } else if (hasSelection()) {
       window.getSelection()?.removeAllRanges();
     }
 
-    const amount = typeof length === "function" ? length() : length;
-
+    const amount =
+      typeof length === "function" ? length() : length;
     const total = Number(amount) || size(target, direction);
+
     value = total
-      ? Math.min(1, Math.max(0, distance(direction, x, y) / total))
+      ? Math.min(
+          1,
+          Math.max(0, distance(direction, x, y) / total)
+        )
       : 0;
+
     move?.(value, event);
 
     if (value < limit()) {
@@ -303,7 +292,6 @@ function progress(direction, options) {
 
     return true;
   };
-
   const touchStart = (event) => {
     if (
       event.touches.length !== 1 ||
@@ -314,26 +302,26 @@ function progress(direction, options) {
     }
 
     const touch = event.touches[0];
+
     dragged = false;
     prepare(touch.identifier, touch.clientX, touch.clientY);
   };
-
   const touchMove = (event) => {
-    const touch = [...event.touches].find((item) => item.identifier === id);
+    const touch = [...event.touches].find(
+      (item) => item.identifier === id
+    );
 
     if (!touch) {
       return;
     }
 
     const x = touch.clientX - startX;
-
     const y = touch.clientY - startY;
 
     if (update(x, y, event)) {
       event.preventDefault();
     }
   };
-
   const touchEnd = (event) => {
     if (id === undefined) {
       return;
@@ -349,7 +337,6 @@ function progress(direction, options) {
 
     finish(event);
   };
-
   const touchCancel = (event) => {
     if (id === undefined) {
       return;
@@ -357,15 +344,13 @@ function progress(direction, options) {
 
     finish(event, true);
   };
-
   const pointerStart = (event) => {
     if (event.isPrimary) {
       dragged = false;
     }
 
     if (
-      event.pointerType !== "mouse" ||
-      event.button !== 0 ||
+      !pointer.press(event) ||
       hasSelection() ||
       blocked(event, ignore)
     ) {
@@ -374,37 +359,32 @@ function progress(direction, options) {
 
     prepare(event.pointerId, event.clientX, event.clientY);
   };
-
   const pointerMove = (event) => {
-    if (event.pointerType !== "mouse" || event.pointerId !== id) {
+    if (!pointer.match(event, id)) {
       return;
     }
 
     const x = event.clientX - startX;
-
     const y = event.clientY - startY;
 
     if (update(x, y, event)) {
       event.preventDefault();
     }
   };
-
   const pointerEnd = (event) => {
-    if (event.pointerType !== "mouse" || event.pointerId !== id) {
+    if (!pointer.match(event, id)) {
       return;
     }
 
     finish(event);
   };
-
   const pointerCancel = (event) => {
-    if (event.pointerType !== "mouse" || event.pointerId !== id) {
+    if (!pointer.match(event, id)) {
       return;
     }
 
     finish(event, true);
   };
-
   const click = (event) => {
     if (!dragged) {
       return;
@@ -414,24 +394,17 @@ function progress(direction, options) {
     event.stopPropagation();
     dragged = false;
   };
-
   const listeners = [
     on(target, "touchstart", touchStart, { passive: true }),
-
     on(target, "touchmove", touchMove, { passive: false }),
-
     on(target, "touchend", touchEnd, { passive: true }),
-
-    on(target, "touchcancel", touchCancel, { passive: true }),
-
+    on(target, "touchcancel", touchCancel, {
+      passive: true
+    }),
     on(target, "pointerdown", pointerStart),
-
-    on(target, "pointermove", pointerMove),
-
-    on(target, "pointerup", pointerEnd),
-
-    on(target, "pointercancel", pointerCancel),
-
+    on(window, "pointermove", pointerMove),
+    on(window, "pointerup", pointerEnd),
+    on(window, "pointercancel", pointerCancel),
     on(target, "click", click, true)
   ];
 
@@ -450,6 +423,7 @@ function simple(direction, callback) {
   }
 
   const handler = { arrow: direction, callback };
+
   handlers.push(handler);
   watch();
 
@@ -467,7 +441,10 @@ function simple(direction, callback) {
 export function resolve(direction) {
   const name = String(direction).trim().toLowerCase();
 
-  return directions[name] ?? (arrows.includes(name) ? name : null);
+  return (
+    directions[name] ??
+    (arrows.includes(name) ? name : null)
+  );
 }
 
 export default function swipe(direction, callback) {

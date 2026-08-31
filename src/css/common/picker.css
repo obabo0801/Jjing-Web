@@ -3,14 +3,14 @@
 
   display: flex;
   align-items: stretch;
-  
+
   padding: 2px;
   border-radius: 8px;
 
   height: calc(var(--picker-row) * 3);
   overflow: hidden;
 
-  background: var(--canvas);
+  background: var(--background);
 
   font-weight: 600;
 
@@ -72,17 +72,26 @@
 }
 
 .picker-column[data-move] .picker-list button,
-.picker-column:has(button:focus-visible) .picker-list button {
+.picker-column:has(button:focus-visible)
+  .picker-list
+  button {
   color: var(--focus);
 }
 
-.picker-column:has(button:focus-visible) .picker-list button[data-selected] {
-  background-image: var(--feedback);
+.picker-column:has(button:focus-visible)
+  .picker-list
+  button[data-selected] {
+  background-image: var(--overlay);
   color: var(--thumb);
 }
 
-.picker-column[data-edit] .picker-list button[data-selected] {
+.picker-column[data-edit] .picker-list button {
   visibility: hidden;
+}
+
+.picker-column[data-edit] .picker-list {
+  overflow-y: hidden;
+  touch-action: none;
 }
 
 .picker-input {
@@ -100,7 +109,6 @@
   background: transparent;
   color: var(--text);
 
-  font: inherit;
   font-variant-numeric: tabular-nums;
   text-align: center;
 
@@ -126,6 +134,12 @@
   outline: 0;
 }
 
+:root:not(.wearable) .picker {
+  scroll-margin-block-end: calc(
+    var(--keypad-height, 0px) + 16px
+  );
+}
+
 .picker-text {
   display: flex;
   align-items: center;
@@ -141,14 +155,25 @@
   transition: color 160ms ease;
 }
 
-@media (max-width: 32rem) and (max-height: 24rem) {
-  dialog[data-dialog] .picker {
-    --picker-row: 40px;
-  }
+.wearable .picker-column[data-edit] .picker-input {
+  position: fixed;
+  z-index: 1001;
 
-  dialog[data-dialog] .picker-column[data-period] button {
-    font-size: 1rem;
-  }
+  inset-block-start: 8dvh;
+  inset-inline: 12dvw;
+
+  width: auto;
+  height: 14dvh;
+  padding-inline: 16px;
+  border-radius: 999px;
+
+  background: var(--panel);
+
+  font-size: 2rem;
+}
+
+.compact:not(.wearable) .picker {
+  --picker-row: min(60px, 14dvh);
 }
 
 @media (prefers-reduced-motion: reduce) {

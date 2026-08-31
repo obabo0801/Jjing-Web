@@ -54,3 +54,19 @@ img.icon {
 .icon-bottom.icon-right {
   align-items: flex-end;
 }
+
+[data-icon~="throbber"] > .icon {
+  animation: throbber 800ms linear infinite;
+}
+
+@keyframes throbber {
+  to {
+    transform: rotate(1turn);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-icon~="throbber"] > .icon {
+    animation: none;
+  }
+}

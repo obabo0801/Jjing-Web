@@ -9,12 +9,12 @@ import { usage } from "#config/route";
 import { get, run } from "#config/sqlite";
 import identity, { key } from "#config/uid";
 
+import string from "#src/string";
+
 import limit from "#middleware/limit";
 
 const router = Router();
-
 const allowed = limit(120);
-
 const cookie = {
   httpOnly: true,
   sameSite: "lax",
@@ -22,27 +22,33 @@ const cookie = {
   signed: Boolean(process.env.COOKIE_SECRET),
   maxAge: 365 * 24 * 60 * 60 * 1000
 };
-
 const clear = {
   httpOnly: cookie.httpOnly,
   sameSite: cookie.sameSite,
   secure: cookie.secure,
   path: "/"
 };
-
 const remember = (res, uid) => {
   if (uid) {
     res.cookie(key, uid, cookie);
   }
 };
-
 const status = (value) => {
   const code = Number(value);
 
-  return Number.isInteger(code) && code >= 100 && code <= 599 ? code : 0;
+  return Number.isInteger(code) &&
+    code >= 100 &&
+    code <= 599
+    ? code
+    : 0;
 };
+
 router.get(usage, (req, res) => {
-  const size = Buffer.byteLength(req.get("cookie") || "", "utf8");
+  const size = Buffer.byteLength(
+    req.get("cookie") || "",
+    "utf8"
+  );
+
   res.json({ size });
 });
 router.delete("/", (_, res) => {
@@ -52,16 +58,10 @@ router.delete("/", (_, res) => {
 router.get("/", async (req, res) => {
   const uid = identity(req);
   const ip = address(req);
-
-  const name = typeof req.query.name === "string" ? req.query.name : "";
-
-  const path =
-    typeof req.query.path === "string" ? req.query.path.slice(0, 2048) : "/";
-
+  const name = string(req.query.name);
+  const path = string(req.query.path, "/").slice(0, 2048);
   const result = status(req.query.result);
-
   const { os, browser } = client(req);
-
   const user = uid
     ? await get(
         `
@@ -72,7 +72,6 @@ router.get("/", async (req, res) => {
         [uid]
       )
     : null;
-
   const recent = req.query.recent === "true";
 
   if (!recent) {
@@ -87,14 +86,9 @@ router.get("/", async (req, res) => {
 });
 router.post("/", async (req, res) => {
   const saved = identity(req);
-
   let uid = saved;
-
-  const path =
-    typeof req.body?.path === "string" ? req.body.path.slice(0, 2048) : "/";
-
+  const path = string(req.body?.path, "/").slice(0, 2048);
   const result = status(req.body?.result);
-
   const ip = address(req);
 
   if (!allowed(ip)) {
@@ -104,7 +98,6 @@ router.post("/", async (req, res) => {
   }
 
   const { os, browser } = client(req);
-
   let user = uid
     ? await get(
         `
@@ -164,10 +157,20 @@ router.post("/", async (req, res) => {
     );
 
     if (first.changes) {
-      await access(uid || null, ip, os, browser, path, result);
+      await access(
+        uid || null,
+        ip,
+        os,
+        browser,
+        path,
+        result
+      );
     }
 
-    const data = { reason: blocked.reason, time: blocked.time };
+    const data = {
+      reason: blocked.reason,
+      time: blocked.time
+    };
 
     return res.status(403).json(data);
   }

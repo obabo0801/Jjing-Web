@@ -4,18 +4,17 @@ import api from "#common/api";
 import device from "#common/device";
 
 const showPage = async (name) => {
-  const header = name === "offline" ? "X-PWA-Cache" : `X-${name}`;
-
+  const header =
+    name === "offline" ? "X-PWA-Cache" : `X-${name}`;
   const response = await fetch(`/${name}`, {
     headers: { Accept: "text/html", [header]: "true" }
   });
-
   const html = await response.text();
+
   document.open();
   document.write(html);
   document.close();
 };
-
 const errorPage = (response) => {
   if (response.status === 503) {
     return "maint";
@@ -28,30 +27,29 @@ const errorPage = (response) => {
   return response.status === 0 ? "offline" : "error";
 };
 
-export default async function access(navigate = true, name) {
+export default async function access(
+  navigate = true,
+  name
+) {
   const path =
     name && location.pathname === "/"
       ? `/${name.replace(/^\/+/, "")}`
       : decodeURI(`${location.pathname}${location.search}`);
-
-  const navigation = performance.getEntriesByType("navigation")[0];
-
+  const navigation =
+    performance.getEntriesByType("navigation")[0];
   const status = navigation?.responseStatus ?? 0;
-
   const key = `access:${path}`;
   const now = Date.now();
-
   let recent = false;
 
   try {
     const last = Number(sessionStorage.getItem(key));
+
     recent = now - last < 60_000;
   } catch {}
 
   const wearable = device().wearable;
-
   const headers = { "X-Wearable": String(wearable) };
-
   const response = await api(user, {
     headers,
     method: "POST",
@@ -86,9 +84,9 @@ export default async function access(navigate = true, name) {
     ...(name && { name }),
     ...(recent && { recent: "true" })
   });
-
-  const session = await api(`${user}?${query}`, { headers });
-
+  const session = await api(`${user}?${query}`, {
+    headers
+  });
   const sessionError = errorPage(session);
 
   if (sessionError) {

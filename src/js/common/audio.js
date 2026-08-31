@@ -23,10 +23,12 @@ export function context() {
 }
 
 const percent = (name) => {
-  const fallback = name === "master" ? get("volume", 100) : 100;
-  const value = Number(get(`volume-${name}`, fallback));
+  const base = name === "master" ? get("volume", 100) : 100;
+  const value = Number(get(`volume-${name}`, base));
 
-  return Number.isFinite(value) ? Math.min(100, Math.max(0, value)) / 100 : 1;
+  return Number.isFinite(value)
+    ? Math.min(100, Math.max(0, value)) / 100
+    : 1;
 };
 
 export function level(channel, value = 1) {

@@ -12,6 +12,7 @@ const page = dom.query(".block");
 const heading = dom.query("h1", page);
 const action = dom.query("button", page);
 const loading = init();
+
 dom.on(action, "click", async () => {
   action.disabled = true;
   sound.play("click");
@@ -32,6 +33,7 @@ dom.on(action, "click", async () => {
       const source = await tts
         .speak(heading.textContent, { type: "cache" })
         .catch(() => null);
+
       await tts.wait(source);
     }
   } finally {

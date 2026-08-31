@@ -3,23 +3,19 @@ import sound from "#common/sound";
 import vibrate from "#common/vibrate";
 
 const held = new WeakSet();
-
 let press;
 let listening = false;
-
 const limit = (input, value) => {
-  const min = input.min === "" ? -Infinity : Number(input.min);
-
-  const max = input.max === "" ? Infinity : Number(input.max);
+  const min =
+    input.min === "" ? -Infinity : Number(input.min);
+  const max =
+    input.max === "" ? Infinity : Number(input.max);
 
   return Math.min(max, Math.max(min, value));
 };
-
 const paint = (input) => {
   const value = Number(input.value);
-
   const display = input.closest(".stepper-value");
-
   const number = dom.query(".stepper-number", display);
 
   if (number) {
@@ -32,17 +28,15 @@ const paint = (input) => {
     dom.remove(display, "data-positive");
   }
 };
-
 const edit = (input) => {
   const display = input.closest(".stepper-value");
-
   const number = dom.query(".stepper-number", display);
+
   number.hidden = true;
   input.hidden = false;
   input.focus();
   input.select();
 };
-
 const commit = (input) => {
   const value = Number(input.value);
 
@@ -53,17 +47,14 @@ const commit = (input) => {
   paint(input);
 
   const display = input.closest(".stepper-value");
-
   const number = dom.query(".stepper-number", display);
+
   input.hidden = true;
   number.hidden = false;
 };
-
 const move = (input, direction) => {
   const value = Number(input.value) || 0;
-
   const step = Number(input.step) || 1;
-
   const next = limit(input, value + step * direction);
 
   if (next === value) {
@@ -71,16 +62,18 @@ const move = (input, direction) => {
   }
 
   input.value = String(next);
-  input.dispatchEvent(new Event("input", { bubbles: true }));
+  input.dispatchEvent(
+    new Event("input", { bubbles: true })
+  );
   sound.play("snap");
   vibrate.play("stepper");
 };
-
 const change = (button) => {
   const container = button.closest(".stepper");
-
-  const input = dom.query('input[type="number"]', container);
-
+  const input = dom.query(
+    'input[type="number"]',
+    container
+  );
   const direction = Number(dom.get(button, "data-step"));
 
   if (!input || !Number.isFinite(direction)) {
@@ -89,7 +82,6 @@ const change = (button) => {
 
   move(input, direction);
 };
-
 const stop = () => {
   if (!press) {
     return;
@@ -100,6 +92,7 @@ const stop = () => {
 
   if (press.held) {
     const button = press.button;
+
     setTimeout(() => {
       held.delete(button);
     });
@@ -109,7 +102,9 @@ const stop = () => {
 };
 
 export default function stepper(root = document) {
-  dom.all('.stepper input[type="number"]', root).forEach(paint);
+  dom
+    .all('.stepper input[type="number"]', root)
+    .forEach(paint);
 
   if (listening) {
     return;
@@ -117,15 +112,19 @@ export default function stepper(root = document) {
 
   listening = true;
   dom.on(document, "click", (event) => {
-    const number = event.target.closest?.(".stepper-number");
+    const number = event.target.closest?.(
+      ".stepper-number"
+    );
 
     if (!number) {
       return;
     }
 
     const display = number.closest(".stepper-value");
-
-    const input = dom.query('input[type="number"]', display);
+    const input = dom.query(
+      'input[type="number"]',
+      display
+    );
 
     if (input) {
       edit(input);
@@ -137,7 +136,9 @@ export default function stepper(root = document) {
     (event) => {
       const input = event.target;
 
-      if (!input.matches?.('.stepper input[type="number"]')) {
+      if (
+        !input.matches?.('.stepper input[type="number"]')
+      ) {
         return;
       }
 
@@ -200,7 +201,9 @@ export default function stepper(root = document) {
   dom.on(document, "input", (event) => {
     const input = event.target;
 
-    if (!input.matches?.(".stepper " + 'input[type="number"]')) {
+    if (
+      !input.matches?.(".stepper " + 'input[type="number"]')
+    ) {
       return;
     }
 
@@ -209,7 +212,9 @@ export default function stepper(root = document) {
   dom.on(document, "change", (event) => {
     const input = event.target;
 
-    if (!input.matches?.(".stepper " + 'input[type="number"]')) {
+    if (
+      !input.matches?.(".stepper " + 'input[type="number"]')
+    ) {
       return;
     }
 

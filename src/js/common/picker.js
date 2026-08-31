@@ -1,8 +1,22 @@
 import * as dom from "#common/dom";
+import * as pointer from "#common/pointer";
+import keypad from "#common/keypad";
 import sound from "#common/sound";
 import vibrate from "#common/vibrate";
 
 const bound = new WeakSet();
+let resizing = false;
+let resizeTimer;
+const resize = () => {
+  resizing = true;
+  clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(() => {
+    resizing = false;
+  }, 160);
+};
+
+dom.on(window, "resize", resize);
+dom.on(window.visualViewport, "resize", resize);
 
 const values = (column) => {
   const list = dom.get(column, "data-values");
@@ -10,11 +24,12 @@ const values = (column) => {
   if (list) {
     const items = list.split(",");
 
-    return items.map((value) => value.trim()).filter(Boolean);
+    return items
+      .map((value) => value.trim())
+      .filter(Boolean);
   }
 
   const min = Number(dom.get(column, "data-min"));
-
   const max = Number(dom.get(column, "data-max"));
 
   if (!Number.isFinite(min) || !Number.isFinite(max)) {
@@ -25,18 +40,15 @@ const values = (column) => {
     String(min + index)
   );
 };
-
-const size = (list) => dom.query("button", list)?.offsetHeight || 40;
-
+const size = (list) =>
+  dom.query("button", list)?.offsetHeight || 60;
 const buttons = (list) => dom.all("button", list);
-
 const nearest = (list, value) => {
   const items = buttons(list);
-
   const current = Math.round(list.scrollTop / size(list));
-
   let result = null;
   let distance = Infinity;
+
   items.forEach((button, index) => {
     if (dom.get(button, "data-value") !== String(value)) {
       return;
@@ -54,7 +66,6 @@ const nearest = (list, value) => {
 
   return result;
 };
-
 const move = (list, button, smooth = false) => {
   if (!button) {
     return;
@@ -81,7 +92,6 @@ const move = (list, button, smooth = false) => {
     });
   }
 };
-
 const shift = (list, distance) => {
   list.style.scrollBehavior = "auto";
   list.scrollTop += distance;
@@ -90,7 +100,6 @@ const shift = (list, distance) => {
     list.style.removeProperty("scroll-behavior");
   });
 };
-
 const place = (list, button) => {
   const apply = () => {
     if (!list.clientHeight) {
@@ -113,13 +122,15 @@ const place = (list, button) => {
 
     observer.disconnect();
   });
+
   observer.observe(list);
 };
-
 const togglePeriod = (column) => {
   const picker = column.closest(".picker");
-
-  const period = dom.query(".picker-column[data-period]", picker);
+  const period = dom.query(
+    ".picker-column[data-period]",
+    picker
+  );
 
   if (!period) {
     return;
@@ -132,28 +143,29 @@ const togglePeriod = (column) => {
   }
 
   const items = buttons(list);
-
-  const selected = dom.query("button[data-selected]", period);
-
+  const selected = dom.query(
+    "button[data-selected]",
+    period
+  );
   const index = items.indexOf(selected);
-
   const next = items[(index + 1) % items.length];
+
   select(period, next, false);
   move(list, next, true);
 };
-
 const select = (column, button, sync = true) => {
   if (!button) {
     return false;
   }
 
   const previous = dom.get(column, "data-value");
-
   const value = dom.get(button, "data-value");
-
-  const selected = dom.query("button[data-selected]", column);
-
-  const focused = selected?.matches(":focus-visible") === true;
+  const selected = dom.query(
+    "button[data-selected]",
+    column
+  );
+  const focused =
+    selected?.matches(":focus-visible") === true;
 
   if (selected !== button) {
     if (selected) {
@@ -186,10 +198,31 @@ const select = (column, button, sync = true) => {
 
   return true;
 };
+const valid = (input) => {
+  const value = Number(input.value);
+  const min = Number(input.min);
+  const max = Number(input.max);
 
+  return (
+    input.value !== "" &&
+    Number.isFinite(value) &&
+    value >= min &&
+    value <= max
+  );
+};
 const edit = (column, button) => {
   if (dom.get(column, "data-min") === null) {
     return;
+  }
+
+  const picker = column.closest(".picker");
+  const current = dom.query(
+    ".picker-column[data-edit]",
+    picker
+  );
+
+  if (current && current !== column) {
+    commit(current, true);
   }
 
   const input = dom.query(".picker-input", column);
@@ -201,11 +234,13 @@ const edit = (column, button) => {
   input.value = dom.get(button, "data-value");
   dom.set(column, "data-edit", "");
   input.hidden = false;
-  input.focus();
+  keypad(picker, { close, commit, edit, valid }).show(
+    column
+  );
+  input.focus({ preventScroll: true });
   input.select();
 };
-
-const close = (column) => {
+const close = (column, keep = false) => {
   const input = dom.query(".picker-input", column);
 
   if (!input) {
@@ -214,11 +249,13 @@ const close = (column) => {
 
   input.hidden = true;
   dom.remove(column, "data-edit");
+
+  if (!keep) {
+    keypad(column.closest(".picker")).hide(column);
+  }
 };
-
-const commit = (column) => {
+const commit = (column, keep = false) => {
   const input = dom.query(".picker-input", column);
-
   const list = dom.query(".picker-list", column);
 
   if (!input || !list) {
@@ -227,23 +264,23 @@ const commit = (column) => {
 
   const min = Number(input.min);
   const max = Number(input.max);
-
   const number = Number(input.value);
+  const safe = Number.isFinite(number) ? number : min;
+  const lower = Math.max(min, safe);
+  const value = String(Math.min(max, lower));
 
-  const value = String(
-    Math.min(max, Math.max(min, Number.isFinite(number) ? number : min))
-  );
-  close(column);
+  close(column, keep);
 
   const button = nearest(list, value);
-  select(column, button);
-  move(list, button, true);
-};
 
+  select(column, button);
+  move(list, button);
+};
 const append = (list, items, count) => {
   for (let cycle = 0; cycle < count; cycle += 1) {
     items.forEach((value) => {
       const button = dom.create("button");
+
       button.type = "button";
       button.tabIndex = -1;
       button.textContent = value;
@@ -252,7 +289,6 @@ const append = (list, items, count) => {
     });
   }
 };
-
 const build = (column) => {
   if (bound.has(column)) {
     return;
@@ -265,24 +301,26 @@ const build = (column) => {
   }
 
   const loop = dom.get(column, "data-loop") !== null;
-
   const list = dom.create("div");
+
   list.className = "picker-list";
   append(list, items, loop ? 3 : 1);
   column.append(list);
 
   const min = dom.get(column, "data-min");
-
   const max = dom.get(column, "data-max");
-
   let input;
 
   if (min !== null && max !== null) {
     const name = dom.get(column, "data-name");
+
     input = dom.create("input");
-    input.type = "number";
+    input.type = "text";
     input.min = min;
     input.max = max;
+    input.step = "1";
+    input.inputMode = "none";
+    input.maxLength = 2;
     input.autocomplete = "off";
     input.hidden = true;
 
@@ -295,22 +333,19 @@ const build = (column) => {
   }
 
   const current = dom.get(column, "data-value") ?? items[0];
-
   const matches = buttons(list).filter(
     (button) => dom.get(button, "data-value") === current
   );
-
   const selected = matches[loop ? 1 : 0] ?? matches[0];
+
   select(column, selected, false);
   place(list, selected);
 
   let frame;
   let timer;
-
   const active = () => {
     dom.set(column, "data-move", "");
   };
-
   const inactive = () => {
     if (dom.get(column, "data-pressed") !== null) {
       return;
@@ -318,28 +353,23 @@ const build = (column) => {
 
     dom.remove(column, "data-move");
   };
-
   const settle = () => {
     clearTimeout(timer);
     timer = setTimeout(inactive, 160);
   };
-
-  const feedback = () => {
+  const tick = () => {
     const height = size(list);
-
     const current = list.scrollTop;
-
     const previous = dom.get(column, "data-scroll");
+
     dom.set(column, "data-scroll", current);
 
-    if (previous === null) {
+    if (resizing || previous === null) {
       return;
     }
 
     const before = Number(previous) / height;
-
     const after = current / height;
-
     const crossed =
       after > before
         ? Math.floor(after) > Math.floor(before)
@@ -352,9 +382,12 @@ const build = (column) => {
     sound.play("snap");
     vibrate.play("picker");
   };
-
   const press = (event) => {
-    if (event.pointerType === "mouse") {
+    if (dom.get(column, "data-edit") !== null) {
+      return;
+    }
+
+    if (pointer.is(event, "mouse")) {
       dom.set(column, "data-y", event.clientY);
     }
 
@@ -362,12 +395,11 @@ const build = (column) => {
     active();
     clearTimeout(timer);
   };
-
   const drag = (event) => {
     const value = dom.get(column, "data-y");
 
     if (
-      event.pointerType !== "mouse" ||
+      !pointer.is(event, "mouse") ||
       dom.get(column, "data-pressed") === null ||
       value === null
     ) {
@@ -375,7 +407,6 @@ const build = (column) => {
     }
 
     const y = Number(value);
-
     const distance = y - event.clientY;
 
     if (!distance) {
@@ -388,16 +419,17 @@ const build = (column) => {
     list.scrollTop += distance;
     event.preventDefault();
   };
-
   const release = (event) => {
+    const active = document.activeElement;
+
     dom.remove(column, "data-y");
     dom.remove(column, "data-pressed");
 
     if (
-      event.pointerType === "touch" &&
-      list.contains(document.activeElement)
+      pointer.is(event, "touch") &&
+      list.contains(active)
     ) {
-      document.activeElement.blur();
+      active.blur();
     }
 
     settle();
@@ -405,18 +437,15 @@ const build = (column) => {
       dom.remove(column, "data-drag");
     });
   };
-
   const pointerCancel = (event) => {
     release(event);
   };
-
   const wheel = () => {
     active();
     settle();
   };
-
   const scroll = () => {
-    feedback();
+    tick();
 
     if (dom.get(column, "data-move") !== null) {
       settle();
@@ -425,9 +454,7 @@ const build = (column) => {
     cancelAnimationFrame(frame);
     frame = requestAnimationFrame(() => {
       const all = buttons(list);
-
       const height = size(list);
-
       let index = Math.round(list.scrollTop / height);
 
       if (loop) {
@@ -452,7 +479,6 @@ const build = (column) => {
       select(column, all[index]);
     });
   };
-
   const click = (event) => {
     if (dom.get(column, "data-drag") !== null) {
       return;
@@ -464,7 +490,8 @@ const build = (column) => {
       return;
     }
 
-    const selected = dom.get(button, "data-selected") !== null;
+    const selected =
+      dom.get(button, "data-selected") !== null;
 
     if (!selected) {
       active();
@@ -475,15 +502,15 @@ const build = (column) => {
 
     edit(column, button);
   };
-
-  const blur = () => {
-    commit(column);
-  };
-
   const keydown = (event) => {
     if (event.key === "Enter") {
-      input.blur();
-
+      event.preventDefault();
+      keypad(column.closest(".picker"), {
+        close,
+        commit,
+        edit,
+        valid
+      }).submit(column);
       return;
     }
 
@@ -493,7 +520,22 @@ const build = (column) => {
   };
 
   if (input) {
-    dom.on(input, "blur", blur);
+    dom.on(input, "beforeinput", (event) => {
+      if (event.data && /\D/.test(event.data)) {
+        event.preventDefault();
+      }
+    });
+    dom.on(input, "input", () => {
+      const value = input.value
+        .replace(/\D/g, "")
+        .slice(0, 2);
+
+      if (input.value !== value) {
+        input.value = value;
+      }
+
+      keypad(column.closest(".picker")).update(column);
+    });
     dom.on(input, "keydown", keydown);
   }
 
@@ -509,4 +551,16 @@ const build = (column) => {
 
 export default function picker(root = document) {
   dom.all(".picker-column", root).forEach(build);
+
+  const elements = root.matches?.(".picker")
+    ? [root]
+    : dom.all(".picker", root);
+
+  elements.forEach((element) => {
+    const inputs = dom.all(".picker-input", element);
+
+    if (inputs.length) {
+      keypad(element, { close, commit, edit, valid });
+    }
+  });
 }

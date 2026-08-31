@@ -8,8 +8,8 @@ import uid from "#config/uid";
 import limit from "#middleware/limit";
 
 const router = Router();
-
 const allowed = limit(20);
+
 router.get("/", (_, res) => {
   if (!enabled) {
     return res.status(503).end();
@@ -23,7 +23,6 @@ router.post("/", async (req, res) => {
   }
 
   const subscription = req.body?.subscription;
-
   const endpoint = subscription?.endpoint;
   const keys = subscription?.keys;
 
@@ -54,7 +53,6 @@ router.post("/", async (req, res) => {
         [id]
       )
     : null;
-
   const blocked = await get(
     `
     SELECT 1

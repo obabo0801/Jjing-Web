@@ -1,8 +1,8 @@
 import { on } from "#common/dom";
 import { scrollable } from "#common/scroll";
+import * as pointer from "#common/pointer";
 
 const listeners = new Set();
-
 const hasSelection = () => {
   const selection = window.getSelection();
 
@@ -24,32 +24,27 @@ export function listen(listener) {
 export default function drag(target = document) {
   let scroller = null;
   let pointerId = null;
-
   let startX = 0;
   let startY = 0;
-
   let scrollLeft = 0;
   let scrollTop = 0;
-
   let dragging = false;
   let pending = false;
   let block = false;
-
   const reset = () => {
     scroller = null;
     pointerId = null;
     dragging = false;
     pending = false;
   };
-
   const start = (event) => {
     if (
       event.shiftKey ||
-      event.pointerType !== "mouse" ||
-      event.button !== 0 ||
+      !pointer.press(event) ||
       (event.target instanceof Element &&
         event.target.closest(
-          "input, select, textarea, " + "[contenteditable], .range"
+          "input, select, textarea, " +
+            "[contenteditable], .range"
         ))
     ) {
       return;
@@ -57,7 +52,10 @@ export default function drag(target = document) {
 
     const next = scrollable(event.target);
 
-    if (!next || (next !== target && !target.contains(next))) {
+    if (
+      !next ||
+      (next !== target && !target.contains(next))
+    ) {
       return;
     }
 
@@ -70,9 +68,8 @@ export default function drag(target = document) {
     dragging = false;
     pending = false;
   };
-
   const move = (event) => {
-    if (event.pointerId !== pointerId || !scroller) {
+    if (!pointer.match(event, pointerId) || !scroller) {
       return;
     }
 
@@ -96,16 +93,15 @@ export default function drag(target = document) {
     if (!dragging) {
       dragging = true;
       pending = false;
-      target.setPointerCapture?.(pointerId);
+      scroller.setPointerCapture?.(pointerId);
     }
 
     scroller.scrollLeft = scrollLeft - moveX;
     scroller.scrollTop = scrollTop - moveY;
     event.preventDefault();
   };
-
   const end = (event) => {
-    if (event.pointerId !== pointerId) {
+    if (!pointer.match(event, pointerId)) {
       return;
     }
 
@@ -126,13 +122,12 @@ export default function drag(target = document) {
       });
     }
 
-    if (target.hasPointerCapture?.(pointerId)) {
-      target.releasePointerCapture(pointerId);
+    if (scroller?.hasPointerCapture?.(pointerId)) {
+      scroller.releasePointerCapture(pointerId);
     }
 
     reset();
   };
-
   const click = (event) => {
     if (!block) {
       return;
@@ -141,12 +136,12 @@ export default function drag(target = document) {
     event.preventDefault();
     event.stopPropagation();
   };
-
   const remove = [
     on(target, "pointerdown", start),
     on(target, "pointermove", move),
     on(target, "pointerup", end),
     on(target, "pointercancel", end),
+    on(window, "blur", reset),
     on(target, "click", click, true)
   ];
 

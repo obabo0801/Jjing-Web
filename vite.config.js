@@ -11,7 +11,10 @@ export default defineConfig(({ command, mode }) => {
 
   return {
     ...output,
-    css: command === "build" ? { postcss: { plugins: [css] } } : undefined,
+    css:
+      command === "build"
+        ? { postcss: { plugins: [css] } }
+        : undefined,
     plugins: [data, html],
     server: { host: true, port: 5173, proxy: api }
   };

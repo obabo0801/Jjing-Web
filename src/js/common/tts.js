@@ -2,18 +2,22 @@ import { tts as route } from "#config/route";
 
 import * as dom from "#common/dom";
 import { context, level } from "#common/audio";
+import string from "#src/string";
 
 const buffers = new Map();
 const logged = new Set();
 const requests = new Set();
 const sources = new Map();
-
 let token = 0;
-
 const synth = window.speechSynthesis;
 
 export const busy = () =>
-  Boolean(requests.size || sources.size || synth?.speaking || synth?.pending);
+  Boolean(
+    requests.size ||
+    sources.size ||
+    synth?.speaking ||
+    synth?.pending
+  );
 
 const key = (text, { lang, pitch, rate, voice, type }) =>
   JSON.stringify({
@@ -24,7 +28,6 @@ const key = (text, { lang, pitch, rate, voice, type }) =>
     voice: voice || "",
     type: type || ""
   });
-
 const record = (text, options) => {
   const id = key(text, options);
 
@@ -36,7 +39,11 @@ const record = (text, options) => {
   fetch(`/api${route}`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ text, voice: options.voice, type: "browser" })
+    body: JSON.stringify({
+      text,
+      voice: options.voice,
+      type: "browser"
+    })
   })
     .then((response) => {
       if (!response.ok) {
@@ -56,12 +63,12 @@ const browser = (text, options, report = true) => {
   }
 
   const { lang, pitch, rate, voice, volume } = options;
-
   const speech = new SpeechSynthesisUtterance(text);
-
-  const selected = voices().find((item) => item.name === voice);
-
+  const selected = voices().find(
+    (item) => item.name === voice
+  );
   const name = selected?.name || "default";
+
   speech.lang = lang;
   speech.pitch = pitch;
   speech.rate = rate;
@@ -70,17 +77,22 @@ const browser = (text, options, report = true) => {
   synth.speak(speech);
 
   if (report) {
-    record(text, { ...options, voice: name, type: "browser" });
+    record(text, {
+      ...options,
+      voice: name,
+      type: "browser"
+    });
   }
 
   return speech;
 };
-
 const load = (audio, text, options) => {
   const id = key(text, options);
 
   if (!buffers.has(id)) {
+    const { lang, pitch, rate, voice, type } = options;
     const controller = new AbortController();
+
     requests.add(controller);
 
     const request = fetch(`/api${route}`, {
@@ -88,11 +100,11 @@ const load = (audio, text, options) => {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         text,
-        lang: options.lang,
-        pitch: options.pitch,
-        rate: options.rate,
-        voice: options.voice,
-        type: options.type
+        lang,
+        pitch,
+        rate,
+        voice,
+        type
       }),
       signal: controller.signal
     })
@@ -107,7 +119,9 @@ const load = (audio, text, options) => {
 
         return response.arrayBuffer();
       })
-      .then((data) => (data ? audio.decodeAudioData(data) : null))
+      .then((data) =>
+        data ? audio.decodeAudioData(data) : null
+      )
       .catch((error) => {
         buffers.delete(id);
 
@@ -116,12 +130,12 @@ const load = (audio, text, options) => {
       .finally(() => {
         requests.delete(controller);
       });
+
     buffers.set(id, request);
   }
 
   return buffers.get(id);
 };
-
 const remote = async (text, options) => {
   const audio = context();
 
@@ -130,7 +144,6 @@ const remote = async (text, options) => {
   }
 
   const id = token;
-
   let buffer;
 
   try {
@@ -145,6 +158,7 @@ const remote = async (text, options) => {
 
   const source = audio.createBufferSource();
   const gain = audio.createGain();
+
   source.buffer = buffer;
   gain.gain.value = level("tts", options.volume);
   source.connect(gain);
@@ -170,9 +184,16 @@ const remote = async (text, options) => {
 
 export async function speak(
   text,
-  { lang = dom.root.lang, pitch = 0, rate = 1, voice, volume = 1, type } = {}
+  {
+    lang = dom.root.lang,
+    pitch = 0,
+    rate = 1,
+    voice,
+    volume = 1,
+    type
+  } = {}
 ) {
-  const value = typeof text === "string" ? text.trim() : "";
+  const value = string(text).trim();
 
   if (!value) {
     return null;
@@ -194,7 +215,10 @@ export async function speak(
     return remote(value, { ...options, type });
   }
 
-  const cloud = await remote(value, { ...options, type: "cloud" });
+  const cloud = await remote(value, {
+    ...options,
+    type: "cloud"
+  });
 
   if (cloud) {
     return cloud;
@@ -217,6 +241,7 @@ export const wait = (source) =>
     }
 
     const event = "onend" in source ? "end" : "ended";
+
     dom.on(source, event, resolve, { once: true });
     dom.on(source, "error", resolve, { once: true });
   });

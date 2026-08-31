@@ -1,0 +1,81 @@
+.tooltip {
+  position: fixed;
+  z-index: 1000;
+
+  max-width: min(20rem, calc(100vw - 16px));
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+
+  color: var(--text);
+
+  font-size: 1.2rem;
+  line-height: 1.4;
+  text-align: center;
+  overflow-wrap: anywhere;
+
+  pointer-events: none;
+
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(4px);
+
+  transition:
+    opacity 120ms ease,
+    transform 120ms ease,
+    visibility 0s 120ms;
+}
+
+.tooltip[data-background] {
+  background: var(--background);
+}
+
+.tooltip[data-shadow] {
+  box-shadow: var(--shadow);
+}
+
+.tooltip[data-side="bottom"] {
+  transform: translateY(-4px);
+}
+
+.tooltip[data-open] {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+
+  transition-delay: 0s;
+}
+
+.tooltip::after {
+  content: "";
+
+  position: absolute;
+  inset-inline-start: calc(var(--tooltip-arrow) - 4px);
+
+  width: 8px;
+  height: 8px;
+
+  background: inherit;
+
+  transform: rotate(45deg);
+}
+
+.tooltip[data-side="top"]::after {
+  inset-block-end: -5px;
+
+  border-inline-end: 1px solid var(--border);
+  border-block-end: 1px solid var(--border);
+}
+
+.tooltip[data-side="bottom"]::after {
+  inset-block-start: -5px;
+
+  border-inline-start: 1px solid var(--border);
+  border-block-start: 1px solid var(--border);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tooltip {
+    transition: none;
+  }
+}

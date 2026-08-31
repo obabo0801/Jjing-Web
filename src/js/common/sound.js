@@ -3,29 +3,37 @@ import { context, level } from "#common/audio";
 import { get } from "#common/storage";
 import patterns from "#common/pattern";
 
+const file = (name) =>
+  new URL(`../../assets/audio/${name}.mp3`, import.meta.url)
+    .href;
 const backgrounds = Object.freeze({
-  sunflower: new URL("../../assets/audio/sunflower.mp3", import.meta.url).href
+  semenota: file("semenota"),
+  sunflower: file("sunflower")
 });
-
 const effects = Object.freeze({
-  bell: new URL("../../assets/audio/bell.mp3", import.meta.url).href,
-  click: new URL("../../assets/audio/click.mp3", import.meta.url).href,
-  eoheo: new URL("../../assets/audio/eoheo.mp3", import.meta.url).href,
-  pop: new URL("../../assets/audio/pop.mp3", import.meta.url).href,
-  snap: new URL("../../assets/audio/snap.mp3", import.meta.url).href
+  bell: file("bell"),
+  click: file("click"),
+  eoheo: file("eoheo"),
+  failure: file("failure"),
+  noinput: file("noinput"),
+  open: file("open"),
+  pop: file("pop"),
+  snap: file("snap"),
+  success: file("success")
 });
-
-const waves = new Set(["sine", "square", "sawtooth", "triangle"]);
-
+const waves = new Set([
+  "sine",
+  "square",
+  "sawtooth",
+  "triangle"
+]);
 const buffers = new Map();
 const players = new Map();
 const tones = new Set();
 const active = new Set();
-
 let track;
 let source = "";
 let token = 0;
-
 const load = (audio, url) => {
   if (!buffers.has(url)) {
     const request = fetch(url)
@@ -42,6 +50,7 @@ const load = (audio, url) => {
 
         throw error;
       });
+
     buffers.set(url, request);
   }
 
@@ -51,7 +60,12 @@ const load = (audio, url) => {
 export function beep(
   frequency = 440,
   duration = 80,
-  { channel = "system", delay = 0, type = "sine", volume = 1 } = {}
+  {
+    channel = "system",
+    delay = 0,
+    type = "sine",
+    volume = 1
+  } = {}
 ) {
   if (get("sound", "true") === "false") {
     return null;
@@ -64,23 +78,26 @@ export function beep(
   }
 
   const oscillator = audio.createOscillator();
-
   const gain = audio.createGain();
+
   duration = Math.max(1, Number(duration) || 80);
   delay = Math.max(0, Number(delay) || 0);
 
   const length = duration / 1000;
   const start = audio.currentTime + delay / 1000;
   const end = start + length;
-
   const attack = Math.min(0.01, length / 2);
+
   oscillator.frequency.setValueAtTime(
     Math.max(1, Number(frequency) || 440),
     start
   );
   oscillator.type = waves.has(type) ? type : "sine";
   gain.gain.setValueAtTime(0, start);
-  gain.gain.linearRampToValueAtTime(level(channel, volume), start + attack);
+  gain.gain.linearRampToValueAtTime(
+    level(channel, volume),
+    start + attack
+  );
   gain.gain.linearRampToValueAtTime(0, end);
   oscillator.connect(gain);
   gain.connect(audio.destination);
@@ -101,7 +118,7 @@ export function beep(
   return oscillator;
 }
 
-const fallback = (name, options = {}) => {
+const beeps = (name, options = {}) => {
   const pattern = patterns[name];
 
   if (!pattern) {
@@ -112,14 +129,17 @@ const fallback = (name, options = {}) => {
 
   return pattern
     .map(([frequency, duration, gap]) => {
-      const tone = beep(frequency, duration, { ...options, delay });
+      const tone = beep(frequency, duration, {
+        ...options,
+        delay
+      });
+
       delay += duration + gap;
 
       return tone;
     })
     .filter(Boolean);
 };
-
 const effect = async (
   url,
   { channel = "system", delay = 0, volume = 1 } = {}
@@ -135,7 +155,6 @@ const effect = async (
   }
 
   const id = token;
-
   let buffer;
 
   try {
@@ -149,8 +168,8 @@ const effect = async (
   }
 
   const player = audio.createBufferSource();
-
   const gain = audio.createGain();
+
   player.buffer = buffer;
   gain.gain.value = level(channel, volume);
   player.connect(gain);
@@ -170,14 +189,23 @@ const effect = async (
     { once: true }
   );
 
-  const start = audio.currentTime + Math.max(0, Number(delay) || 0) / 1000;
+  const start =
+    audio.currentTime +
+    Math.max(0, Number(delay) || 0) / 1000;
+
   player.start(start);
 
   return player;
 };
 
-export async function play(name, { overlap = false, ...options } = {}) {
-  if (get("sound", "true") === "false" || (overlap && active.has(name))) {
+export async function play(
+  name,
+  { overlap = false, ...options } = {}
+) {
+  if (
+    get("sound", "true") === "false" ||
+    (overlap && active.has(name))
+  ) {
     return null;
   }
 
@@ -210,7 +238,7 @@ export async function play(name, { overlap = false, ...options } = {}) {
     }
   }
 
-  const result = fallback(name, options);
+  const result = beeps(name, options);
 
   if (!result.length) {
     release();
@@ -246,13 +274,13 @@ const clearTrack = (player) => {
   track = undefined;
   source = "";
 };
-
 const resetTrack = () => {
   if (!track) {
     return false;
   }
 
   const player = track;
+
   track = undefined;
   source = "";
   player.pause();
@@ -264,8 +292,14 @@ const resetTrack = () => {
   return true;
 };
 
-export function music(name, { loop = false, volume = 1 } = {}) {
-  if (typeof Audio === "undefined" || get("sound", "true") === "false") {
+export function music(
+  name,
+  { loop = false, volume = 1 } = {}
+) {
+  if (
+    typeof Audio === "undefined" ||
+    get("sound", "true") === "false"
+  ) {
     resetTrack();
 
     return null;
@@ -279,6 +313,7 @@ export function music(name, { loop = false, volume = 1 } = {}) {
 
   if (track && source === url) {
     const player = track;
+
     player.loop = loop;
     player.volume = level("media", volume);
 
@@ -292,12 +327,17 @@ export function music(name, { loop = false, volume = 1 } = {}) {
   resetTrack();
 
   const player = new Audio(url);
+
   player.loop = loop;
   player.volume = level("media", volume);
   track = player;
   source = url;
-  on(player, "ended", () => clearTrack(player), { once: true });
-  on(player, "error", () => clearTrack(player), { once: true });
+  on(player, "ended", () => clearTrack(player), {
+    once: true
+  });
+  on(player, "error", () => clearTrack(player), {
+    once: true
+  });
   player.play().catch(() => clearTrack(player));
 
   return player;

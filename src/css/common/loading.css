@@ -13,17 +13,6 @@ dialog[data-loading] {
   user-select: none;
 }
 
-dialog[data-loading][open] {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
 dialog[data-loading]::backdrop {
   background: var(--shade);
-}
-
-dialog[data-loading] > .icon {
-  width: 2rem;
-  height: 2rem;
 }

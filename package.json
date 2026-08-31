@@ -19,7 +19,7 @@
     "#audio/*": "./src/assets/audio/*"
   },
   "scripts": {
-    "format": "prettier --write \"**/*.{js,css,html}\"",
+    "format": "eslint . --fix && prettier --write \"**/*.{js,css,html}\"",
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
@@ -36,6 +36,8 @@
     "web-push": "^3.6.7"
   },
   "devDependencies": {
+    "@stylistic/eslint-plugin": "^5.10.0",
+    "eslint": "^10.9.1",
     "prettier": "^3.9.6",
     "vite": "^8.2.1"
   },

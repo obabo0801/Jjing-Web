@@ -7,19 +7,25 @@ import { get } from "#config/sqlite";
 import synthesize from "#config/tts";
 import uid from "#config/uid";
 
+import string from "#src/string";
+
 import limit from "#middleware/limit";
 
 const router = Router();
-
 const allowed = limit(20);
+
 router.post("/", async (req, res) => {
   const body = req.body;
 
-  if (!body || typeof body !== "object" || Array.isArray(body)) {
+  if (
+    !body ||
+    typeof body !== "object" ||
+    Array.isArray(body)
+  ) {
     return res.status(400).end();
   }
 
-  const text = typeof body.text === "string" ? body.text.trim() : "";
+  const text = string(body.text).trim();
 
   if (!text) {
     return res.status(400).end();
@@ -48,7 +54,6 @@ router.post("/", async (req, res) => {
         [id]
       )
     : null;
-
   const blocked = await get(
     `
     SELECT 1
@@ -59,7 +64,6 @@ router.post("/", async (req, res) => {
   `,
     [id || null, ip]
   );
-
   const only = body.type === "cache";
 
   if (!only && (!user || blocked)) {
@@ -67,33 +71,32 @@ router.post("/", async (req, res) => {
   }
 
   if (body.type === "browser") {
-    const voice = typeof body.voice === "string" ? body.voice.trim() : "";
+    const voice = string(body.voice).trim();
 
     if ([...voice].length > 200) {
       return res.status(400).end();
     }
 
-    await record(id, text, voice || "default", "browser", now());
+    await record(
+      id,
+      text,
+      voice || "default",
+      "browser",
+      now()
+    );
 
     return res.status(204).end();
   }
 
   const time = now();
-
   let result;
 
   try {
+    const { lang, pitch, rate, voice } = body;
+
     result = await synthesize(
-      {
-        text,
-        lang: body.lang,
-        pitch: body.pitch,
-        rate: body.rate,
-        voice: body.voice
-      },
-      id,
-      time,
-      body.type
+      { text, lang, pitch, rate, voice },
+      { uid: id, time, type: body.type }
     );
   } catch (error) {
     if (error?.code === "SQLITE_BUSY") {
@@ -111,6 +114,7 @@ router.post("/", async (req, res) => {
 
   if (body.type !== "cache") {
     const type = result.cached ? "cache" : result.provider;
+
     await record(id, text, result.voice, type, time);
   }
 

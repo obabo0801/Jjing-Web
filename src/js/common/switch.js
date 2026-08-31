@@ -6,7 +6,9 @@ export default function toggle() {
   dom.on(document, "change", (event) => {
     const input = event.target;
 
-    if (!input.matches?.('.switch input[type="checkbox"]')) {
+    if (
+      !input.matches?.('.switch input[type="checkbox"]')
+    ) {
       return;
     }
 

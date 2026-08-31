@@ -8,14 +8,13 @@ import { get } from "#config/sqlite";
 import save, { supported } from "#config/stt";
 import uid from "#config/uid";
 
+import string from "#src/string";
+
 import limit from "#middleware/limit";
 
 const router = Router();
-
 const allowed = limit(20);
-
 const raw = express.raw({ type: "audio/*", limit: "5mb" });
-
 const decode = (req) => {
   try {
     const value = req.get("x-stt-meta");
@@ -24,13 +23,15 @@ const decode = (req) => {
       return null;
     }
 
-    return JSON.parse(Buffer.from(value, "base64").toString("utf8"));
+    return JSON.parse(
+      Buffer.from(value, "base64").toString("utf8")
+    );
   } catch {
     return null;
   }
 };
-
 const tooLong = (text) => [...text].length > 500;
+
 router.get("/", (_, res) => {
   res.json({ cloud: enabled });
 });
@@ -54,7 +55,6 @@ router.post("/", raw, async (req, res) => {
         [id]
       )
     : null;
-
   const blocked = user
     ? await get(
         `
@@ -75,18 +75,21 @@ router.post("/", raw, async (req, res) => {
   const audio = Buffer.isBuffer(req.body);
   const data = audio ? decode(req) : req.body;
 
-  if (!data || typeof data !== "object" || Array.isArray(data)) {
+  if (
+    !data ||
+    typeof data !== "object" ||
+    Array.isArray(data)
+  ) {
     return res.status(400).end();
   }
 
-  let text = typeof data.text === "string" ? data.text.trim() : "";
-
-  const lang = typeof data.lang === "string" ? data.lang.trim() : "";
-
-  const pitch = ["low", "mid", "high", "unknown"].includes(data.pitch)
+  let text = string(data.text).trim();
+  const lang = string(data.lang).trim();
+  const pitch = ["low", "mid", "high", "unknown"].includes(
+    data.pitch
+  )
     ? data.pitch
     : "unknown";
-
   let type = text ? "browser" : "cloud";
 
   if (tooLong(text)) {
@@ -99,12 +102,23 @@ router.post("/", raw, async (req, res) => {
     }
 
     const time = now();
-    await record(id, lang, text, "unknown", "browser", time);
+
+    await record(
+      id,
+      lang,
+      text,
+      "unknown",
+      "browser",
+      time
+    );
 
     return res.status(204).end();
   }
 
-  const mime = req.get("content-type")?.split(";")[0].toLowerCase();
+  const mime = req
+    .get("content-type")
+    ?.split(";")[0]
+    .toLowerCase();
 
   if (!supported(mime)) {
     return res.status(415).end();
@@ -137,11 +151,15 @@ router.post("/", raw, async (req, res) => {
   }
 
   const time = now();
-
   let file;
 
   try {
-    file = await save(req.body, mime, id, text, time);
+    file = await save(req.body, {
+      type: mime,
+      uid: id,
+      text,
+      time
+    });
   } catch (error) {
     if (error?.code === "SQLITE_BUSY") {
       throw error;

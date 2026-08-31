@@ -5,10 +5,11 @@ import address from "#config/ip";
 import { get, run } from "#config/sqlite";
 import uid from "#config/uid";
 
+import string from "#src/string";
+
 import limit from "#middleware/limit";
 
 const devices = new Set(["android", "ios", "wearable"]);
-
 const router = Router();
 const allowed = limit(20);
 
@@ -17,12 +18,10 @@ router.post("/", async (req, res) => {
     return res.status(503).end();
   }
 
-  const fid = typeof req.body.fid === "string" ? req.body.fid.trim() : "";
-
-  const device =
-    typeof req.body.device === "string"
-      ? req.body.device.trim().toLowerCase()
-      : "";
+  const fid = string(req.body.fid).trim();
+  const device = string(req.body.device)
+    .trim()
+    .toLowerCase();
 
   if (!fid || fid.length > 4096 || !devices.has(device)) {
     return res.status(400).end();
@@ -47,7 +46,6 @@ router.post("/", async (req, res) => {
         [id]
       )
     : null;
-
   const blocked = await get(
     `
     SELECT 1

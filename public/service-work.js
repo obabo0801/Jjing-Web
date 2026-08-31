@@ -1,6 +1,5 @@
 const offline = "offline";
 const page = "/offline";
-
 const prepare = async (locale, content) => {
   const response = await fetch(page, {
     cache: "no-store",
@@ -12,10 +11,11 @@ const prepare = async (locale, content) => {
   }
 
   const html = await response.clone().text();
-
   const files = new Set(
     [...html.matchAll(/\b(?:src|href)=["']([^"']+)["']/g)]
-      .map(([, file]) => new URL(file, self.location.origin))
+      .map(
+        ([, file]) => new URL(file, self.location.origin)
+      )
       .filter((url) => url.origin === self.location.origin)
       .map((url) => `${url.pathname}${url.search}`)
   );
@@ -27,14 +27,15 @@ const prepare = async (locale, content) => {
       throw new Error();
     }
 
-    const localeResponse = await fetch(url, { cache: "no-store" });
+    const localeResponse = await fetch(url, {
+      cache: "no-store"
+    });
 
     if (!localeResponse.ok) {
       throw new Error();
     }
 
     const body = await localeResponse.json();
-
     const value = body?.[content];
 
     if (typeof value !== "string") {
@@ -42,8 +43,8 @@ const prepare = async (locale, content) => {
     }
 
     const languages = JSON.parse(atob(value));
-
     const base = url.pathname.replace(/\/$/, "");
+
     files.add(base);
     Object.values(languages).forEach((file) => {
       files.add(`${base}/${file}`);
@@ -51,26 +52,26 @@ const prepare = async (locale, content) => {
   }
 
   const cache = await caches.open(offline);
+
   await cache.put(page, response);
   await cache.addAll([...files]);
 
   const keep = new Set([page, ...files]);
-
   const saved = await cache.keys();
+
   await Promise.all(
     saved.map((request) => {
       const url = new URL(request.url);
-
       const file = `${url.pathname}${url.search}`;
 
       return keep.has(file) ? true : cache.delete(request);
     })
   );
 };
-
 const openDatabase = () =>
   new Promise((resolve, reject) => {
     const request = indexedDB.open("sync", 1);
+
     request.onupgradeneeded = () => {
       const database = request.result;
 
@@ -88,14 +89,15 @@ const openDatabase = () =>
       reject(request.error);
     };
   });
-
 const requests = async () => {
   const database = await openDatabase();
 
   return new Promise((resolve, reject) => {
     const transaction = database.transaction("requests");
+    const request = transaction
+      .objectStore("requests")
+      .getAll();
 
-    const request = transaction.objectStore("requests").getAll();
     transaction.oncomplete = () => {
       database.close();
       resolve(request.result);
@@ -103,19 +105,24 @@ const requests = async () => {
 
     const fail = () => {
       const error = transaction.error || new Error();
+
       database.close();
       reject(error);
     };
+
     transaction.onerror = fail;
     transaction.onabort = fail;
   });
 };
-
 const removeRequest = async (id) => {
   const database = await openDatabase();
 
   return new Promise((resolve, reject) => {
-    const transaction = database.transaction("requests", "readwrite");
+    const transaction = database.transaction(
+      "requests",
+      "readwrite"
+    );
+
     transaction.objectStore("requests").delete(id);
     transaction.oncomplete = () => {
       database.close();
@@ -124,14 +131,15 @@ const removeRequest = async (id) => {
 
     const fail = () => {
       const error = transaction.error || new Error();
+
       database.close();
       reject(error);
     };
+
     transaction.onerror = fail;
     transaction.onabort = fail;
   });
 };
-
 const fetchApi = async (request) => {
   const cache = await caches.open(offline);
   const saved = await cache.match(request);
@@ -152,7 +160,6 @@ const fetchApi = async (request) => {
     return saved || Response.error();
   }
 };
-
 const synchronize = async () => {
   for (const item of await requests()) {
     const response = await fetch(item.url, item.options);
@@ -165,6 +172,7 @@ const synchronize = async () => {
     throw new Error();
   }
 };
+
 self.addEventListener("install", (event) => {
   event.waitUntil(self.skipWaiting());
 });
@@ -185,14 +193,18 @@ self.addEventListener("fetch", (event) => {
   }
 
   if (url.pathname === "/manifest.json") {
-    event.respondWith(fetch(request, { cache: "no-store" }));
+    event.respondWith(
+      fetch(request, { cache: "no-store" })
+    );
 
     return;
   }
 
   if (url.pathname === page) {
     event.respondWith(
-      caches.match(page).then((response) => response || fetch(request))
+      caches
+        .match(page)
+        .then((response) => response || fetch(request))
     );
 
     return;
@@ -202,7 +214,9 @@ self.addEventListener("fetch", (event) => {
     event.respondWith(
       fetch(request)
         .then(async (response) => {
-          const down = [502, 503, 504].includes(response.status);
+          const down = [502, 503, 504].includes(
+            response.status
+          );
 
           if (!down) {
             return response;
@@ -210,7 +224,10 @@ self.addEventListener("fetch", (event) => {
 
           return (await caches.match(page)) || response;
         })
-        .catch(async () => (await caches.match(page)) || Response.error())
+        .catch(
+          async () =>
+            (await caches.match(page)) || Response.error()
+        )
     );
 
     return;
@@ -240,7 +257,9 @@ self.addEventListener("message", (event) => {
   }
 
   if (event.data?.type === "offline") {
-    event.waitUntil(prepare(event.data.locale, event.data.content));
+    event.waitUntil(
+      prepare(event.data.locale, event.data.content)
+    );
   }
 });
 self.addEventListener("push", (event) => {
@@ -254,12 +273,14 @@ self.addEventListener("push", (event) => {
     }
   }
 
+  const { title, body, image, url } = data;
+
   event.waitUntil(
-    self.registration.showNotification(data.title, {
-      body: data.body,
+    self.registration.showNotification(title, {
+      body,
       icon: "/icons/icon-192.png",
-      ...(data.image && { image: data.image }),
-      data: { url: data.url }
+      ...(image && { image }),
+      data: { url }
     })
   );
 });

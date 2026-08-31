@@ -2,11 +2,18 @@
 <html lang="en" data-theme="system">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0"
+    />
 
     <title data-i18n="app.title">&#8203;</title>
 
-    <link rel="icon" href="/src/assets/favicon.ico" sizes="any" />
+    <link
+      rel="icon"
+      href="/src/assets/favicon.ico"
+      sizes="any"
+    />
 
     <link rel="manifest" href="/manifest.json" />
 
@@ -19,28 +26,102 @@
   <body>
     <main class="app" hidden>
       <div class="segment">
-        <button type="button" data-background data-selected>끔</button>
+        <button type="button" data-background data-selected>
+          끔
+        </button>
 
-        <button type="button" data-background>디스플레이</button>
+        <button type="button" data-background>
+          디스플레이
+        </button>
 
-        <button type="button" data-background data-confirm>경고음</button>
+        <button type="button" data-background data-confirm>
+          경고음
+        </button>
       </div>
 
-      <button type="button" data-background data-music>음악 재생</button>
+      <button type="button" data-background data-music>
+        음악 재생
+      </button>
 
       <div class="switch" data-background>
         <label>
           <span>알림 받기</span>
 
-          <input type="checkbox" name="notify" data-notify />
+          <input
+            type="checkbox"
+            name="notify"
+            data-notify
+          />
         </label>
       </div>
 
+      <button type="button">
+        <span>설정</span>
+
+        <span
+          data-icon="throbber"
+          data-tooltip="설정 열기"
+        ></span>
+      </button>
+
+      <div class="radio" data-background>
+        <label>
+          <span>자동</span>
+
+          <input
+            type="radio"
+            name="theme"
+            value="system"
+            checked
+          />
+        </label>
+      </div>
+
+      <div class="checkbox" data-background>
+        <label>
+          <span>항목 선택</span>
+
+          <input type="checkbox" name="option" />
+        </label>
+      </div>
+
+      <div class="layer-test">
+        <button
+          type="button"
+          data-background
+          data-layer-test="popover"
+        >
+          Popover
+        </button>
+
+        <button
+          type="button"
+          data-background
+          data-layer-test="drawer"
+        >
+          Drawer
+        </button>
+
+        <button
+          type="button"
+          data-background
+          data-layer-test="sheet"
+        >
+          Sheet
+        </button>
+      </div>
+
       <div class="stepper" data-background data-sign>
-        <button type="button" data-icon="minus" data-step="-1"></button>
+        <button
+          type="button"
+          data-icon="minus"
+          data-step="-1"
+        ></button>
 
         <div class="stepper-value">
-          <button type="button" class="stepper-number">0</button>
+          <button type="button" class="stepper-number">
+            0
+          </button>
 
           <input
             type="number"
@@ -56,7 +137,11 @@
           <span>km/h</span>
         </div>
 
-        <button type="button" data-icon="plus" data-step="1"></button>
+        <button
+          type="button"
+          data-icon="plus"
+          data-step="1"
+        ></button>
       </div>
 
       <div class="picker">

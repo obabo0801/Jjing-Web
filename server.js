@@ -14,6 +14,7 @@ import router from "#router";
 const server = express();
 const port = process.env.PORT;
 const secret = process.env.COOKIE_SECRET;
+
 server.set("trust proxy", "loopback");
 server.use(cookie(secret));
 server.use(express.json());

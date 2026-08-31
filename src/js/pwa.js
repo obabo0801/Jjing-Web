@@ -6,6 +6,7 @@ import api from "#common/api";
 const openDatabase = () =>
   new Promise((resolve, reject) => {
     const request = indexedDB.open("sync", 1);
+
     request.onupgradeneeded = () => {
       const database = request.result;
 
@@ -23,12 +24,15 @@ const openDatabase = () =>
       reject(request.error);
     };
   });
-
 const saveRequest = async (value) => {
   const database = await openDatabase();
 
   return new Promise((resolve, reject) => {
-    const transaction = database.transaction("requests", "readwrite");
+    const transaction = database.transaction(
+      "requests",
+      "readwrite"
+    );
+
     transaction.objectStore("requests").add(value);
     transaction.oncomplete = () => {
       database.close();
@@ -36,18 +40,21 @@ const saveRequest = async (value) => {
     };
     transaction.onerror = () => {
       const { error } = transaction;
+
       database.close();
       reject(error);
     };
   });
 };
-
 const decodeKey = (value) => {
   const pad = "=".repeat((4 - (value.length % 4)) % 4);
+  const base64 = (value + pad)
+    .replace(/-/g, "+")
+    .replace(/_/g, "/");
 
-  const base64 = (value + pad).replace(/-/g, "+").replace(/_/g, "/");
-
-  return Uint8Array.from(atob(base64), (character) => character.charCodeAt(0));
+  return Uint8Array.from(atob(base64), (character) =>
+    character.charCodeAt(0)
+  );
 };
 
 export async function active(registration) {
@@ -60,7 +67,8 @@ export async function active(registration) {
     return false;
   }
 
-  const subscription = await registration.pushManager.getSubscription();
+  const subscription =
+    await registration.pushManager.getSubscription();
 
   return Boolean(subscription);
 }
@@ -90,15 +98,14 @@ export async function subscribe(registration) {
     return false;
   }
 
-  const saved = await registration.pushManager.getSubscription();
-
+  const saved =
+    await registration.pushManager.getSubscription();
   const subscription =
     saved ||
     (await registration.pushManager.subscribe({
       userVisibleOnly: true,
       applicationServerKey: decodeKey(key.data.key)
     }));
-
   const result = await api(route.push, {
     method: "POST",
     data: { subscription }
@@ -112,29 +119,38 @@ export async function unsubscribe(registration) {
     return false;
   }
 
-  const subscription = await registration.pushManager.getSubscription();
+  const subscription =
+    await registration.pushManager.getSubscription();
 
   if (!subscription) {
     return true;
   }
 
   const { endpoint } = subscription;
-
   const removed = await subscription.unsubscribe();
-  await api(route.push, { method: "DELETE", data: { endpoint } });
+
+  await api(route.push, {
+    method: "DELETE",
+    data: { endpoint }
+  });
 
   return removed;
 }
 
 export async function load() {
-  if (!import.meta.env.PROD || !("serviceWorker" in navigator)) {
+  if (
+    !import.meta.env.PROD ||
+    !("serviceWorker" in navigator)
+  ) {
     return;
   }
 
-  await navigator.serviceWorker.register("/service-work.js", { scope: "/" });
+  await navigator.serviceWorker.register(
+    "/service-work.js",
+    { scope: "/" }
+  );
 
   const registration = await navigator.serviceWorker.ready;
-
   const cache = () => {
     registration.active?.postMessage({
       type: "offline",
@@ -142,8 +158,9 @@ export async function load() {
       content: route.content
     });
   };
-
-  const standalone = matchMedia("(display-mode: standalone)").matches;
+  const standalone = matchMedia(
+    "(display-mode: standalone)"
+  ).matches;
 
   if (navigator.standalone || standalone) {
     cache();
@@ -158,7 +175,10 @@ export async function load() {
 }
 
 export async function notify(title, options = {}) {
-  if (!("Notification" in window) || !("serviceWorker" in navigator)) {
+  if (
+    !("Notification" in window) ||
+    !("serviceWorker" in navigator)
+  ) {
     return false;
   }
 
@@ -172,6 +192,7 @@ export async function notify(title, options = {}) {
   }
 
   const registration = await navigator.serviceWorker.ready;
+
   await registration.showNotification(title, {
     icon: "/icons/icon-192.png",
     ...options
@@ -180,20 +201,29 @@ export async function notify(title, options = {}) {
   return true;
 }
 
-export async function sync(path, { data, ...options } = {}) {
+export async function sync(
+  path,
+  { data, ...options } = {}
+) {
   const request = {
     url: `/api${path}`,
     options: {
       ...options,
       ...(data !== undefined && {
-        headers: { "Content-Type": "application/json", ...options.headers },
+        headers: {
+          "Content-Type": "application/json",
+          ...options.headers
+        },
         body: JSON.stringify(data)
       })
     }
   };
 
   try {
-    const response = await fetch(request.url, request.options);
+    const response = await fetch(
+      request.url,
+      request.options
+    );
 
     if (response.ok || response.status < 500) {
       return response;

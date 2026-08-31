@@ -1,8 +1,7 @@
-const clean = (value) => value?.replaceAll('"', "").trim() || "";
-
+const clean = (value) =>
+  value?.replaceAll('"', "").trim() || "";
 const os = (req) => {
   const wearable = req.get("x-wearable") === "true";
-
   const value = clean(req.get("sec-ch-ua-platform"));
 
   if (wearable && ["Android", "iOS"].includes(value)) {
@@ -41,10 +40,8 @@ const os = (req) => {
 
   return "Unknown";
 };
-
 const browser = (req) => {
   const brands = req.get("sec-ch-ua") || "";
-
   const agent = req.get("user-agent") || "";
 
   if (agent.includes("SamsungBrowser/")) {
@@ -67,11 +64,17 @@ const browser = (req) => {
     return "Edge";
   }
 
-  if (agent.includes("Firefox/") || agent.includes("FxiOS/")) {
+  if (
+    agent.includes("Firefox/") ||
+    agent.includes("FxiOS/")
+  ) {
     return "Firefox";
   }
 
-  if (agent.includes("Chrome/") || agent.includes("CriOS/")) {
+  if (
+    agent.includes("Chrome/") ||
+    agent.includes("CriOS/")
+  ) {
     return "Chrome";
   }
 

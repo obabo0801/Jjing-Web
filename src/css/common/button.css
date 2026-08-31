@@ -33,7 +33,7 @@ button[data-circle] {
 }
 
 button[data-background] {
-  background: var(--surface);
+  background: var(--background);
 }
 
 button[data-danger] {
@@ -46,9 +46,9 @@ button[data-success] {
   color: var(--thumb);
 }
 
-button[data-muted] {
-  background: var(--mute);
-  color: var(--background);
+button[data-neutral] {
+  background: var(--neutral);
+  color: var(--text);
 }
 
 button[data-confirm] {
@@ -68,7 +68,7 @@ button:disabled {
 button:focus-visible {
   outline: 0;
 
-  background-image: var(--feedback);
+  background-image: var(--overlay);
   color: var(--thumb);
 }
 
@@ -76,10 +76,10 @@ button:is(
     [data-background],
     [data-danger],
     [data-success],
-    [data-muted],
+    [data-neutral],
     [data-confirm]
   ):enabled:active {
-  background-image: var(--feedback);
+  background-image: var(--overlay);
 }
 
 button[data-opacity]:enabled:active {
@@ -91,10 +91,10 @@ button[data-opacity]:enabled:active {
       [data-background],
       [data-danger],
       [data-success],
-      [data-muted],
+      [data-neutral],
       [data-confirm]
     ):enabled:hover {
-    background-image: var(--feedback);
+    background-image: var(--overlay);
   }
 
   button[data-opacity]:enabled:hover {

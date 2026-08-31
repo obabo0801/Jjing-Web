@@ -99,12 +99,16 @@
 }
 
 .segment
-  button:is([data-danger], [data-success], [data-confirm])[data-selected] {
+  button:is(
+    [data-danger],
+    [data-success],
+    [data-confirm]
+  )[data-selected] {
   color: var(--thumb);
 }
 
 .segment button:focus-visible {
-  background-image: var(--feedback);
+  background-image: var(--overlay);
   color: var(--thumb);
 }
 

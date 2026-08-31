@@ -4,11 +4,11 @@ import * as dom from "#common/dom";
 const frequency = (buffer) => {
   const data = buffer.getChannelData(0);
   const rate = buffer.sampleRate;
-
   const size = Math.min(data.length, rate);
-
-  const start = Math.max(0, Math.floor((data.length - size) / 2));
-
+  const start = Math.max(
+    0,
+    Math.floor((data.length - size) / 2)
+  );
   let power = 0;
   let count = 0;
 
@@ -23,7 +23,6 @@ const frequency = (buffer) => {
 
   const min = Math.floor(rate / 300);
   const max = Math.floor(rate / 80);
-
   let best = 0;
   let score = 0;
 
@@ -42,7 +41,6 @@ const frequency = (buffer) => {
 
   return best ? rate / best : 0;
 };
-
 const pitch = (hz) => {
   if (!hz) {
     return "unknown";
@@ -67,7 +65,9 @@ export const analyze = async (blob) => {
   }
 
   try {
-    const buffer = await audio.decodeAudioData(await blob.arrayBuffer());
+    const buffer = await audio.decodeAudioData(
+      await blob.arrayBuffer()
+    );
 
     return pitch(frequency(buffer));
   } catch {
@@ -83,15 +83,13 @@ export const meter = (stream, callback) => {
   }
 
   const source = audio.createMediaStreamSource(stream);
-
   const analyser = audio.createAnalyser();
+
   analyser.fftSize = 1024;
   source.connect(analyser);
 
   const data = new Uint8Array(analyser.fftSize);
-
   let frame;
-
   const check = () => {
     analyser.getByteTimeDomainData(data);
 
@@ -100,14 +98,17 @@ export const meter = (stream, callback) => {
 
     for (let i = 0; i < data.length; i += 4) {
       const value = (data[i] - 128) / 128;
+
       power += value ** 2;
       count += 1;
     }
 
     const level = count ? Math.sqrt(power / count) : 0;
+
     callback(level);
     frame = requestAnimationFrame(check);
   };
+
   frame = requestAnimationFrame(check);
 
   return () => {
@@ -125,7 +126,6 @@ export const silence = (stream, signal, stop) =>
       let offStop = () => {};
       let timer;
       let settled = false;
-
       const done = (spoken = false) => {
         if (settled) {
           return;
@@ -137,9 +137,17 @@ export const silence = (stream, signal, stop) =>
         offStop();
         resolve(spoken);
       };
+
       timer = setTimeout(() => done(true), 5000);
-      offSignal = dom.on(signal, "abort", () => done(false), { once: true });
-      offStop = dom.on(stop, "abort", () => done(false), { once: true });
+      offSignal = dom.on(
+        signal,
+        "abort",
+        () => done(false),
+        { once: true }
+      );
+      offStop = dom.on(stop, "abort", () => done(false), {
+        once: true
+      });
 
       if (stop?.aborted) {
         done();
@@ -149,22 +157,19 @@ export const silence = (stream, signal, stop) =>
     }
 
     const source = audio.createMediaStreamSource(stream);
-
     const analyser = audio.createAnalyser();
+
     analyser.fftSize = 1024;
     source.connect(analyser);
 
     const data = new Uint8Array(analyser.fftSize);
-
     const start = performance.now();
-
     let spoken = false;
     let quiet = start;
     let frame;
     let stopped = false;
     let offSignal = () => {};
     let offStop = () => {};
-
     const done = () => {
       if (stopped) {
         return;
@@ -177,7 +182,10 @@ export const silence = (stream, signal, stop) =>
       source.disconnect();
       resolve(spoken);
     };
-    offSignal = dom.on(signal, "abort", done, { once: true });
+
+    offSignal = dom.on(signal, "abort", done, {
+      once: true
+    });
     offStop = dom.on(stop, "abort", done, { once: true });
 
     if (stop?.aborted) {
@@ -193,6 +201,7 @@ export const silence = (stream, signal, stop) =>
 
       for (let i = 0; i < data.length; i += 4) {
         const value = (data[i] - 128) / 128;
+
         power += value ** 2;
         count += 1;
       }
@@ -215,5 +224,6 @@ export const silence = (stream, signal, stop) =>
 
       frame = requestAnimationFrame(check);
     };
+
     frame = requestAnimationFrame(check);
   });

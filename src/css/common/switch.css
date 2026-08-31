@@ -8,6 +8,8 @@
   border: 1px solid var(--border);
   border-radius: 8px;
 
+  font-size: 1.2rem;
+
   cursor: pointer;
 
   -webkit-user-select: none;
@@ -20,7 +22,7 @@
 }
 
 .switch[data-background] {
-  background: var(--surface);
+  background: var(--background);
 }
 
 .switch > label {
@@ -76,7 +78,7 @@
 }
 
 .switch:has(input:focus-visible) {
-  background-image: var(--feedback);
+  background-image: var(--overlay);
 }
 
 .switch input:focus-visible {

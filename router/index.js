@@ -11,6 +11,7 @@ import tts from "#router/tts";
 import user from "#router/user";
 
 const router = Router();
+
 router.use(route.admin, admin);
 router.use(route.fcm, fcm);
 router.use(route.i18n, i18n);

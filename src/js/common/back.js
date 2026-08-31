@@ -1,5 +1,4 @@
 const stack = [];
-
 let watcher;
 let running = false;
 
@@ -34,6 +33,7 @@ function drop(item) {
   }
 
   const last = index === stack.length - 1;
+
   stack.splice(index, 1);
 
   if (last && !running) {
@@ -49,6 +49,7 @@ export function add(run) {
   }
 
   const item = { run };
+
   stack.push(item);
 
   if (!running) {
@@ -59,7 +60,11 @@ export function add(run) {
 }
 
 export function remove(run) {
-  for (let index = stack.length - 1; index >= 0; index -= 1) {
+  for (
+    let index = stack.length - 1;
+    index >= 0;
+    index -= 1
+  ) {
     if (stack[index].run === run) {
       return drop(stack[index]);
     }
@@ -73,7 +78,7 @@ export async function back() {
     return true;
   }
 
-  const item = stack.pop();
+  const item = stack.at(-1);
 
   if (!item) {
     return false;
@@ -82,9 +87,15 @@ export async function back() {
   stop();
   running = true;
 
+  let keep = false;
+
   try {
-    await item.run();
+    keep = (await item.run()) === false;
   } finally {
+    if (!keep) {
+      drop(item);
+    }
+
     running = false;
     watch();
   }

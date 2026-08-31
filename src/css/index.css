@@ -2,8 +2,11 @@
   display: grid;
   place-content: center;
 
-  width: min(100%, 32rem);
+  width: 100%;
   min-height: 100dvh;
   margin-inline: auto;
-  padding: 1.2rem;
+}
+
+.wearable .app {
+  padding: 8dvw;
 }

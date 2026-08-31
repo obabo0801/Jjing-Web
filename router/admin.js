@@ -4,10 +4,17 @@ import path from "node:path";
 
 import { raw, Router } from "express";
 
-import fcm, { enabled as fcmEnabled, invalid as invalidFcm } from "#config/fcm";
+import fcm, {
+  enabled as fcmEnabled,
+  invalid as invalidFcm
+} from "#config/fcm";
 import record from "#config/log/notify";
-import webpush, { enabled as webEnabled } from "#config/push";
+import webpush, {
+  enabled as webEnabled
+} from "#config/push";
 import { all, run } from "#config/sqlite";
+
+import string from "#src/string";
 
 import admin from "#middleware/admin";
 
@@ -16,11 +23,14 @@ const extensions = {
   "image/png": "png",
   "image/webp": "webp"
 };
-
-const images = path.join(import.meta.dirname, "../data/upload/images");
-
-const parseImage = raw({ type: Object.keys(extensions), limit: "5mb" });
-
+const images = path.join(
+  import.meta.dirname,
+  "../data/upload/images"
+);
+const parseImage = raw({
+  type: Object.keys(extensions),
+  limit: "5mb"
+});
 const sendWeb = async (rows, value) => {
   let sent = 0;
   let failed = 0;
@@ -54,7 +64,6 @@ const sendWeb = async (rows, value) => {
 
   return { sent, failed };
 };
-
 const sendFcm = async (rows, value) => {
   let results;
 
@@ -79,7 +88,9 @@ const sendFcm = async (rows, value) => {
       }
 
       if (invalidFcm(result.error)) {
-        await run("DELETE FROM fcm WHERE fid = ?", [result.fid]);
+        await run("DELETE FROM fcm WHERE fid = ?", [
+          result.fid
+        ]);
 
         return;
       }
@@ -90,15 +101,18 @@ const sendFcm = async (rows, value) => {
 
   return { sent, failed };
 };
-
 const router = Router();
+
 router.use(admin);
 router.get("/", (_, res) => {
   res.status(204).end();
 });
 router.post("/image", parseImage, async (req, res) => {
-  const type = req.get("content-type")?.split(";")[0].trim().toLowerCase();
-
+  const type = req
+    .get("content-type")
+    ?.split(";")[0]
+    .trim()
+    .toLowerCase();
   const extension = extensions[type];
 
   if (!extension) {
@@ -112,7 +126,10 @@ router.post("/image", parseImage, async (req, res) => {
   await mkdir(images, { recursive: true });
 
   const name = `${randomUUID()}.${extension}`;
-  await writeFile(path.join(images, name), req.body, { flag: "wx" });
+
+  await writeFile(path.join(images, name), req.body, {
+    flag: "wx"
+  });
 
   return res.json({ image: `/upload/images/${name}` });
 });
@@ -121,16 +138,14 @@ router.post("/", async (req, res) => {
     return res.status(503).end();
   }
 
-  const title = typeof req.body.title === "string" ? req.body.title.trim() : "";
-
-  const body = typeof req.body.body === "string" ? req.body.body.trim() : "";
-
-  const link = typeof req.body.url === "string" ? req.body.url.trim() : "";
-
-  const image = typeof req.body.image === "string" ? req.body.image.trim() : "";
-
+  const title = string(req.body.title).trim();
+  const body = string(req.body.body).trim();
+  const link = string(req.body.url).trim();
+  const image = string(req.body.image).trim();
   const url =
-    link.startsWith("/") && !link.startsWith("//") && !link.includes("\\")
+    link.startsWith("/") &&
+    !link.startsWith("//") &&
+    !link.includes("\\")
       ? link
       : "/";
 
@@ -166,18 +181,21 @@ router.post("/", async (req, res) => {
         `)
       : []
   ]);
-
   const value = { title, body, image, url };
   const source =
-    process.env.APP_URL?.trim() || `${req.protocol}://${req.get("host")}`;
-  const native = { ...value, image: image ? new URL(image, source).href : "" };
-  const wear = devices.filter(({ device }) => device === "wearable");
-
+    process.env.APP_URL?.trim() ||
+    `${req.protocol}://${req.get("host")}`;
+  const native = {
+    ...value,
+    image: image ? new URL(image, source).href : ""
+  };
+  const wear = devices.filter(
+    ({ device }) => device === "wearable"
+  );
   const [webResult, fcmResult] = await Promise.all([
     sendWeb(web, value),
     sendFcm(wear, native)
   ]);
-
   const sent = webResult.sent + fcmResult.sent;
   const failed = webResult.failed + fcmResult.failed;
 

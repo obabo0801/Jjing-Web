@@ -4,7 +4,7 @@ export default Object.freeze({
     [880, 90, 0]
   ],
   confirm: [[720, 60, 0]],
-  warning: [
+  noinput: [
     [520, 90, 45],
     [420, 120, 0]
   ],
@@ -16,7 +16,7 @@ export default Object.freeze({
     [360, 100, 35],
     [280, 140, 0]
   ],
-  fail: [
+  failure: [
     [280, 130, 50],
     [200, 160, 0]
   ],
@@ -58,7 +58,7 @@ export default Object.freeze({
     [560, 40, 25],
     [440, 70, 0]
   ],
-  send: [
+  open: [
     [520, 45, 25],
     [760, 80, 0]
   ],

@@ -53,6 +53,18 @@
   opacity: 0.5;
 }
 
+.wearable .input {
+  border-radius: 999px;
+}
+
+.wearable .input [data-control] {
+  min-height: 72px;
+  padding-inline: 24px;
+
+  font-size: 1.75rem;
+  text-align: center;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .input {
     transition: none;

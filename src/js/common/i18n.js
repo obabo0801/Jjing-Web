@@ -1,22 +1,22 @@
 import { i18n, content } from "#config/route";
 
+import string from "#src/string";
+
 import * as dom from "#common/dom";
 import api from "#common/api";
 import { get, set } from "#common/storage";
 
 const required = new Set();
-
 let messages = {};
-
 const updateText = (element, value) => {
   const icon = dom.query(":scope > .icon", element);
+
   element.textContent = value;
 
   if (icon) {
     element.prepend(icon);
   }
 };
-
 const attributes = new Map([["data-i18n", updateText]]);
 
 export const message = (key) => messages[key] || "";
@@ -54,7 +54,6 @@ const hash = async (value) => {
     .join("")
     .slice(0, 8);
 };
-
 const encode = (value) => btoa(JSON.stringify(value));
 
 export const decode = (value) => {
@@ -65,25 +64,27 @@ export const decode = (value) => {
   return JSON.parse(new TextDecoder().decode(bytes));
 };
 
-export default async function translate(mode = get("lang", "system")) {
-  mode =
-    typeof mode === "string" && mode.trim()
-      ? mode.trim().toLowerCase()
-      : "system";
+export default async function translate(
+  mode = get("lang", "system")
+) {
+  mode = string(mode).trim().toLowerCase() || "system";
   set("lang", mode);
 
-  const targets = [...attributes].flatMap(([attribute, update]) =>
-    dom
-      .all(`[${attribute}]`)
-      .map((element) => ({
-        element,
-        key: dom.get(element, attribute)?.trim(),
-        update
-      }))
+  const targets = [...attributes].flatMap(
+    ([attribute, update]) =>
+      dom
+        .all(`[${attribute}]`)
+        .map((element) => ({
+          element,
+          key: dom.get(element, attribute)?.trim(),
+          update
+        }))
   );
-
   const names = [
-    ...new Set([...targets.map(({ key }) => key), ...required])
+    ...new Set([
+      ...targets.map(({ key }) => key),
+      ...required
+    ])
   ].filter(Boolean);
 
   if (!names.length) {
@@ -93,7 +94,6 @@ export default async function translate(mode = get("lang", "system")) {
   const entries = await Promise.all(
     names.map(async (name) => [name, await hash(name)])
   );
-
   const keys = entries.map(([, key]) => key);
 
   try {
@@ -101,7 +101,6 @@ export default async function translate(mode = get("lang", "system")) {
       method: "POST",
       data: { [content]: encode({ lang: mode, keys }) }
     });
-
     const value = result.data?.[content];
 
     if (!result.ok || typeof value !== "string") {
@@ -109,6 +108,7 @@ export default async function translate(mode = get("lang", "system")) {
     }
 
     const { lang, text } = decode(value);
+
     dom.root.lang = lang;
     messages = Object.fromEntries(
       entries

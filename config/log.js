@@ -4,13 +4,15 @@ import path from "node:path";
 import sqlite3 from "sqlite3";
 
 const root = path.join(import.meta.dirname, "../data/log");
-
 const offset = 9 * 60 * 60 * 1000;
 
 export const now = () => {
   const value = Date.now() + offset;
 
-  return new Date(value).toISOString().slice(0, 19).replace("T", " ");
+  return new Date(value)
+    .toISOString()
+    .slice(0, 19)
+    .replace("T", " ");
 };
 
 const date = (time) => {
@@ -21,11 +23,11 @@ const date = (time) => {
 
 export default function log(dir, schema) {
   const folder = path.join(root, dir);
+
   mkdirSync(folder, { recursive: true });
 
   let day;
   let db;
-
   const open = (time) => {
     const next = date(time);
 
@@ -35,7 +37,9 @@ export default function log(dir, schema) {
 
     db?.close();
     day = next;
-    db = new sqlite3.Database(path.join(folder, `${day}.db`));
+    db = new sqlite3.Database(
+      path.join(folder, `${day}.db`)
+    );
     db.configure("busyTimeout", 5000);
     db.exec(`
       PRAGMA journal_mode = WAL;

@@ -3,21 +3,19 @@ import sound from "#common/sound";
 
 const bound = new WeakSet();
 const moving = new WeakMap();
-
 const paint = (input) => {
   const min = Number(input.min || 0);
   const max = Number(input.max || 100);
   const value = Number(input.value);
   const size = max - min;
-
   const percent = size
-    ? Math.min(100, Math.max(0, ((value - min) / size) * 100))
+    ? Math.min(
+        100,
+        Math.max(0, ((value - min) / size) * 100)
+      )
     : 0;
-
   const container = input.closest(".range");
-
   const fill = dom.query(".range-fill", container);
-
   const thumb = dom.query(".range-thumb", container);
 
   if (fill) {
@@ -43,12 +41,17 @@ export const move = (input, value) => {
   const min = Number(input.min || 0);
   const max = Number(input.max || 100);
   const container = input.closest(".range");
+
   clearTimeout(moving.get(input));
   dom.set(container, "data-move", "");
-  input.value = String(Math.min(max, Math.max(min, number)));
+  input.value = String(
+    Math.min(max, Math.max(min, number))
+  );
 
   if (bound.has(input)) {
-    input.dispatchEvent(new Event("input", { bubbles: true }));
+    input.dispatchEvent(
+      new Event("input", { bubbles: true })
+    );
   } else {
     paint(input);
   }
@@ -57,12 +60,13 @@ export const move = (input, value) => {
     dom.remove(container, "data-move");
     moving.delete(input);
   }, 320);
+
   moving.set(input, timer);
 
   return true;
 };
 
-const feedback = (input) => {
+const play = (input) => {
   const effect = dom.get(input, "data-effect")?.trim();
 
   if (effect) {
@@ -75,7 +79,6 @@ const feedback = (input) => {
     sound.music(music);
   }
 };
-
 const drag = (input) => {
   const container = input.closest(".range");
 
@@ -84,6 +87,7 @@ const drag = (input) => {
   }
 
   let pointer;
+
   dom.on(input, "pointerdown", (event) => {
     pointer = { id: event.pointerId, x: event.clientX };
     input.setPointerCapture(event.pointerId);
@@ -108,24 +112,27 @@ const drag = (input) => {
     pointer = undefined;
     dom.remove(container, "data-drag");
   };
+
   dom.on(input, "pointerup", stop);
   dom.on(input, "pointercancel", stop);
   dom.on(input, "lostpointercapture", stop);
 };
 
 export default function range(root = document) {
-  dom.all('.range input[type="range"]', root).forEach((input) => {
-    paint(input);
-
-    if (bound.has(input)) {
-      return;
-    }
-
-    dom.on(input, "input", () => {
+  dom
+    .all('.range input[type="range"]', root)
+    .forEach((input) => {
       paint(input);
-      feedback(input);
+
+      if (bound.has(input)) {
+        return;
+      }
+
+      dom.on(input, "input", () => {
+        paint(input);
+        play(input);
+      });
+      drag(input);
+      bound.add(input);
     });
-    drag(input);
-    bound.add(input);
-  });
 }

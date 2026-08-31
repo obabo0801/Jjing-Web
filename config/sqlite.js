@@ -4,9 +4,13 @@ import path from "node:path";
 import sqlite3 from "sqlite3";
 
 const dir = path.join(import.meta.dirname, "../data");
+
 mkdirSync(dir, { recursive: true });
 
-const db = new sqlite3.Database(path.join(dir, "service.db"));
+const db = new sqlite3.Database(
+  path.join(dir, "service.db")
+);
+
 db.configure("busyTimeout", 5000);
 db.exec(`
   PRAGMA journal_mode = WAL;

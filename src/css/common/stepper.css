@@ -16,7 +16,7 @@
 }
 
 .stepper[data-background] {
-  background: var(--canvas);
+  background: var(--background);
 }
 
 .stepper button[data-step] {

@@ -1,0 +1,19 @@
+dialog[data-popover] {
+  width: min(calc(100vw - 2rem), 64rem);
+  max-width: none;
+  max-height: min(calc(100dvh - 2rem), 64rem);
+  border-radius: 8px;
+
+  overflow: auto;
+}
+
+dialog[data-popover][data-fullscreen] {
+  inset: 0;
+
+  width: 100vw;
+  max-width: none;
+  height: 100dvh;
+  max-height: none;
+
+  border-radius: 0;
+}

@@ -1,4 +1,7 @@
-import { applicationDefault, initializeApp } from "firebase-admin/app";
+import {
+  applicationDefault,
+  initializeApp
+} from "firebase-admin/app";
 import { getMessaging } from "firebase-admin/messaging";
 
 const projectId = process.env.GOOGLE_CLOUD_PROJECT?.trim();
@@ -9,11 +12,12 @@ const errors = new Set([
   "messaging/invalid-registration-token",
   "messaging/registration-token-not-registered"
 ]);
-
 let client;
-
 const connect = () => {
-  const app = initializeApp({ credential: applicationDefault(), projectId });
+  const app = initializeApp({
+    credential: applicationDefault(),
+    projectId
+  });
 
   return getMessaging(app);
 };
@@ -27,13 +31,8 @@ export default async function send(fids, value) {
 
   client ||= connect();
 
-  const data = {
-    title: value.title,
-    body: value.body,
-    image: value.image,
-    url: value.url
-  };
-
+  const { title, body, image, url } = value;
+  const data = { title, body, image, url };
   const results = [];
 
   for (let index = 0; index < fids.length; index += 500) {

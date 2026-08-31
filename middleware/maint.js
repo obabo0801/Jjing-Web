@@ -18,7 +18,6 @@ export default async function maint(req, res, next) {
   }
 
   const active = process.env.MAINTENANCE === "true";
-
   const dev = req.app.get("env") === "development";
 
   if (!active || dev) {
@@ -26,7 +25,6 @@ export default async function maint(req, res, next) {
   }
 
   const id = uid(req);
-
   const user = id
     ? await get(
         `

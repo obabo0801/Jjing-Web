@@ -1,15 +1,20 @@
 import * as pwa from "#src/pwa";
 
 const supported = (registration) =>
-  Boolean(registration && "Notification" in window && "PushManager" in window);
-
+  Boolean(
+    registration &&
+    "Notification" in window &&
+    "PushManager" in window
+  );
 const authorize = async () => {
   if (Notification.permission !== "default") {
     return Notification.permission === "granted";
   }
 
   try {
-    return (await Notification.requestPermission()) === "granted";
+    return (
+      (await Notification.requestPermission()) === "granted"
+    );
   } catch {
     return false;
   }

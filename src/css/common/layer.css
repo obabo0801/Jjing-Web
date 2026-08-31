@@ -1,0 +1,104 @@
+dialog[data-popover],
+dialog[data-drawer],
+dialog[data-sheet] {
+  position: fixed;
+  inset: auto;
+  margin: 0;
+  padding: 0;
+  border: 1px solid var(--border);
+
+  background: var(--background);
+  color: var(--text);
+  text-align: left;
+  font-size: 1.2rem;
+
+  box-shadow: var(--shadow);
+  outline: 0;
+  overflow: hidden;
+
+  transition:
+    background-color 160ms ease,
+    color 160ms ease;
+}
+
+dialog[data-popover]::backdrop,
+dialog[data-drawer]::backdrop,
+dialog[data-sheet]::backdrop {
+  background: transparent;
+}
+
+.layer-head,
+.layer-content,
+.layer-actions {
+  padding-inline: 16px;
+}
+
+.layer-head {
+  padding-block: 16px;
+  text-align: center;
+}
+
+.layer-title {
+  margin: 0;
+  font-size: 1.5rem;
+}
+
+.layer-content {
+  display: grid;
+  gap: 16px;
+  padding-block-end: 16px;
+
+  overflow-wrap: anywhere;
+  white-space: pre-line;
+}
+
+.layer-text {
+  display: block;
+}
+
+.layer-actions {
+  display: flex;
+  gap: 8px;
+  padding-block-end: 16px;
+}
+
+.layer-actions button {
+  flex: 1;
+  min-width: 0;
+}
+
+dialog[data-popover][data-swipe-x],
+dialog[data-drawer][data-swipe-x],
+dialog[data-sheet][data-swipe-x],
+dialog[data-popover][data-swipe-x] *,
+dialog[data-drawer][data-swipe-x] *,
+dialog[data-sheet][data-swipe-x] * {
+  touch-action: pan-y;
+}
+
+dialog[data-popover][data-swipe-y],
+dialog[data-drawer][data-swipe-y],
+dialog[data-sheet][data-swipe-y],
+dialog[data-popover][data-swipe-y] *,
+dialog[data-drawer][data-swipe-y] *,
+dialog[data-sheet][data-swipe-y] * {
+  touch-action: pan-x;
+}
+
+dialog[data-popover][data-swipe],
+dialog[data-drawer][data-swipe],
+dialog[data-sheet][data-swipe],
+dialog[data-popover][data-swipe] *,
+dialog[data-drawer][data-swipe] *,
+dialog[data-sheet][data-swipe] * {
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  dialog[data-popover],
+  dialog[data-drawer],
+  dialog[data-sheet] {
+    transition: none;
+  }
+}

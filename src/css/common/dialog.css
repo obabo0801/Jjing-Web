@@ -6,8 +6,10 @@ dialog[data-dialog] {
   border: 1px solid var(--border);
   border-radius: 8px;
 
-  background: var(--canvas);
+  background: var(--background);
   color: var(--text);
+  text-align: left;
+  font-size: 1.2rem;
 
   box-shadow: var(--shadow);
   outline: 0;
@@ -57,7 +59,7 @@ dialog[data-dialog]::backdrop {
   gap: 16px;
 
   overflow: visible;
-  overflow-wrap: break-word;
+  overflow-wrap: anywhere;
   overscroll-behavior: contain;
 
   padding: 0px 16px 16px;
@@ -69,6 +71,14 @@ dialog[data-dialog]::backdrop {
   word-break: keep-all;
 
   transition: color 160ms ease;
+}
+
+.dialog-content > span {
+  justify-self: start;
+
+  min-width: 0;
+  width: fit-content;
+  max-width: 100%;
 }
 
 .dialog-actions {
@@ -96,21 +106,6 @@ dialog[data-dialog][data-fullscreen] {
   border-radius: 0;
 }
 
-dialog[data-dialog][data-swipe-x],
-dialog[data-dialog][data-swipe-x] * {
-  touch-action: pan-y;
-}
-
-dialog[data-dialog][data-swipe-y],
-dialog[data-dialog][data-swipe-y] * {
-  touch-action: pan-x;
-}
-
-dialog[data-dialog][data-swipe-xy],
-dialog[data-dialog][data-swipe-xy] * {
-  touch-action: none;
-}
-
 dialog[data-dialog][data-swipe],
 dialog[data-dialog][data-swipe] * {
   -webkit-user-select: none;
@@ -126,7 +121,7 @@ dialog[data-dialog][data-fullscreen] .dialog-actions {
 }
 
 .wearable dialog[data-dialog] {
-  padding-block: 10dvh 5dvh;
+  padding: 10dvh 8dvw;
 }
 
 .wearable .dialog-title {
@@ -139,6 +134,10 @@ dialog[data-dialog][data-fullscreen] .dialog-actions {
   text-align: center;
   font-size: 1.75rem;
   line-height: 1.4;
+}
+
+.wearable .dialog-content > span {
+  justify-self: center;
 }
 
 .wearable .dialog-actions {
@@ -165,53 +164,64 @@ dialog[data-dialog][data-fullscreen] .dialog-actions {
   display: none;
 }
 
-@media (max-width: 32rem) and (max-height: 24rem) {
-  html:not(.wearable) dialog[data-dialog][open] {
-    inset: 0;
+.small:not(.wearable) dialog[data-dialog][open] {
+  inset: 0;
 
-    width: 100%;
-    max-width: none;
+  width: 100%;
+  max-width: none;
 
-    height: 100dvh;
-    max-height: none;
+  height: 100dvh;
+  max-height: none;
 
-    margin: 0;
-    border-radius: 0;
+  margin: 0;
+  border: 0;
+  border-radius: 0;
 
-    grid-template-rows: auto auto auto;
+  grid-template-rows: auto auto auto;
 
-    overflow-y: auto;
-    scrollbar-gutter: stable both-edges;
-  }
+  overflow-y: auto;
+  scrollbar-width: none;
+}
 
-  html:not(.wearable) .dialog-head,
-  html:not(.wearable) .dialog-content,
-  html:not(.wearable) .dialog-actions {
-    padding-inline: 0;
-  }
+.small:not(.wearable)
+  dialog[data-dialog][open]::-webkit-scrollbar {
+  display: none;
+}
 
-  html:not(.wearable) .dialog-content {
-    overflow: visible;
-    text-align: center;
-  }
+.small:not(.wearable) .dialog-head,
+.small:not(.wearable) .dialog-content,
+.small:not(.wearable) .dialog-actions {
+  padding-inline: 0;
+}
 
-  html:not(.wearable) .dialog-content > .input {
-    padding-inline: 0;
-  }
+.small:not(.wearable) .dialog-content {
+  overflow: visible;
+  text-align: center;
+}
 
-  html:not(.wearable) .dialog-content > .input [data-control] {
-    padding-inline: 0;
-    text-align: center;
-  }
+.small:not(.wearable) .dialog-content > span {
+  justify-self: center;
+}
 
-  html:not(.wearable) .dialog-actions {
-    flex-direction: column;
-  }
+.small:not(.wearable) .dialog-content > .input {
+  padding-inline: 0;
+}
 
-  html:not(.wearable) .dialog-actions button {
-    flex: 0 0 auto;
-    width: 100%;
-  }
+.small:not(.wearable)
+  .dialog-content
+  > .input
+  [data-control] {
+  padding-inline: 0;
+  text-align: center;
+}
+
+.small:not(.wearable) .dialog-actions {
+  flex-direction: column;
+}
+
+.small:not(.wearable) .dialog-actions button {
+  flex: 0 0 auto;
+  width: 100%;
 }
 
 @media (prefers-reduced-motion: reduce) {

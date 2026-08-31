@@ -6,16 +6,21 @@ import hash from "#config/hash";
 import { run } from "#config/sqlite";
 
 const dir = path.join(import.meta.dirname, "../data/stt");
+const types = {
+  "audio/webm": "webm",
+  "audio/ogg": "ogg",
+  "audio/mp4": "m4a"
+};
+const query =
+  "INSERT INTO stt (file, uid, text, time) VALUES (?, ?, ?, ?)";
 
-const types = { "audio/webm": "webm", "audio/ogg": "ogg", "audio/mp4": "m4a" };
-
-const query = "INSERT INTO stt (file, uid, text, time) VALUES (?, ?, ?, ?)";
-
-export const supported = (type) => Object.hasOwn(types, type);
+export const supported = (type) =>
+  Object.hasOwn(types, type);
 
 mkdirSync(dir, { recursive: true });
 
-export default async function save(audio, type, uid, text, time) {
+export default async function save(audio, options) {
+  const { type, uid, text, time } = options;
   const ext = types[type];
 
   if (!ext || !Buffer.isBuffer(audio)) {
@@ -23,7 +28,6 @@ export default async function save(audio, type, uid, text, time) {
   }
 
   const id = hash(32, audio);
-
   const file = `${id}.${ext}`;
   const target = path.join(dir, file);
 

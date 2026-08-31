@@ -2,14 +2,25 @@ import * as dom from "#common/dom";
 
 const icons = {
   arrow: ["m9 18 6-6-6-6"],
-  home: ["M3 11 12 3l9 8", "M5 10v10h14V10", "M9 20v-6h6v6"],
+  home: [
+    "M3 11 12 3l9 8",
+    "M5 10v10h14V10",
+    "M9 20v-6h6v6"
+  ],
   reload: ["M20 11a8 8 0 1 0-2.34 5.66", "M20 4v7h-7"],
   close: ["M18 6 6 18", "m6 6 12 12"],
+  delete: [
+    "M21 4H8l-7 8 7 8h13a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2Z",
+    "m10 9 6 6",
+    "m16 9-6 6"
+  ],
   check: ["M20 6 9 17l-5-5"],
   dark: ["M12 3a6 6 0 0 0 9 9" + " 9 9 0 1 1-9-9Z"],
   cookie: [
     "M21 12a9 9 0 1 1-9-9",
-    "M21 12a3 3 0 0 1-3-3 " + "3 3 0 0 1-3-3 " + "3 3 0 0 1-3-3",
+    "M21 12a3 3 0 0 1-3-3 " +
+      "3 3 0 0 1-3-3 " +
+      "3 3 0 0 1-3-3",
     "M8.5 8.5h.01",
     "M8 15h.01",
     "M15 15h.01"
@@ -35,11 +46,15 @@ const icons = {
   plus: ["M5 12h14", "M12 5v14"],
   menu: ["M4 6h16", "M4 12h16", "M4 18h16"],
   notify: [
-    "M18 8a6 6 0 0 0-12 0" + "c0 7-3 7-3 9h18" + "c0-2-3-2-3-9",
+    "M18 8a6 6 0 0 0-12 0" +
+      "c0 7-3 7-3 9h18" +
+      "c0-2-3-2-3-9",
     "M10 21h4"
   ],
   "notify-mute": [
-    "M18 8a6 6 0 0 0-12 0" + "c0 7-3 7-3 9h18" + "c0-2-3-2-3-9",
+    "M18 8a6 6 0 0 0-12 0" +
+      "c0 7-3 7-3 9h18" +
+      "c0-2-3-2-3-9",
     "M10 21h4",
     "M3 3l18 18"
   ],
@@ -76,14 +91,24 @@ const icons = {
     "M10.5 18a7.5 7.5 0 1 0 0-15" + " 7.5 7.5 0 0 0 0 15Z"
   ],
   voice: [
-    "M12 2a3 3 0 0 0-3 3v7" + "a3 3 0 0 0 6 0V5" + "a3 3 0 0 0-3-3Z",
+    "M12 2a3 3 0 0 0-3 3v7" +
+      "a3 3 0 0 0 6 0V5" +
+      "a3 3 0 0 0-3-3Z",
     "M19 10v2a7 7 0 0 1-14 0v-2",
     "M12 19v3",
     "M8 22h8"
   ],
-  wave: ["M4 10v4", "M8 7v10", "M12 4v16", "M16 7v10", "M20 10v4"],
+  wave: [
+    "M4 10v4",
+    "M8 7v10",
+    "M12 4v16",
+    "M16 7v10",
+    "M20 10v4"
+  ],
   storage: [
-    "M4 6c0-1.1 3.58-2 8-2" + "s8 .9 8 2-3.58 2-8 2" + "-8-.9-8-2Z",
+    "M4 6c0-1.1 3.58-2 8-2" +
+      "s8 .9 8 2-3.58 2-8 2" +
+      "-8-.9-8-2Z",
     "M4 6v6" + "c0 1.1 3.58 2 8 2" + "s8-.9 8-2V6",
     "M4 12v6" + "c0 1.1 3.58 2 8 2" + "s8-.9 8-2v-6"
   ],
@@ -108,6 +133,7 @@ const icons = {
     "M3 3l18 18"
   ],
   theme: ["M4 5h16v12H4z", "M8 21h8", "M12 17v4"],
+  throbber: ["M21 12a9 9 0 1 1-9-9"],
   tts: [
     "M6 4h12a3 3 0 0 1 3 3v7" +
       "a3 3 0 0 1-3 3h-5l-5 3v-3H6" +
@@ -125,19 +151,34 @@ const icons = {
     "M8 12h6",
     "M3 3l18 18"
   ],
-  vibration: ["M8 6h8v12H8z", "M4 8v8", "M1 10v4", "M20 8v8", "M23 10v4"],
+  vibration: [
+    "M8 6h8v12H8z",
+    "M4 8v8",
+    "M1 10v4",
+    "M20 8v8",
+    "M23 10v4"
+  ],
   "vibration-off": ["M8 6h8v12H8z"],
   "volume-high": [
     "M11 5 6 9H2v6h4l5 4Z",
     "M15.54 8.46a5 5 0 0 1 0 7.07",
     "M18.36 5.64a9 9 0 0 1 0 12.73"
   ],
-  "volume-low": ["M11 5 6 9H2v6h4l5 4Z", "M15.54 8.46a5 5 0 0 1 0 7.07"],
+  "volume-low": [
+    "M11 5 6 9H2v6h4l5 4Z",
+    "M15.54 8.46a5 5 0 0 1 0 7.07"
+  ],
   "volume-mute": ["M11 5 6 9H2v6h4l5 4Z", "M2 6 15 18"]
 };
-
-const extensions = ["avif", "gif", "ico", "jpeg", "jpg", "png", "svg", "webp"];
-
+const extensions = [
+  "gif",
+  "ico",
+  "jpeg",
+  "jpg",
+  "png",
+  "svg",
+  "webp"
+];
 const positions = {
   left: "left",
   "←": "left",
@@ -157,45 +198,50 @@ const positions = {
   "↘": "bottom-right",
   center: "center"
 };
-
-const angles = { right: 0, bottom: 90, left: 180, top: -90 };
-
+const angles = {
+  right: 0,
+  bottom: 90,
+  left: 180,
+  top: -90
+};
 const isImage = (value) => {
   const path = value.split(/[?#]/)[0].toLowerCase();
 
-  return extensions.some((extension) => path.endsWith(`.${extension}`));
+  return extensions.some((extension) =>
+    path.endsWith(`.${extension}`)
+  );
 };
-
 const svg = (paths) => {
   const icon = dom.svg("svg");
+
   dom.set(icon, "viewBox", "0 0 24 24");
   icon.classList.add("icon");
   paths.forEach((data) => {
     const path = dom.svg("path");
+
     dom.set(path, "d", data);
     icon.append(path);
   });
 
   return icon;
 };
-
 const img = (source) => {
   const icon = dom.create("img");
+
   icon.src = source;
   icon.alt = "";
   icon.classList.add("icon");
 
   return icon;
 };
-
 const text = (value) => {
   const icon = dom.create("span");
+
   icon.textContent = value;
   icon.classList.add("icon", "icon-text");
 
   return icon;
 };
-
 const render = (element) => {
   dom.query(":scope > .icon", element)?.remove();
   element.classList.remove(
@@ -214,12 +260,15 @@ const render = (element) => {
 
   const parts = value.split(/\s+/);
   const last = parts.at(-1);
-
-  const position = Object.hasOwn(positions, last) ? positions[last] : null;
+  const position = Object.hasOwn(positions, last)
+    ? positions[last]
+    : null;
 
   if (position) {
     parts.pop();
-    const classes = position.split("-").map((value) => `icon-${value}`);
+    const classes = position
+      .split("-")
+      .map((value) => `icon-${value}`);
 
     element.classList.add(...classes);
   }
@@ -235,10 +284,13 @@ const render = (element) => {
     : isImage(name)
       ? img(name)
       : text(name);
-
-  const angle = dom.get(element, "data-angle")?.trim().toLowerCase();
-
-  const degree = Object.hasOwn(angles, angle) ? angles[angle] : Number(angle);
+  const angle = dom
+    .get(element, "data-angle")
+    ?.trim()
+    .toLowerCase();
+  const degree = Object.hasOwn(angles, angle)
+    ? angles[angle]
+    : Number(angle);
 
   if (Number.isFinite(degree)) {
     icon.animate(
@@ -249,7 +301,6 @@ const render = (element) => {
 
   element.prepend(icon);
 };
-
 const scan = (root = document) => {
   if (root.matches?.("[data-icon]")) {
     render(root);
@@ -257,7 +308,6 @@ const scan = (root = document) => {
 
   dom.all("[data-icon]", root).forEach(render);
 };
-
 let observing = false;
 
 export default function icon() {
@@ -281,6 +331,7 @@ export default function icon() {
       });
     });
   });
+
   observer.observe(document.documentElement, {
     subtree: true,
     childList: true,
