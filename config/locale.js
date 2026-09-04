@@ -19,7 +19,9 @@ const flat = (value, prefix = "", result = {}) => {
 
   return result;
 };
+
 const dir = path.join(import.meta.dirname, "../locales");
+
 const files = (await readdir(dir, { withFileTypes: true }))
   .filter(
     (file) =>

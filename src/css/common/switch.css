@@ -79,6 +79,7 @@
 
 .switch:has(input:focus-visible) {
   background-image: var(--overlay);
+  color: var(--thumb);
 }
 
 .switch input:focus-visible {

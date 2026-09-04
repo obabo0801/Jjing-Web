@@ -1,36 +1,20 @@
-import { randomUUID } from "node:crypto";
-import { mkdir, writeFile } from "node:fs/promises";
-import path from "node:path";
-
 import { raw, Router } from "express";
 
-import fcm, {
-  enabled as fcmEnabled,
-  invalid as invalidFcm
-} from "#config/fcm";
+import fcm, * as firebase from "#config/fcm";
+import store from "#config/image";
 import record from "#config/log/notify";
-import webpush, {
-  enabled as webEnabled
-} from "#config/push";
+import webpush, * as push from "#config/push";
 import { all, run } from "#config/sqlite";
 
 import string from "#src/string";
 
 import admin from "#middleware/admin";
 
-const extensions = {
-  "image/jpeg": "jpg",
-  "image/png": "png",
-  "image/webp": "webp"
-};
-const images = path.join(
-  import.meta.dirname,
-  "../data/upload/images"
-);
-const parseImage = raw({
-  type: Object.keys(extensions),
+const upload = raw({
+  type: ["image/jpeg", "image/png", "image/webp"],
   limit: "5mb"
 });
+
 const sendWeb = async (rows, value) => {
   let sent = 0;
   let failed = 0;
@@ -64,6 +48,7 @@ const sendWeb = async (rows, value) => {
 
   return { sent, failed };
 };
+
 const sendFcm = async (rows, value) => {
   let results;
 
@@ -87,7 +72,7 @@ const sendFcm = async (rows, value) => {
         return;
       }
 
-      if (invalidFcm(result.error)) {
+      if (firebase.invalid(result.error)) {
         await run("DELETE FROM fcm WHERE fid = ?", [
           result.fid
         ]);
@@ -101,40 +86,39 @@ const sendFcm = async (rows, value) => {
 
   return { sent, failed };
 };
+
 const router = Router();
 
 router.use(admin);
+
 router.get("/", (_, res) => {
   res.status(204).end();
 });
-router.post("/image", parseImage, async (req, res) => {
-  const type = req
-    .get("content-type")
-    ?.split(";")[0]
-    .trim()
-    .toLowerCase();
-  const extension = extensions[type];
 
-  if (!extension) {
-    return res.status(415).end();
-  }
-
+router.post("/image", upload, async (req, res) => {
   if (!Buffer.isBuffer(req.body) || !req.body.length) {
     return res.status(400).end();
   }
 
-  await mkdir(images, { recursive: true });
-
-  const name = `${randomUUID()}.${extension}`;
-
-  await writeFile(path.join(images, name), req.body, {
-    flag: "wx"
+  const image = await store(req.body, "images", {
+    width: 1024,
+    height: 1024,
+    fit: "inside",
+    quality: 80
   });
 
-  return res.json({ image: `/upload/images/${name}` });
+  if (!image) {
+    return res.status(415).end();
+  }
+
+  return res.json({
+    original: image.original,
+    image: image.resizing
+  });
 });
+
 router.post("/", async (req, res) => {
-  if (!webEnabled && !fcmEnabled) {
+  if (!push.enabled && !firebase.enabled) {
     return res.status(503).end();
   }
 
@@ -154,7 +138,7 @@ router.post("/", async (req, res) => {
   }
 
   const [web, devices] = await Promise.all([
-    webEnabled
+    push.enabled
       ? all(`
           SELECT web.endpoint, web.data
           FROM web
@@ -167,7 +151,7 @@ router.post("/", async (req, res) => {
           )
         `)
       : [],
-    fcmEnabled
+    firebase.enabled
       ? all(`
           SELECT fcm.fid, fcm.device
           FROM fcm
@@ -181,17 +165,21 @@ router.post("/", async (req, res) => {
         `)
       : []
   ]);
+
   const value = { title, body, image, url };
   const source =
     process.env.APP_URL?.trim() ||
     `${req.protocol}://${req.get("host")}`;
+
   const native = {
     ...value,
     image: image ? new URL(image, source).href : ""
   };
+
   const wear = devices.filter(
     ({ device }) => device === "wearable"
   );
+
   const [webResult, fcmResult] = await Promise.all([
     sendWeb(web, value),
     sendFcm(wear, native)

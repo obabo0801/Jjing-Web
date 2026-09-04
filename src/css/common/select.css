@@ -1,0 +1,163 @@
+.select {
+  anchor-scope: --select;
+
+  position: relative;
+
+  min-width: 0;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+
+  background: var(--panel);
+  color: var(--text);
+
+  transition:
+    background-color 160ms ease,
+    color 160ms ease,
+    opacity 100ms ease;
+}
+
+.select[data-background] {
+  background: var(--background);
+}
+
+.select-toggle {
+  anchor-name: --select;
+
+  justify-content: space-between;
+
+  width: 100%;
+  min-width: 0;
+  border: 0;
+
+  background: transparent;
+  text-align: left;
+}
+
+.select-toggle > .icon {
+  color: var(--mute);
+  transform: rotate(90deg);
+
+  transition:
+    color 160ms ease,
+    transform 160ms ease;
+}
+
+.select[data-open] .select-toggle > .icon {
+  transform: rotate(-90deg);
+}
+
+.select-value {
+  min-width: 0;
+  overflow: hidden;
+
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.select-menu {
+  position: fixed;
+  position-anchor: --select;
+  inset: auto;
+  inset-block-start: calc(anchor(bottom) + 8px);
+  inset-inline-start: anchor(left);
+
+  width: anchor-size(width);
+  max-height: min(20rem, calc(100dvh - 32px));
+  margin: 0;
+  padding: 4px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+
+  background: var(--panel);
+  box-shadow: var(--shadow);
+  color: var(--text);
+
+  opacity: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+  transform: translateY(-8px);
+
+  position-try-fallbacks: flip-block;
+
+  transition:
+    display 160ms allow-discrete,
+    overlay 160ms allow-discrete,
+    background-color 160ms ease,
+    color 160ms ease,
+    opacity 160ms ease,
+    transform 160ms ease;
+}
+
+.select-menu:popover-open {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+@starting-style {
+  .select-menu:popover-open {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+}
+
+.select-option {
+  justify-content: flex-start;
+
+  width: 100%;
+  min-width: 0;
+  border: 0;
+
+  background: transparent;
+  text-align: left;
+}
+
+.select-option[data-selected] {
+  background: var(--select);
+}
+
+.select-option:enabled:is(:hover, :focus-visible) {
+  background-image: var(--overlay);
+}
+
+.select:has(.select-toggle:focus-visible) {
+  background-image: var(--overlay);
+}
+
+.select:has(.select-toggle:disabled) {
+  opacity: 0.5;
+}
+
+.wearable .select {
+  border-radius: 999px;
+}
+
+.wearable .select-toggle {
+  min-height: 72px;
+  padding-inline: 24px;
+
+  font-size: 1.75rem;
+  text-align: center;
+}
+
+.wearable .select-menu {
+  position-anchor: auto;
+  inset: 8dvh 8dvw;
+
+  width: auto;
+  max-height: none;
+
+  position-try-fallbacks: none;
+}
+
+.wearable .select-option {
+  justify-content: center;
+  font-size: 1.75rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .select,
+  .select-toggle > .icon,
+  .select-menu {
+    transition: none;
+  }
+}

@@ -1,7 +1,5 @@
-import {
-  applicationDefault,
-  initializeApp
-} from "firebase-admin/app";
+import { initializeApp } from "firebase-admin/app";
+import { applicationDefault } from "firebase-admin/app";
 import { getMessaging } from "firebase-admin/messaging";
 
 const projectId = process.env.GOOGLE_CLOUD_PROJECT?.trim();
@@ -12,7 +10,9 @@ const errors = new Set([
   "messaging/invalid-registration-token",
   "messaging/registration-token-not-registered"
 ]);
+
 let client;
+
 const connect = () => {
   const app = initializeApp({
     credential: applicationDefault(),

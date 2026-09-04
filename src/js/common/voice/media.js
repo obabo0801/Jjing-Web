@@ -20,6 +20,7 @@ export const record = (stream) => {
         chunks.push(event.data);
       }
     });
+
     dom.on(
       recorder,
       "stop",

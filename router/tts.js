@@ -54,6 +54,7 @@ router.post("/", async (req, res) => {
         [id]
       )
     : null;
+
   const blocked = await get(
     `
     SELECT 1
@@ -71,24 +72,21 @@ router.post("/", async (req, res) => {
   }
 
   if (body.type === "browser") {
-    const voice = string(body.voice).trim();
+    let voice = string(body.voice).trim();
 
     if ([...voice].length > 200) {
       return res.status(400).end();
     }
 
-    await record(
-      id,
-      text,
-      voice || "default",
-      "browser",
-      now()
-    );
+    voice = voice || "default";
+
+    await record(id, text, voice, "browser", now());
 
     return res.status(204).end();
   }
 
   const time = now();
+
   let result;
 
   try {

@@ -2,6 +2,7 @@ import * as dom from "#common/dom";
 import { message, register } from "#common/i18n";
 
 const selector = "[data-tooltip], [title]";
+
 let tip;
 let source;
 
@@ -25,11 +26,13 @@ const convert = (element) => {
 
   return element;
 };
+
 const content = (element) => {
   const key = dom.get(element, "data-tooltip")?.trim();
 
   return key ? message(key) || key : "";
 };
+
 const hide = (element = source) => {
   if (element !== source) {
     return;
@@ -38,6 +41,7 @@ const hide = (element = source) => {
   source = null;
   dom.remove(tip, "data-open");
 };
+
 const place = () => {
   if (!source?.isConnected || !tip) {
     hide();
@@ -55,9 +59,11 @@ const place = () => {
     innerWidth - box.width - edge,
     Math.max(edge, center - box.width / 2)
   );
+
   const top = below
     ? target.bottom + gap
     : target.top - box.height - gap;
+
   const arrow = Math.min(
     box.width - 12,
     Math.max(12, center - left)
@@ -68,6 +74,7 @@ const place = () => {
   tip.style.setProperty("--tooltip-arrow", `${arrow}px`);
   dom.set(tip, "data-side", below ? "bottom" : "top");
 };
+
 const show = (element) => {
   element = convert(element);
 
@@ -94,6 +101,7 @@ const enter = (event) => {
 
   show(element);
 };
+
 const leave = (event) => {
   const element = target(event);
 

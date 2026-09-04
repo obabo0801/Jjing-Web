@@ -79,6 +79,7 @@ const play = (input) => {
     sound.music(music);
   }
 };
+
 const drag = (input) => {
   const container = input.closest(".range");
 
@@ -92,6 +93,7 @@ const drag = (input) => {
     pointer = { id: event.pointerId, x: event.clientX };
     input.setPointerCapture(event.pointerId);
   });
+
   dom.on(input, "pointermove", (event) => {
     if (
       !pointer ||

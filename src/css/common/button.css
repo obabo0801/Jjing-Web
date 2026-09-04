@@ -11,6 +11,7 @@ button {
 
   background: transparent;
   color: inherit;
+  white-space: normal;
 
   cursor: pointer;
 

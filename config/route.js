@@ -1,7 +1,9 @@
 export const admin = "/8c6976e5";
 export const i18n = "/5b59f3e4";
 export const content = "18ac3e73";
+export const events = "/862417b9";
 export const fcm = "/65654edc";
+export const profile = "/1900eab6";
 export const push = "/d107ea36";
 export const stt = "/f9eec27a";
 export const tts = "/317e938a";

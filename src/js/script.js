@@ -1,31 +1,16 @@
 import * as dom from "#common/dom";
 import i18n from "#common/i18n";
 import init from "#common/init";
-import dialog from "#common/dialog";
 import sound from "#common/sound";
-import * as tts from "#common/tts";
-import push, { enabled as pushEnabled } from "#common/push";
-import popover from "#common/popover";
-import drawer from "#common/drawer";
-import sheet from "#common/sheet";
+import push, * as state from "#common/push";
+import { append } from "#common/chatting";
 
 import access from "#src/access";
 import * as pwa from "#src/pwa";
+import setup from "#src/setup";
 
 const app = dom.query(".app");
 const loading = init();
-const column = (name, min, max, value) => {
-  const element = dom.create("div");
-
-  element.className = "picker-column";
-  dom.set(element, "data-name", name);
-  dom.set(element, "data-min", min);
-  dom.set(element, "data-max", max);
-  dom.set(element, "data-value", value);
-  dom.set(element, "data-loop", "");
-
-  return element;
-};
 
 try {
   const allowed = await access();
@@ -36,188 +21,110 @@ try {
       pwa.load().catch(() => null)
     ]);
 
-    app.hidden = false;
+    if (await setup(() => loading.remove())) {
+      app.hidden = false;
 
-    const content = (value) => {
-      const element = dom.create("p");
-
-      element.textContent = value;
-      return element;
-    };
-    const popoverButton = dom.query(
-      '[data-layer-test="popover"]',
-      app
-    );
-    const drawerButton = dom.query(
-      '[data-layer-test="drawer"]',
-      app
-    );
-    const sheetButton = dom.query(
-      '[data-layer-test="sheet"]',
-      app
-    );
-
-    dom.on(popoverButton, "click", () =>
-      popover({
-        anchor: popoverButton,
-        content: content(`Popover 테스트
-          내용입니다
-          내용입니다
-          내용입니다
-          내용입니다
-          내용입니다
-          내용입니다
-          내용입니다
-          내용입니다
-          내용입니다
-          내용입니다
-          내용입니다`),
-        direction: "↑"
-      })
-    );
-
-    dom.on(drawerButton, "click", () =>
-      drawer({
-        content: content("Drawer 테스트"),
-        side: "right",
-        direction: "→"
-      })
-    );
-
-    dom.on(sheetButton, "click", () =>
-      sheet({
-        content: content("Sheet 테스트"),
-        size: "40dvh",
-        direction: "↓"
-      })
-    );
-
-    tts.speak("접근 거부");
-
-    const button = dom.query("[data-music]", app);
-
-    dom.on(button, "click", () =>
-      sound.music("semenota", { loop: true })
-    );
-
-    const notify = dom.query("[data-notify]", app);
-
-    notify.checked = await pushEnabled(registration);
-
-    dom.on(notify, "change", async () => {
-      notify.disabled = true;
-
-      try {
-        const received = await push(
-          notify.checked,
-          registration
-        );
-
-        notify.checked = received;
-
-        if (received) {
-          await pwa.notify("알림 테스트", {
-            body: "알림을 정상적으로 " + "받을 수 있습니다."
-          });
-        }
-      } finally {
-        notify.disabled = false;
-      }
-    });
-    setTimeout(async () => {
-      const time = dom.create("div");
-
-      time.className = "picker";
-
-      const period = dom.create("div");
-
-      period.className = "picker-column";
-      dom.set(period, "data-name", "period");
-      dom.set(period, "data-period", "");
-      dom.set(period, "data-values", "오전,오후");
-      dom.set(period, "data-value", "오전");
-
-      const hour = column("hour", 1, 12, 1);
-
-      dom.set(hour, "data-hour", "");
-
-      const divide = dom.create("span");
-
-      divide.className = "picker-text";
-      divide.textContent = ":";
-      time.append(
-        period,
-        hour,
-        divide,
-        column("minute", 0, 59, 0)
+      const chat = dom.query(".chatting", app);
+      const chatForm = dom.query(".chatting-form", chat);
+      const chatInput = dom.query(
+        ".chatting-input",
+        chatForm
       );
 
-      const message = dom.create("span");
+      const chatStyle = dom.query(
+        'select[name="chatting-style"]',
+        app
+      );
 
-      message.textContent = `내용입니다
-      내용입니다
-      내용입니다
-      내용입니다
-      내용입니다
-      내용입니다
-      내용입니다
-      내용입니다
-      내용입니다
-      내용입니다
-      내용입니다
-      내용입니다
-      내용입니다
-      내용입니다
-      내용입니다내용입니다내용입니다내용입니다
-      내용입니다
-      내용입니다
-      내용입니다
-      내용입니다
-      내용입니다
-      내용입니다
-      내용입니다
-      내용입니다
-      내용입니다
-      내용입니다
-      내용입니다
-      내용입니다`;
-
-      const content = new DocumentFragment();
-      const field = dom.create("div");
-
-      field.className = "input";
-
-      const input = dom.create("input");
-
-      input.type = "text";
-      input.name = "dialog";
-      input.placeholder = "내용 입력";
-      input.autocomplete = "off";
-
-      dom.set(input, "data-control", "");
-
-      field.append(input);
-      content.append(message, field);
-
-      const result = await dialog({
-        title: "dialog.title",
-        content,
-        actions: [
-          {
-            value: true,
-            text: "dialog.confirm",
-            icon: "check",
-            data: ["data-background"],
-            disabled: () => !input.value.trim()
-          }
-        ],
-        direction: "←"
+      append(chat, {
+        text: "스트림과 메신저 스타일을 확인할 수 있습니다.",
+        own: true
       });
 
-      if (result) {
-        console.log(input.value.trim());
-      }
-    });
+      append(chat, {
+        name: "테스트",
+        text: "채팅 테스트 메시지입니다."
+      });
+
+      dom.on(chatStyle, "change", () => {
+        dom.set(chat, "data-chatting", chatStyle.value);
+      });
+
+      dom.on(chatForm, "submit", (event) => {
+        event.preventDefault();
+
+        const text = chatInput.value.trim();
+
+        if (!text) {
+          return;
+        }
+
+        append(chat, { text, own: true });
+
+        chatForm.reset();
+      });
+
+      const button = dom.query("[data-music]", app);
+      const volume = dom.query(
+        'input[name="music-volume"]',
+        app
+      );
+
+      let player;
+
+      dom.on(button, "click", () => {
+        if (player && !player.paused) {
+          player.pause();
+          player.currentTime = 0;
+          button.textContent = "음악 재생";
+
+          return;
+        }
+
+        player = sound.music("semenota", {
+          volume: Number(volume.value) / 100,
+          loop: true
+        });
+
+        if (player) {
+          button.textContent = "음악 중단";
+        }
+      });
+
+      dom.on(volume, "input", () => {
+        if (!player || player.paused) {
+          return;
+        }
+
+        player = sound.music("semenota", {
+          volume: Number(volume.value) / 100,
+          loop: true
+        });
+      });
+
+      const notify = dom.query("[data-notify]", app);
+
+      const available = state.supported(registration);
+
+      notify.closest(".switch").hidden = !available;
+      notify.checked =
+        available && (await state.enabled(registration));
+
+      dom.on(notify, "change", async () => {
+        notify.disabled = true;
+
+        try {
+          const received = await push(
+            notify.checked,
+            registration
+          );
+
+          notify.checked = received;
+        } finally {
+          notify.disabled = !available;
+        }
+      });
+    }
   }
 } finally {
   loading.remove();

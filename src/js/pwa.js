@@ -2,6 +2,7 @@ import * as route from "#config/route";
 
 import * as dom from "#common/dom";
 import api from "#common/api";
+import toast from "#common/toast";
 
 const openDatabase = () =>
   new Promise((resolve, reject) => {
@@ -17,13 +18,16 @@ const openDatabase = () =>
         });
       }
     };
+
     request.onsuccess = () => {
       resolve(request.result);
     };
+
     request.onerror = () => {
       reject(request.error);
     };
   });
+
 const saveRequest = async (value) => {
   const database = await openDatabase();
 
@@ -38,6 +42,7 @@ const saveRequest = async (value) => {
       database.close();
       resolve();
     };
+
     transaction.onerror = () => {
       const { error } = transaction;
 
@@ -46,6 +51,7 @@ const saveRequest = async (value) => {
     };
   });
 };
+
 const decodeKey = (value) => {
   const pad = "=".repeat((4 - (value.length % 4)) % 4);
   const base64 = (value + pad)
@@ -56,6 +62,12 @@ const decodeKey = (value) => {
     character.charCodeAt(0)
   );
 };
+
+const status = (subscription) =>
+  api(route.push, {
+    method: "PUT",
+    data: { endpoint: subscription.endpoint }
+  });
 
 export async function active(registration) {
   if (
@@ -70,7 +82,17 @@ export async function active(registration) {
   const subscription =
     await registration.pushManager.getSubscription();
 
-  return Boolean(subscription);
+  if (!subscription) {
+    return false;
+  }
+
+  const result = await status(subscription);
+
+  if (result.status === 404) {
+    await subscription.unsubscribe().catch(() => false);
+  }
+
+  return result.ok;
 }
 
 export async function subscribe(registration) {
@@ -100,12 +122,29 @@ export async function subscribe(registration) {
 
   const saved =
     await registration.pushManager.getSubscription();
+
+  if (saved) {
+    const result = await status(saved);
+
+    if (result.ok) {
+      return true;
+    }
+
+    if (result.status !== 404) {
+      return false;
+    }
+
+    if (!(await saved.unsubscribe())) {
+      return false;
+    }
+  }
+
   const subscription =
-    saved ||
-    (await registration.pushManager.subscribe({
+    await registration.pushManager.subscribe({
       userVisibleOnly: true,
       applicationServerKey: decodeKey(key.data.key)
-    }));
+    });
+
   const result = await api(route.push, {
     method: "POST",
     data: { subscription }
@@ -151,6 +190,21 @@ export async function load() {
   );
 
   const registration = await navigator.serviceWorker.ready;
+
+  dom.on(navigator.serviceWorker, "message", (event) => {
+    if (
+      event.data?.type !== "notify" ||
+      document.visibilityState !== "visible"
+    ) {
+      return;
+    }
+
+    const { title, body, image, url } = event.data.data;
+    const options = { title, text: body, image, url };
+
+    toast({ type: "notify", ...options });
+  });
+
   const cache = () => {
     registration.active?.postMessage({
       type: "offline",
@@ -158,6 +212,7 @@ export async function load() {
       content: route.content
     });
   };
+
   const standalone = matchMedia(
     "(display-mode: standalone)"
   ).matches;

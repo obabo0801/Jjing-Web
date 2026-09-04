@@ -1,0 +1,380 @@
+.chatting {
+  position: relative;
+
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
+
+  min-width: 0;
+  min-height: 24rem;
+  max-height: min(40rem, 100dvh);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+
+  background: var(--panel);
+  color: var(--text);
+
+  overflow: hidden;
+
+  transition:
+    background-color 160ms ease,
+    border-color 160ms ease,
+    color 160ms ease;
+}
+
+.chatting-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+
+  min-height: 0;
+  padding: 16px;
+
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+
+.chatting-message {
+  min-width: 0;
+}
+
+.chatting-name,
+.chatting-text,
+.chatting-time {
+  margin: 0;
+}
+
+.chatting-name {
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  font-size: 0.9rem;
+}
+
+.chatting-profile {
+  display: inline-flex;
+  align-items: center;
+  justify-self: start;
+  gap: 8px;
+
+  width: fit-content;
+  min-width: 0;
+}
+
+.chatting-avatar {
+  flex: none;
+
+  width: 32px;
+  min-height: 32px;
+  height: 32px;
+  padding: 0;
+  border: 0;
+
+  transition:
+    background-color 160ms ease,
+    color 160ms ease;
+}
+
+.chatting-avatar[data-icon~="user"] > svg.icon {
+  width: 2.25rem;
+  height: 2.25rem;
+
+  transform: translateY(2px);
+}
+
+.chatting-text {
+  overflow-wrap: anywhere;
+  word-break: keep-all;
+  text-wrap: pretty;
+  white-space: pre-wrap;
+}
+
+.chatting-time {
+  color: var(--mute);
+  font-size: 0.8rem;
+  white-space: nowrap;
+
+  transition: color 160ms ease;
+}
+
+.chatting-bottom {
+  position: absolute;
+  z-index: 2;
+  inset-inline-start: 50%;
+  inset-block-end: calc(var(--chatting-form, 77px) + 16px);
+
+  transform: translateX(-50%);
+}
+
+.chatting-bottom[hidden] {
+  display: none;
+}
+
+.chatting-actions {
+  display: grid;
+  gap: 16px;
+}
+
+.chatting-form {
+  padding: 8px;
+  border-block-start: 1px solid var(--border);
+
+  background: var(--background);
+
+  transition:
+    background-color 160ms ease,
+    border-color 160ms ease;
+}
+
+.chatting-form .input {
+  background: var(--panel);
+}
+
+.chatting-input {
+  max-height: 8rem;
+  padding-block: calc((60px - 1.4em) / 2);
+
+  line-height: 1.4;
+  resize: none;
+}
+
+.input[data-voice] .chatting-send {
+  display: none;
+}
+
+.chatting-form .input-actions {
+  align-self: end;
+  padding-block: 4px;
+}
+
+.chatting-voice,
+.chatting-send {
+  width: 52px;
+  min-height: 52px;
+  height: 52px;
+}
+
+.chatting[data-chatting="stream"] .chatting-message {
+  position: relative;
+
+  display: grid;
+  grid-template-columns: auto auto minmax(0, 1fr);
+  grid-template-areas:
+    "profile time ."
+    "text text text";
+  align-items: center;
+  gap: 4px 8px;
+
+  padding: 8px 12px;
+  border-radius: 8px;
+
+  -webkit-tap-highlight-color: transparent;
+}
+
+.chatting[data-chatting="stream"]
+  .chatting-message:not(:last-child)::after {
+  content: "";
+
+  position: absolute;
+  inset-inline: 8px;
+  inset-block-end: 0;
+
+  height: 0.5px;
+
+  background: var(--border);
+  pointer-events: none;
+
+  transition: background-color 160ms ease;
+}
+
+.chatting[data-chatting="stream"]
+  .chatting-message:has(
+    + .chatting-message[data-follow]
+  )::after {
+  display: none;
+}
+
+.chatting[data-chatting="stream"] .chatting-message:active {
+  background-image: var(--overlay);
+}
+
+.chatting[data-chatting="stream"] .chatting-profile {
+  grid-area: profile;
+}
+
+.chatting[data-chatting="stream"] .chatting-name {
+  color: var(--info);
+}
+
+.chatting[data-chatting="stream"] .chatting-text {
+  grid-area: text;
+  margin-inline-start: 40px;
+}
+
+.chatting[data-chatting="stream"] .chatting-time {
+  grid-area: time;
+}
+
+.chatting[data-chatting="stream"]
+  .chatting-message:has(+ .chatting-message[data-follow]) {
+  padding-block-end: 4px;
+}
+
+.chatting[data-chatting="stream"]
+  .chatting-message[data-follow] {
+  grid-template-columns: 32px minmax(0, 1fr);
+  grid-template-areas: "time text";
+
+  margin-block-start: -8px;
+  padding-block: 4px;
+}
+
+.chatting[data-chatting="stream"]
+  .chatting-message[data-follow]
+  .chatting-profile {
+  display: none;
+}
+
+.chatting[data-chatting="stream"]
+  .chatting-message[data-follow]
+  .chatting-text {
+  margin-inline-start: 0;
+}
+
+.chatting[data-chatting="stream"]
+  .chatting-message[data-follow]
+  .chatting-time {
+  justify-self: center;
+
+  font-size: 0.5rem;
+  opacity: 0;
+
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+
+  transition:
+    color 160ms ease,
+    opacity 160ms ease;
+}
+
+.chatting[data-chatting="stream"]
+  .chatting-message[data-own]
+  .chatting-name {
+  color: var(--success);
+}
+
+.chatting[data-chatting="messenger"] .chatting-message {
+  display: grid;
+  grid-template-columns: 32px minmax(0, 1fr) auto;
+  grid-template-areas:
+    "profile profile profile"
+    ". text time";
+  align-self: flex-start;
+  gap: 4px 8px;
+
+  max-width: 80%;
+}
+
+.chatting[data-chatting="messenger"]
+  .chatting-message[data-own] {
+  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-areas: "time text";
+  align-self: flex-end;
+}
+
+.chatting[data-chatting="messenger"] .chatting-profile {
+  grid-area: profile;
+}
+
+.chatting[data-chatting="messenger"]
+  .chatting-message[data-own]
+  .chatting-profile {
+  display: none;
+}
+
+.chatting[data-chatting="messenger"] .chatting-text {
+  grid-area: text;
+
+  min-width: 0;
+  padding: 10px 14px;
+  border-radius: 0 8px 8px;
+
+  background: var(--canvas);
+
+  transition:
+    background-color 160ms ease,
+    color 160ms ease;
+}
+
+.chatting[data-chatting="messenger"]
+  .chatting-message[data-own]
+  .chatting-text {
+  border-radius: 8px 0 8px 8px;
+
+  background: var(--info);
+  color: var(--thumb);
+}
+
+.chatting[data-chatting="stream"]
+  .chatting-message[data-action],
+.chatting[data-chatting="messenger"]
+  .chatting-message[data-action]
+  .chatting-text {
+  background-image: var(--overlay);
+}
+
+.chatting[data-chatting="messenger"] .chatting-time {
+  grid-area: time;
+  align-self: end;
+}
+
+.wearable .chatting {
+  min-height: 100%;
+  border: 0;
+  border-radius: 0;
+}
+
+.wearable .chatting-list {
+  padding: 8dvw;
+}
+
+.wearable .chatting-input {
+  padding-block: calc((72px - 1.4em) / 2);
+}
+
+.chatting[data-chatting="stream"]
+  .chatting-message[data-follow]:is(:active, [data-action])
+  .chatting-time {
+  opacity: 1;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .chatting[data-chatting="stream"]
+    .chatting-message:hover {
+    background-image: var(--overlay);
+  }
+
+  .chatting[data-chatting="stream"]
+    .chatting-message[data-follow]:hover
+    .chatting-time {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .chatting,
+  .chatting-form,
+  .chatting-avatar,
+  .chatting-time,
+  .chatting-message,
+  .chatting-text,
+  .chatting[data-chatting="stream"]
+    .chatting-message::after {
+    transition: none;
+  }
+}

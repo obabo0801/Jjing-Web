@@ -16,6 +16,11 @@ svg.icon {
   stroke-linejoin: round;
 }
 
+[data-icon~="user"] > svg.icon {
+  fill: currentColor;
+  stroke: none;
+}
+
 img.icon {
   object-fit: contain;
 }

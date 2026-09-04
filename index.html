@@ -25,24 +25,6 @@
 
   <body>
     <main class="app" hidden>
-      <div class="segment">
-        <button type="button" data-background data-selected>
-          끔
-        </button>
-
-        <button type="button" data-background>
-          디스플레이
-        </button>
-
-        <button type="button" data-background data-confirm>
-          경고음
-        </button>
-      </div>
-
-      <button type="button" data-background data-music>
-        음악 재생
-      </button>
-
       <div class="switch" data-background>
         <label>
           <span>알림 받기</span>
@@ -55,124 +37,54 @@
         </label>
       </div>
 
-      <button type="button">
-        <span>설정</span>
-
-        <span
-          data-icon="throbber"
-          data-tooltip="설정 열기"
-        ></span>
-      </button>
-
-      <div class="radio" data-background>
-        <label>
-          <span>자동</span>
-
-          <input
-            type="radio"
-            name="theme"
-            value="system"
-            checked
-          />
-        </label>
-      </div>
-
-      <div class="checkbox" data-background>
-        <label>
-          <span>항목 선택</span>
-
-          <input type="checkbox" name="option" />
-        </label>
-      </div>
-
-      <div class="layer-test">
-        <button
-          type="button"
-          data-background
-          data-layer-test="popover"
-        >
-          Popover
-        </button>
-
-        <button
-          type="button"
-          data-background
-          data-layer-test="drawer"
-        >
-          Drawer
-        </button>
-
-        <button
-          type="button"
-          data-background
-          data-layer-test="sheet"
-        >
-          Sheet
-        </button>
-      </div>
-
-      <div class="stepper" data-background data-sign>
-        <button
-          type="button"
-          data-icon="minus"
-          data-step="-1"
-        ></button>
-
-        <div class="stepper-value">
-          <button type="button" class="stepper-number">
-            0
-          </button>
-
-          <input
-            type="number"
-            name="volume"
-            autocomplete="off"
-            value="0"
-            min="-20"
-            max="20"
-            step="1"
-            hidden
-          />
-
-          <span>km/h</span>
+      <section class="communication-test">
+        <div class="select" data-background>
+          <select name="chatting-style">
+            <option value="stream">스트림</option>
+            <option value="messenger">메신저</option>
+          </select>
         </div>
 
-        <button
-          type="button"
-          data-icon="plus"
-          data-step="1"
-        ></button>
-      </div>
+        <section class="chatting" data-chatting="stream">
+          <div class="chatting-list"></div>
 
-      <div class="picker">
-        <div
-          class="picker-column"
-          data-period
-          data-values="오전,오후"
-          data-value="오전"
-        ></div>
+          <form class="chatting-form">
+            <div class="input">
+              <textarea
+                class="chatting-input"
+                name="message"
+                rows="1"
+                autocomplete="off"
+                placeholder="메시지 입력"
+                data-control
+                data-i18n-placeholder="메시지 입력"
+              ></textarea>
 
-        <div
-          class="picker-column"
-          data-name="hour"
-          data-hour
-          data-loop
-          data-min="1"
-          data-max="12"
-          data-value="1"
-        ></div>
+              <div class="input-actions">
+                <button
+                  type="button"
+                  class="chatting-voice voice"
+                  data-icon="voice"
+                  data-circle
+                  data-background
+                  data-tooltip="음성 입력"
+                ></button>
 
-        <span class="picker-text"> : </span>
-
-        <div
-          class="picker-column"
-          data-name="minute"
-          data-loop
-          data-min="0"
-          data-max="59"
-          data-value="30"
-        ></div>
-      </div>
+                <button
+                  type="submit"
+                  class="chatting-send"
+                  data-icon="send"
+                  data-circle
+                  data-confirm
+                  data-response
+                  data-tooltip="전송"
+                  hidden
+                ></button>
+              </div>
+            </div>
+          </form>
+        </section>
+      </section>
     </main>
 
     <script type="module" src="/src/js/script.js"></script>

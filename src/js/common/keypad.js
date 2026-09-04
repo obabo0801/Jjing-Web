@@ -1,18 +1,21 @@
 import * as back from "#common/back";
 import * as dom from "#common/dom";
+import { pause } from "#common/scroll";
 import sound from "#common/sound";
 import vibrate from "#common/vibrate";
 
 const states = new WeakMap();
-let active = null;
-const dismiss = () => {
-  const column = active?.column;
 
-  if (!column) {
+let active = null;
+
+const dismiss = () => {
+  const field = active?.field;
+
+  if (!field) {
     return;
   }
 
-  active.close?.(column);
+  active.close?.(field);
   active = null;
 };
 
@@ -30,34 +33,55 @@ const empty = Object.freeze({
   submit() {},
   update() {}
 });
-const columns = (root) =>
-  dom
-    .all(".picker-column", root)
-    .filter(
-      (column) => dom.get(column, "data-min") !== null
-    );
-const selected = (column) =>
-  dom.query("button[data-selected]", column);
-const reveal = (picker) => {
+
+const fields = (root) =>
+  root.matches?.("input") ? [root] : dom.all("input", root);
+
+const source = (field) =>
+  field?.matches?.("input")
+    ? field
+    : dom.query("input", field);
+
+const reveal = (target, keypad) => {
   if (dom.has("wearable")) {
     return;
   }
 
-  picker.scrollIntoView({
+  const overflow = dom.root.style.overflow;
+
+  dom.root.style.overflow = "auto";
+  target.scrollIntoView({
     behavior: "auto",
     block: "nearest",
     inline: "nearest"
   });
+
+  const bottom = target.getBoundingClientRect().bottom;
+  const top = keypad.offsetTop;
+
+  if (bottom > top) {
+    dom.scroller.scrollTop += bottom - top + 12;
+  }
+
+  if (overflow) {
+    dom.root.style.overflow = overflow;
+  } else {
+    dom.root.style.removeProperty("overflow");
+  }
 };
+
 const write = (input, value) => {
   const start = input.selectionStart ?? input.value.length;
   const end = input.selectionEnd ?? start;
   const length = input.value.length - end + start + 1;
+  const max =
+    input.maxLength > 0 ? input.maxLength : Infinity;
 
-  if (length <= input.maxLength) {
+  if (length <= max) {
     input.setRangeText(value, start, end, "end");
   }
 };
+
 const erase = (input) => {
   const start = input.selectionStart ?? input.value.length;
   const end = input.selectionEnd ?? start;
@@ -80,8 +104,16 @@ export default function keypad(root, actions = {}) {
 
   element.className = "keypad";
 
-  const state = { element, column: null, ...actions };
+  const state = {
+    element,
+    field: null,
+    fields: () => fields(root),
+    input: source,
+    ...actions
+  };
+
   let off;
+
   const keys = [
     "1",
     "2",
@@ -136,8 +168,8 @@ export default function keypad(root, actions = {}) {
     dom.set(action, "data-circle", "");
   }
 
-  const update = (column) => {
-    const input = dom.query(".picker-input", column);
+  const update = (field) => {
+    const input = state.input(field);
 
     if (!input) {
       return;
@@ -145,12 +177,19 @@ export default function keypad(root, actions = {}) {
 
     const filled = input.value.trim().length > 0;
     const valid = filled && (state.valid?.(input) ?? true);
-    const icon = filled ? "delete" : "close";
+    const signed = Number(input.min) < 0;
 
-    key.value = icon;
+    let icon = signed ? "minus" : "close";
+
+    if (filled) {
+      icon = "delete";
+    }
+
+    key.value = icon === "minus" ? "sign" : icon;
     action.disabled = !valid;
     dom.set(key, "data-icon", icon);
   };
+
   const fit = () => {
     if (dom.has("wearable")) {
       return;
@@ -162,53 +201,63 @@ export default function keypad(root, actions = {}) {
       "--keypad-height",
       `${height}px`
     );
-    reveal(root);
+    reveal(state.field, element);
   };
-  const show = (column) => {
+
+  const show = (field) => {
     if (active && active !== state) {
       dismiss();
     }
 
     active = state;
 
-    const list = columns(root);
-    const icon = list.at(-1) === column ? "check" : "arrow";
+    const list = state.fields(root);
+    const icon = list.at(-1) === field ? "check" : "arrow";
     const opened = dom.get(element, "data-open") !== null;
+    const previous = state.input(state.field);
+    const input = state.input(field);
 
-    state.column = column;
+    if (previous !== input) {
+      dom.remove(previous, "data-edit");
+    }
+
+    state.field = field;
+    dom.set(input, "data-edit", "");
     dom.remove(element, "data-close");
 
     off?.();
     off = back.add(() => {
-      state.close?.(column);
+      state.close?.(field);
     });
 
     dom.set(action, "data-icon", icon);
-    update(column);
+    update(field);
 
     if (opened) {
       return;
     }
 
     requestAnimationFrame(() => {
-      if (state.column === column) {
+      if (state.field === field) {
         dom.set(element, "data-open", "");
         requestAnimationFrame(() => {
-          if (state.column === column) {
+          if (state.field === field) {
             fit();
           }
         });
       }
     });
   };
-  const hide = (column) => {
-    if (state.column !== column) {
+
+  const hide = (field) => {
+    if (state.field !== field) {
       return;
     }
 
     off?.();
     off = undefined;
-    state.column = null;
+    dom.remove(state.input(field), "data-edit");
+    state.field = null;
 
     if (active === state) {
       active = null;
@@ -226,25 +275,35 @@ export default function keypad(root, actions = {}) {
         return;
       }
 
+      pause();
       dom.remove(element, "data-close");
       dom.root.style.removeProperty("--keypad-height");
     });
   };
-  const submit = (column) => {
+
+  const submit = (field) => {
     if (action.disabled) {
-      return;
+      return false;
     }
 
-    const list = columns(root);
-    const next = list[list.indexOf(column) + 1];
+    const input = state.input(field);
+
+    if (!input) {
+      return false;
+    }
+
+    const list = state.fields(root);
+    const next = list[list.indexOf(field) + 1];
 
     if (!next) {
-      state.commit?.(column);
-      return;
+      state.commit?.(field);
+      return true;
     }
 
-    state.commit?.(column, true);
-    state.edit?.(next, selected(next));
+    state.commit?.(field, true);
+    state.edit?.(next, state.selected?.(next));
+
+    return true;
   };
 
   state.show = show;
@@ -252,13 +311,22 @@ export default function keypad(root, actions = {}) {
   state.submit = submit;
   state.update = update;
 
+  let frame;
+
   const resize = () => {
-    if (
-      state.column &&
-      dom.get(element, "data-open") !== null
-    ) {
-      fit();
-    }
+    cancelAnimationFrame(frame);
+    frame = requestAnimationFrame(() => {
+      frame = requestAnimationFrame(() => {
+        frame = undefined;
+
+        if (
+          state.field &&
+          dom.get(element, "data-open") !== null
+        ) {
+          fit();
+        }
+      });
+    });
   };
 
   dom.on(window, "resize", resize);
@@ -270,56 +338,80 @@ export default function keypad(root, actions = {}) {
 
   dom.on(element, "click", (event) => {
     const button = event.target.closest("button");
-    const column = state.column;
+    const field = state.field;
 
-    if (!button || !column) {
+    if (!button || !field) {
       return;
     }
 
-    const input = dom.query(".picker-input", column);
+    const input = state.input(field);
 
     if (!input) {
       return;
     }
 
-    sound.play("click");
-    vibrate.play("click");
-
     if (button.value === "close") {
-      state.close?.(column);
+      sound.play("click");
+      vibrate.play("click");
+      state.close?.(field);
       return;
     }
 
     if (button.value === "delete") {
+      sound.play("click");
+      vibrate.play("click");
       erase(input);
-      update(column);
+      input.dispatchEvent(
+        new Event("input", { bubbles: true })
+      );
+      update(field);
+      return;
+    }
+
+    if (button.value === "sign") {
+      sound.play("click");
+      vibrate.play("click");
+      write(input, "-");
+      input.dispatchEvent(
+        new Event("input", { bubbles: true })
+      );
+      update(field);
       return;
     }
 
     if (button.value === "action") {
-      submit(column);
+      if (submit(field)) {
+        sound.play("click");
+        vibrate.play("click");
+      }
+
       return;
     }
 
+    sound.play("click");
+    vibrate.play("click");
     write(input, button.value);
-    update(column);
+    input.dispatchEvent(
+      new Event("input", { bubbles: true })
+    );
+    update(field);
   });
 
   const boundary = root.closest("dialog") ?? document;
 
   dom.on(boundary, "click", (event) => {
-    const column = state.column;
+    const field = state.field;
     const target = event.target;
 
     if (
-      !column ||
+      !field ||
       element.contains(target) ||
       root.contains(target)
     ) {
       return;
     }
 
-    state.close?.(column);
+    state.close?.(field);
   });
 
   root.after(element);

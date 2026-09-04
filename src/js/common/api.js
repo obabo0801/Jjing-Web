@@ -13,6 +13,7 @@ export default async function api(
         body: JSON.stringify(data)
       })
     });
+
     const json = response.headers
       .get("content-type")
       ?.includes("application/json");

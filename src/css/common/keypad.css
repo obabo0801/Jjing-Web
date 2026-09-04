@@ -43,7 +43,8 @@
 
   transition:
     background-color 160ms ease,
-    color 160ms ease;
+    color 160ms ease,
+    opacity 100ms ease;
 }
 
 .keypad .icon {
@@ -68,7 +69,7 @@
 
 :root:not(.wearable):has(.keypad[data-open]) body,
 :root:not(.wearable):has(.keypad[data-close]) body {
-  padding-block-end: var(--keypad-height, 0px);
+  padding-block-end: calc(var(--keypad-height, 0px) + 12px);
 }
 
 .window .keypad,
@@ -104,6 +105,23 @@
   padding: 28dvh 10dvw 14dvh;
 
   transform: translateY(0);
+}
+
+.wearable input[data-edit] {
+  position: fixed;
+  z-index: 1001;
+
+  inset-block-start: 8dvh;
+  inset-inline: 12dvw;
+
+  width: auto;
+  height: 14dvh;
+  padding-inline: 16px;
+  border-radius: 999px;
+
+  background: var(--panel);
+
+  font-size: 2rem;
 }
 
 .wearable .keypad button {

@@ -3,12 +3,14 @@ import * as pointer from "#common/pointer";
 
 const shapes = ["○", "△", "□"];
 const gestures = new Set();
+
 let points = [];
-let inputId = null;
-let removeListeners = [];
+let id = null;
+let offs = [];
+
 const reset = () => {
   points = [];
-  inputId = null;
+  id = null;
 };
 
 function distance(a, b) {
@@ -34,6 +36,7 @@ function sample(path, count = 32) {
 
   const gap = total / (count - 1);
   const result = [path[0]];
+
   let point = path[0];
   let index = 1;
   let moved = 0;
@@ -181,17 +184,17 @@ function touchStart(event) {
 
   const touch = event.touches[0];
 
-  inputId = touch.identifier;
+  id = touch.identifier;
   points = [{ x: touch.clientX, y: touch.clientY }];
 }
 
 function touchMove(event) {
-  if (inputId === null) {
+  if (id === null) {
     return;
   }
 
   const touch = [...event.touches].find(
-    (item) => item.identifier === inputId
+    (item) => item.identifier === id
   );
 
   if (!touch) {
@@ -206,12 +209,12 @@ function touchMove(event) {
 }
 
 function touchEnd(event) {
-  if (inputId === null) {
+  if (id === null) {
     return;
   }
 
   const touch = [...event.changedTouches].find(
-    (item) => item.identifier === inputId
+    (item) => item.identifier === id
   );
 
   if (!touch) {
@@ -231,12 +234,12 @@ function pointerDown(event) {
     return;
   }
 
-  inputId = event.pointerId;
+  id = event.pointerId;
   points = [{ x: event.clientX, y: event.clientY }];
 }
 
 function pointerMove(event) {
-  if (!pointer.match(event, inputId)) {
+  if (!pointer.match(event, id)) {
     return;
   }
 
@@ -248,7 +251,7 @@ function pointerMove(event) {
 }
 
 function pointerUp(event) {
-  if (!pointer.match(event, inputId)) {
+  if (!pointer.match(event, id)) {
     return;
   }
 
@@ -257,10 +260,7 @@ function pointerUp(event) {
 }
 
 function cancel(event) {
-  if (
-    "pointerType" in event &&
-    !pointer.match(event, inputId)
-  ) {
+  if ("pointerType" in event && !pointer.match(event, id)) {
     return;
   }
 
@@ -268,13 +268,13 @@ function cancel(event) {
 }
 
 function watch() {
-  if (removeListeners.length) {
+  if (offs.length) {
     return;
   }
 
   const options = { passive: true };
 
-  removeListeners = [
+  offs = [
     on(document, "pointerdown", pointerDown),
     on(document, "pointermove", pointerMove),
     on(document, "pointerup", pointerUp),
@@ -291,10 +291,10 @@ function unwatch() {
     return;
   }
 
-  removeListeners.forEach((remove) => {
+  offs.forEach((remove) => {
     remove();
   });
-  removeListeners = [];
+  offs = [];
   reset();
 }
 

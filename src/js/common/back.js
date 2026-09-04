@@ -1,4 +1,5 @@
 const stack = [];
+
 let watcher;
 let running = false;
 

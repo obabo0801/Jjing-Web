@@ -1,0 +1,32 @@
+.label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+
+  min-height: 60px;
+  padding-inline: 16px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+
+  transition:
+    background-color 160ms ease,
+    color 160ms ease;
+}
+
+.label[data-background] {
+  background: var(--background);
+}
+
+.label-key {
+  min-width: 0;
+
+  color: var(--text);
+}
+
+.label-value {
+  flex: none;
+
+  color: var(--mute);
+  text-align: right;
+}

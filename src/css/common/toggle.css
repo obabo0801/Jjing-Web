@@ -1,0 +1,96 @@
+.toggle {
+  display: grid;
+  gap: 8px;
+}
+
+.toggle-head {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+
+  transition: background-color 160ms ease;
+}
+
+.toggle[data-background] .toggle-head {
+  background: var(--background);
+}
+
+.toggle-button {
+  justify-content: flex-start;
+
+  min-width: 0;
+  border: 0;
+  border-radius: 0;
+
+  text-align: left;
+}
+
+.toggle-switch {
+  position: relative;
+
+  min-height: 60px;
+  padding-inline: 16px;
+  border: 0;
+  border-radius: 0;
+}
+
+.toggle-switch::before {
+  content: "";
+
+  position: absolute;
+  inset-block: 8px;
+  inset-inline-start: -0.5px;
+
+  width: 0.5px;
+
+  background: var(--border);
+
+  pointer-events: none;
+
+  transition: background-color 160ms ease;
+}
+
+.toggle-switch > label {
+  width: auto;
+}
+
+.toggle > .toggle-content {
+  display: none;
+}
+
+.toggle-panel,
+.toggle-content {
+  display: grid;
+  gap: 8px;
+
+  min-width: 0;
+}
+
+.toggle-panel {
+  width: 100%;
+}
+
+.toggle-content {
+  margin: 0;
+  padding: 0;
+  border: 0;
+
+  opacity: 1;
+
+  transition: opacity 160ms ease;
+}
+
+.toggle-content[inert] {
+  opacity: 0.5;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .toggle-head,
+  .toggle-switch::before,
+  .toggle-content {
+    transition: none;
+  }
+}

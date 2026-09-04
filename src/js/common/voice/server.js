@@ -3,6 +3,7 @@ import { stt as route } from "#config/route";
 import string from "#src/string";
 
 let cloud;
+
 const encode = (value) => {
   const bytes = new TextEncoder().encode(
     JSON.stringify(value)

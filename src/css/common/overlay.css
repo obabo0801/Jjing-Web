@@ -1,4 +1,4 @@
-dialog[data-loading] {
+dialog[data-overlay] {
   width: 0;
   height: 0;
   margin: auto;
@@ -13,6 +13,6 @@ dialog[data-loading] {
   user-select: none;
 }
 
-dialog[data-loading]::backdrop {
-  background: var(--shade);
+dialog[data-overlay]::backdrop {
+  background: transparent;
 }

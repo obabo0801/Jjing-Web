@@ -8,9 +8,14 @@ const find = async (req) => {
     return null;
   }
 
-  return get("SELECT uid, role FROM user WHERE uid = ?", [
-    id
-  ]);
+  return get(
+    `
+    SELECT uid, role
+    FROM user
+    WHERE uid = ?
+    `,
+    [id]
+  );
 };
 
 export const allowed = async (req) =>

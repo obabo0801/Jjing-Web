@@ -11,8 +11,13 @@ const types = {
   "audio/ogg": "ogg",
   "audio/mp4": "m4a"
 };
-const query =
-  "INSERT INTO stt (file, uid, text, time) VALUES (?, ?, ?, ?)";
+
+const query = `
+  INSERT INTO stt (
+  file, uid, text, time
+  )
+  VALUES (?, ?, ?, ?)
+  `;
 
 export const supported = (type) =>
   Object.hasOwn(types, type);

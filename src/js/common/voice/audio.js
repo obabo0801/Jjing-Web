@@ -9,6 +9,7 @@ const frequency = (buffer) => {
     0,
     Math.floor((data.length - size) / 2)
   );
+
   let power = 0;
   let count = 0;
 
@@ -23,6 +24,7 @@ const frequency = (buffer) => {
 
   const min = Math.floor(rate / 300);
   const max = Math.floor(rate / 80);
+
   let best = 0;
   let score = 0;
 
@@ -41,6 +43,7 @@ const frequency = (buffer) => {
 
   return best ? rate / best : 0;
 };
+
 const pitch = (hz) => {
   if (!hz) {
     return "unknown";
@@ -89,7 +92,9 @@ export const meter = (stream, callback) => {
   source.connect(analyser);
 
   const data = new Uint8Array(analyser.fftSize);
+
   let frame;
+
   const check = () => {
     analyser.getByteTimeDomainData(data);
 
@@ -126,6 +131,7 @@ export const silence = (stream, signal, stop) =>
       let offStop = () => {};
       let timer;
       let settled = false;
+
       const done = (spoken = false) => {
         if (settled) {
           return;
@@ -145,6 +151,7 @@ export const silence = (stream, signal, stop) =>
         () => done(false),
         { once: true }
       );
+
       offStop = dom.on(stop, "abort", () => done(false), {
         once: true
       });
@@ -164,12 +171,14 @@ export const silence = (stream, signal, stop) =>
 
     const data = new Uint8Array(analyser.fftSize);
     const start = performance.now();
+
     let spoken = false;
     let quiet = start;
     let frame;
     let stopped = false;
     let offSignal = () => {};
     let offStop = () => {};
+
     const done = () => {
       if (stopped) {
         return;

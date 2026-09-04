@@ -13,9 +13,11 @@ export const css = {
     root.walkRules((rule) => {
       rule.selector = rename(rule.selector);
     });
+
     root.walkDecls((declaration) => {
       declaration.value = rename(declaration.value);
     });
+
     root.walkAtRules((rule) => {
       rule.params = rename(rule.params);
     });

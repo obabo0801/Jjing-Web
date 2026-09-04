@@ -46,6 +46,7 @@ router.post("/", async (req, res) => {
         [id]
       )
     : null;
+
   const blocked = await get(
     `
     SELECT 1

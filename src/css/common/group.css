@@ -1,0 +1,105 @@
+.group {
+  display: grid;
+
+  min-width: 0;
+  border: 0;
+  border-radius: 8px;
+
+  background: var(--canvas);
+  color: var(--text);
+  overflow: hidden;
+
+  transition:
+    background-color 160ms ease,
+    color 160ms ease;
+}
+
+.group[data-view="grid"] {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
+.group[data-view="grid"] > .group-item::before {
+  display: none;
+}
+
+.group-item {
+  position: relative;
+
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: center;
+
+  min-width: 0;
+  min-height: 60px;
+}
+
+.group-item[data-icon] {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+}
+
+.group-item > .icon {
+  grid-column: 1;
+
+  margin-inline-start: 16px;
+
+  color: var(--mute);
+
+  transition: color 160ms ease;
+}
+
+.group-item > :not(.icon) {
+  grid-column: 1;
+
+  width: 100%;
+  min-width: 0;
+  border: 0;
+  border-radius: 0;
+}
+
+.group-item[data-icon] > :not(.icon) {
+  grid-column: 2;
+}
+
+.group-item > button:not(.icon-center) {
+  justify-content: flex-start;
+
+  text-align: left;
+}
+
+.group-item[data-danger] > .icon,
+.group-item[data-danger] > :not(.icon) {
+  color: var(--error);
+}
+
+.group-item + .group-item::before {
+  content: "";
+
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline: 8px;
+
+  height: 0.5px;
+
+  background: var(--border);
+
+  pointer-events: none;
+
+  transition: background-color 160ms ease;
+}
+
+.wearable .group-item {
+  min-height: 72px;
+}
+
+.wearable .group-item > .icon {
+  margin-inline-start: 24px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .group,
+  .group-item > .icon,
+  .group-item::before {
+    transition: none;
+  }
+}

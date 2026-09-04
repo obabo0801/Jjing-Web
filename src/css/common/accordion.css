@@ -1,0 +1,84 @@
+.accordion {
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+
+  color: var(--text);
+
+  transition:
+    background-color 160ms ease,
+    color 160ms ease;
+}
+
+.accordion[data-background] {
+  background: var(--background);
+}
+
+.accordion-toggle {
+  justify-content: space-between;
+
+  width: 100%;
+  border: 0;
+  border-radius: 0;
+
+  text-align: left;
+}
+
+.accordion-arrow {
+  flex: none;
+  margin-inline-start: auto;
+
+  transition: transform 240ms ease;
+}
+
+.accordion[data-open] .accordion-arrow {
+  transform: rotate(90deg);
+}
+
+.accordion-content {
+  display: grid;
+  grid-template-rows: 0fr;
+
+  visibility: hidden;
+
+  transition:
+    grid-template-rows 240ms ease,
+    visibility 0s linear 240ms;
+}
+
+.accordion-body {
+  min-height: 0;
+  padding-inline: 16px;
+
+  overflow: hidden;
+  opacity: 0;
+  transform: translateY(-8px);
+
+  transition:
+    padding-block 240ms ease,
+    opacity 160ms ease,
+    transform 240ms ease;
+}
+
+.accordion[data-open] .accordion-content {
+  grid-template-rows: 1fr;
+
+  visibility: visible;
+  transition-delay: 0s;
+}
+
+.accordion[data-open] .accordion-body {
+  padding-block: 0 16px;
+
+  opacity: 1;
+  transform: translateY(0);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .accordion,
+  .accordion-arrow,
+  .accordion-content,
+  .accordion-body {
+    transition: none;
+  }
+}

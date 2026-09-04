@@ -1,11 +1,11 @@
 import * as dom from "#common/dom";
 import { message } from "#common/i18n";
-import { meter } from "#common/voice/audio";
 
 const views = new WeakMap();
 const isControl = (target) =>
   target instanceof HTMLInputElement ||
   target instanceof HTMLTextAreaElement;
+
 const surface = (target) => {
   if (!(target instanceof Element)) {
     return null;
@@ -72,60 +72,4 @@ const display = (target) => {
   };
 };
 
-export const visualize = (target, stream) => {
-  const stopDisplay = display(target);
-  const element = surface(target);
-
-  if (!element) {
-    return stopDisplay;
-  }
-
-  const visual = dom.query(".input", element) || element;
-  const ping = visual.animate(
-    [{ outlineOffset: "-2px" }, { outlineOffset: "6px" }],
-    { duration: 1000, fill: "both" }
-  );
-
-  ping.pause();
-
-  let value = 0;
-  const stopMeter = stream
-    ? meter(stream, (level) => {
-        const next = Math.min(
-          Math.max((level - 0.02) * 125, 0),
-          1000
-        );
-
-        value += (next - value) * 0.15;
-        ping.currentTime = value;
-      })
-    : () => {};
-  let stopped = false;
-
-  return () => {
-    if (stopped) {
-      return;
-    }
-
-    stopped = true;
-    stopMeter();
-
-    const offset = getComputedStyle(visual).outlineOffset;
-
-    ping.cancel();
-    visual.animate(
-      [
-        {
-          outlineColor: "var(--active)",
-          outlineOffset: offset
-        },
-        {
-          outlineColor: "transparent",
-          outlineOffset: "-6px"
-        }
-      ],
-      { duration: 220, easing: "ease-in" }
-    );
-    stopDisplay();
-  };
-};
+export const visualize = (target) => display(target);

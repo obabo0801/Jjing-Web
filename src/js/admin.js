@@ -29,6 +29,7 @@ const send = async (form) => {
     data: { ...Object.fromEntries(fields), image }
   });
 };
+
 const start = async () => {
   const loading = init();
 

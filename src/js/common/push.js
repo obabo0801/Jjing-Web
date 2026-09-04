@@ -1,11 +1,15 @@
+import * as dom from "#common/dom";
+
 import * as pwa from "#src/pwa";
 
-const supported = (registration) =>
+export const supported = (registration) =>
   Boolean(
     registration &&
+    !dom.has("wearable") &&
     "Notification" in window &&
     "PushManager" in window
   );
+
 const authorize = async () => {
   if (Notification.permission !== "default") {
     return Notification.permission === "granted";

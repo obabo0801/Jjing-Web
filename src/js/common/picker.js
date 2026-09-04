@@ -5,18 +5,33 @@ import sound from "#common/sound";
 import vibrate from "#common/vibrate";
 
 const bound = new WeakSet();
+
 let resizing = false;
-let resizeTimer;
+let resizeId;
+
 const resize = () => {
   resizing = true;
-  clearTimeout(resizeTimer);
-  resizeTimer = setTimeout(() => {
+  clearTimeout(resizeId);
+  resizeId = setTimeout(() => {
     resizing = false;
   }, 160);
 };
 
 dom.on(window, "resize", resize);
 dom.on(window.visualViewport, "resize", resize);
+
+const fields = (root) =>
+  dom
+    .all(".picker-column", root)
+    .filter(
+      (column) => dom.get(column, "data-min") !== null
+    );
+
+const source = (column) =>
+  dom.query(".picker-input", column);
+
+const selected = (column) =>
+  dom.query("button[data-selected]", column);
 
 const values = (column) => {
   const list = dom.get(column, "data-values");
@@ -40,12 +55,14 @@ const values = (column) => {
     String(min + index)
   );
 };
+
 const size = (list) =>
   dom.query("button", list)?.offsetHeight || 60;
 const buttons = (list) => dom.all("button", list);
 const nearest = (list, value) => {
   const items = buttons(list);
   const current = Math.round(list.scrollTop / size(list));
+
   let result = null;
   let distance = Infinity;
 
@@ -66,6 +83,7 @@ const nearest = (list, value) => {
 
   return result;
 };
+
 const move = (list, button, smooth = false) => {
   if (!button) {
     return;
@@ -92,6 +110,7 @@ const move = (list, button, smooth = false) => {
     });
   }
 };
+
 const shift = (list, distance) => {
   list.style.scrollBehavior = "auto";
   list.scrollTop += distance;
@@ -100,6 +119,7 @@ const shift = (list, distance) => {
     list.style.removeProperty("scroll-behavior");
   });
 };
+
 const place = (list, button) => {
   const apply = () => {
     if (!list.clientHeight) {
@@ -125,6 +145,7 @@ const place = (list, button) => {
 
   observer.observe(list);
 };
+
 const togglePeriod = (column) => {
   const picker = column.closest(".picker");
   const period = dom.query(
@@ -153,6 +174,7 @@ const togglePeriod = (column) => {
   select(period, next, false);
   move(list, next, true);
 };
+
 const select = (column, button, sync = true) => {
   if (!button) {
     return false;
@@ -164,6 +186,7 @@ const select = (column, button, sync = true) => {
     "button[data-selected]",
     column
   );
+
   const focused =
     selected?.matches(":focus-visible") === true;
 
@@ -198,6 +221,7 @@ const select = (column, button, sync = true) => {
 
   return true;
 };
+
 const valid = (input) => {
   const value = Number(input.value);
   const min = Number(input.min);
@@ -210,6 +234,7 @@ const valid = (input) => {
     value <= max
   );
 };
+
 const edit = (column, button) => {
   if (dom.get(column, "data-min") === null) {
     return;
@@ -234,12 +259,11 @@ const edit = (column, button) => {
   input.value = dom.get(button, "data-value");
   dom.set(column, "data-edit", "");
   input.hidden = false;
-  keypad(picker, { close, commit, edit, valid }).show(
-    column
-  );
+  keyboard(picker).show(column);
   input.focus({ preventScroll: true });
   input.select();
 };
+
 const close = (column, keep = false) => {
   const input = dom.query(".picker-input", column);
 
@@ -251,9 +275,10 @@ const close = (column, keep = false) => {
   dom.remove(column, "data-edit");
 
   if (!keep) {
-    keypad(column.closest(".picker")).hide(column);
+    keyboard(column.closest(".picker")).hide(column);
   }
 };
+
 const commit = (column, keep = false) => {
   const input = dom.query(".picker-input", column);
   const list = dom.query(".picker-list", column);
@@ -272,10 +297,28 @@ const commit = (column, keep = false) => {
   close(column, keep);
 
   const button = nearest(list, value);
+  const index = buttons(list).indexOf(button);
 
   select(column, button);
+
+  if (index >= 0) {
+    dom.set(column, "data-scroll", index * size(list));
+  }
+
   move(list, button);
 };
+
+const keyboard = (root) =>
+  keypad(root, {
+    close,
+    commit,
+    edit,
+    fields,
+    input: source,
+    selected,
+    valid
+  });
+
 const append = (list, items, count) => {
   for (let cycle = 0; cycle < count; cycle += 1) {
     items.forEach((value) => {
@@ -289,6 +332,7 @@ const append = (list, items, count) => {
     });
   }
 };
+
 const build = (column) => {
   if (bound.has(column)) {
     return;
@@ -309,6 +353,7 @@ const build = (column) => {
 
   const min = dom.get(column, "data-min");
   const max = dom.get(column, "data-max");
+
   let input;
 
   if (min !== null && max !== null) {
@@ -343,9 +388,11 @@ const build = (column) => {
 
   let frame;
   let timer;
+
   const active = () => {
     dom.set(column, "data-move", "");
   };
+
   const inactive = () => {
     if (dom.get(column, "data-pressed") !== null) {
       return;
@@ -353,10 +400,12 @@ const build = (column) => {
 
     dom.remove(column, "data-move");
   };
+
   const settle = () => {
     clearTimeout(timer);
     timer = setTimeout(inactive, 160);
   };
+
   const tick = () => {
     const height = size(list);
     const current = list.scrollTop;
@@ -382,6 +431,7 @@ const build = (column) => {
     sound.play("snap");
     vibrate.play("picker");
   };
+
   const press = (event) => {
     if (dom.get(column, "data-edit") !== null) {
       return;
@@ -395,6 +445,7 @@ const build = (column) => {
     active();
     clearTimeout(timer);
   };
+
   const drag = (event) => {
     const value = dom.get(column, "data-y");
 
@@ -419,6 +470,7 @@ const build = (column) => {
     list.scrollTop += distance;
     event.preventDefault();
   };
+
   const release = (event) => {
     const active = document.activeElement;
 
@@ -437,13 +489,16 @@ const build = (column) => {
       dom.remove(column, "data-drag");
     });
   };
+
   const pointerCancel = (event) => {
     release(event);
   };
+
   const wheel = () => {
     active();
     settle();
   };
+
   const scroll = () => {
     tick();
 
@@ -455,10 +510,12 @@ const build = (column) => {
     frame = requestAnimationFrame(() => {
       const all = buttons(list);
       const height = size(list);
+
       let index = Math.round(list.scrollTop / height);
 
       if (loop) {
         const length = items.length;
+
         let offset = 0;
 
         if (index <= 0) {
@@ -479,6 +536,7 @@ const build = (column) => {
       select(column, all[index]);
     });
   };
+
   const click = (event) => {
     if (dom.get(column, "data-drag") !== null) {
       return;
@@ -502,15 +560,11 @@ const build = (column) => {
 
     edit(column, button);
   };
+
   const keydown = (event) => {
     if (event.key === "Enter") {
       event.preventDefault();
-      keypad(column.closest(".picker"), {
-        close,
-        commit,
-        edit,
-        valid
-      }).submit(column);
+      keyboard(column.closest(".picker")).submit(column);
       return;
     }
 
@@ -525,6 +579,7 @@ const build = (column) => {
         event.preventDefault();
       }
     });
+
     dom.on(input, "input", () => {
       const value = input.value
         .replace(/\D/g, "")
@@ -534,7 +589,7 @@ const build = (column) => {
         input.value = value;
       }
 
-      keypad(column.closest(".picker")).update(column);
+      keyboard(column.closest(".picker")).update(column);
     });
     dom.on(input, "keydown", keydown);
   }
@@ -560,7 +615,7 @@ export default function picker(root = document) {
     const inputs = dom.all(".picker-input", element);
 
     if (inputs.length) {
-      keypad(element, { close, commit, edit, valid });
+      keyboard(element);
     }
   });
 }

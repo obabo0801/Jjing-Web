@@ -2,7 +2,21 @@ import * as dom from "#common/dom";
 import sound from "#common/sound";
 import vibrate from "#common/vibrate";
 
+let resizeId;
+
+const resize = () => {
+  clearTimeout(resizeId);
+  dom.set(dom.root, "data-resize", "");
+
+  resizeId = setTimeout(() => {
+    dom.remove(dom.root, "data-resize");
+  }, 120);
+};
+
 export default function segment() {
+  dom.on(window, "resize", resize);
+  dom.on(window.visualViewport, "resize", resize);
+
   dom.on(document, "click", (event) => {
     const button = event.target.closest?.(
       ".segment button:enabled"

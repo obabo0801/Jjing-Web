@@ -1,8 +1,9 @@
 import * as back from "#common/back";
 import * as dom from "#common/dom";
 import translate from "#common/i18n";
-import load, { light } from "#common/loading";
 import mount from "#common/mount";
+import overlay from "#common/overlay";
+import snap from "#common/sheet/snap";
 import swipe, { resolve } from "#common/swipe";
 import vibrate from "#common/vibrate";
 import viewport from "#common/viewport";
@@ -10,6 +11,7 @@ import viewport from "#common/viewport";
 const reduce = matchMedia(
   "(prefers-reduced-motion: reduce)"
 );
+
 const motions = {
   "→": ["x", "translateX(100vw)"],
   "↘": ["xy", "translate(100vw, 100dvh)"],
@@ -20,17 +22,20 @@ const motions = {
   "↑": ["y", "translateY(-100dvh)"],
   "↗": ["xy", "translate(100vw, -100dvh)"]
 };
+
 const attrs = {
   x: "data-swipe-x",
   y: "data-swipe-y",
   xy: "data-swipe-xy"
 };
+
 const types = {
   dialog: "data-dialog",
   popover: "data-popover",
   drawer: "data-drawer",
   sheet: "data-sheet"
 };
+
 const text = (tag, name, key) => {
   const element = dom.create(tag);
 
@@ -42,6 +47,7 @@ const text = (tag, name, key) => {
 
   return element;
 };
+
 const insert = (target, content, name) => {
   if (content instanceof Node) {
     target.append(content);
@@ -50,9 +56,9 @@ const insert = (target, content, name) => {
 
   target.append(text("span", name, content));
 };
-const action = (item, type, wearable) => {
+
+const action = (item, wearable) => {
   const { text: key, icon, data = [] } = item;
-  const name = type === "dialog" ? "dialog" : "layer";
   const button = dom.create("button");
 
   button.type = "button";
@@ -60,27 +66,29 @@ const action = (item, type, wearable) => {
 
   data.forEach((value) => dom.set(button, value, ""));
 
-  if (wearable) {
+  if (wearable && icon) {
     dom.set(button, "data-circle", "");
-  }
-
-  if (icon && (type !== "dialog" || wearable)) {
     dom.set(button, "data-icon", icon);
   }
 
-  button.append(text("span", `${name}-label`, key));
+  button.append(text("span", "layer-label", key));
   return button;
 };
+
 const build = (type, options) => {
   const { title, content, actions = [] } = options;
   const dialog = type === "dialog";
   const name = dialog ? "dialog" : "layer";
-  const wearable = dialog && dom.has("wearable");
+  const wearable = dom.has("wearable");
   const wrap = dom.create("div");
   const element = dom.create("dialog");
 
   dom.set(element, types[type], "");
   dom.set(element, "closedby", "none");
+
+  if (!dialog) {
+    dom.set(element, "tabindex", "-1");
+  }
 
   if (options.fullscreen || wearable) {
     dom.set(element, "data-fullscreen", "");
@@ -116,26 +124,24 @@ const build = (type, options) => {
 
   const footer = dom.create("footer");
 
-  footer.className = `${name}-actions`;
+  footer.className = "layer-actions";
   const buttons = actions.map((item) =>
-    action(item, type, wearable)
+    action(item, wearable)
   );
 
-  if (dialog) {
-    const validate = () => {
-      actions.forEach((item, index) => {
-        const value = item.disabled;
+  const validate = () => {
+    actions.forEach((item, index) => {
+      const value = item.disabled;
 
-        buttons[index].disabled =
-          typeof value === "function"
-            ? value()
-            : Boolean(value);
-      });
-    };
+      buttons[index].disabled =
+        typeof value === "function"
+          ? value()
+          : Boolean(value);
+    });
+  };
 
-    validate();
-    dom.on(body, "input", validate);
-  }
+  validate();
+  dom.on(body, "input", validate);
 
   footer.append(...buttons);
 
@@ -152,6 +158,7 @@ const build = (type, options) => {
   wrap.append(element);
   return { wrap, element, heading, buttons };
 };
+
 const fade = (element, out = false) => {
   if (reduce.matches) {
     return Promise.resolve();
@@ -163,6 +170,7 @@ const fade = (element, out = false) => {
     easing: out ? "ease-in" : "ease-out",
     fill: out ? "forwards" : "none"
   };
+
   const animations = [...element.children].map((item) =>
     item
       .animate({ opacity }, options)
@@ -171,18 +179,16 @@ const fade = (element, out = false) => {
 
   return Promise.all(animations);
 };
-const clamp = (value, min, max) =>
-  Math.min(Math.max(value, min), max);
+
 const anchorRect = (anchor) =>
   anchor instanceof Element
     ? anchor.getBoundingClientRect()
     : null;
-const place = (element, anchor) => {
-  const view = viewport();
+
+const origin = (element, anchor) => {
   const rect = anchorRect(anchor);
-  const margin = 16;
-  const width = element.offsetWidth;
-  const height = element.offsetHeight;
+  const box = element.getBoundingClientRect();
+  const { width, height } = box;
   const scale = rect
     ? Math.max(
         0.1,
@@ -190,53 +196,21 @@ const place = (element, anchor) => {
       )
     : 0.2;
 
-  if (element.hasAttribute("data-fullscreen")) {
-    const x = rect
-      ? rect.left + rect.width / 2
-      : view.width / 2;
-    const y = rect
-      ? rect.top + rect.height / 2
-      : view.height / 2;
-
-    element.style.transformOrigin = `${x}px ${y}px`;
-    return scale;
-  }
-
-  const maxX = Math.max(
-    margin,
-    view.width - width - margin
-  );
-  const maxY = Math.max(
-    margin,
-    view.height - height - margin
-  );
-  const left = clamp(
-    (view.width - width) / 2,
-    margin,
-    maxX
-  );
-  const top = clamp(
-    (view.height - height) / 2,
-    margin,
-    maxY
-  );
-
-  element.style.left = `${left}px`;
-  element.style.top = `${top}px`;
-
   const x = rect
-    ? rect.left + rect.width / 2 - left
+    ? rect.left + rect.width / 2 - box.left
     : width / 2;
+
   const y = rect
-    ? rect.top + rect.height / 2 - top
+    ? rect.top + rect.height / 2 - box.top
     : height / 2;
 
   element.style.transformOrigin = `${x}px ${y}px`;
   return scale;
 };
+
 const enter = (element, type, anchor) => {
   const scale =
-    type === "popover" ? place(element, anchor) : 1;
+    type === "popover" ? origin(element, anchor) : 1;
 
   if (reduce.matches) {
     return null;
@@ -268,6 +242,7 @@ const enter = (element, type, anchor) => {
     fill: "both"
   });
 };
+
 const length = (element, axis, screen = false) => {
   const { width, height } = viewport();
 
@@ -283,22 +258,25 @@ const length = (element, axis, screen = false) => {
     ? Math.hypot(width, height)
     : Math.hypot(element.clientWidth, element.clientHeight);
 };
-const dismiss = (
-  element,
-  type,
-  direction,
-  close,
-  stopOpening
-) => {
-  const arrow = resolve(direction);
+
+const strength = (element) => {
+  const rect = element.getBoundingClientRect();
+  const screen = viewport();
+  const total = screen.width * screen.height;
+  const area = rect.width * rect.height;
+
+  return total ? Math.min(1, Math.max(0, area / total)) : 0;
+};
+
+const dismiss = (element, type, options) => {
+  const { dir, close, finish, shade } = options;
+  const arrow = resolve(dir);
 
   if (!arrow || !motions[arrow]) {
     return () => {};
   }
 
   const dialog = type === "dialog";
-  const dark =
-    dialog && dom.get(element, "data-fullscreen") !== null;
   const [axis, exit] = motions[arrow];
 
   dom.set(element, attrs[axis], "");
@@ -307,6 +285,7 @@ const dismiss = (
   let frame;
   let progress = 0;
   let done;
+
   const update = (value) => {
     progress = value;
 
@@ -314,16 +293,16 @@ const dismiss = (
       animation.currentTime = value * 1000;
     }
 
-    if (dialog) {
-      light(value, dark);
-    }
+    shade(value);
   };
+
   const cancel = () => {
     cancelAnimationFrame(frame);
     frame = undefined;
     done?.();
     done = undefined;
   };
+
   const settle = (target) =>
     new Promise((finish) => {
       cancel();
@@ -340,6 +319,7 @@ const dismiss = (
       const start = performance.now();
       const duration =
         180 * Math.max(0.4, Math.abs(target - from));
+
       const run = (now) => {
         const time = Math.min(1, (now - start) / duration);
         const ease = 1 - Math.pow(1 - time, 3);
@@ -357,20 +337,14 @@ const dismiss = (
 
       frame = requestAnimationFrame(run);
     });
+
   const stop = () => {
     cancel();
     animation?.cancel();
     animation = undefined;
-
-    if (dialog) {
-      light();
-    }
   };
-  const ratio = () => {
-    if (!dialog) {
-      return 0.35;
-    }
 
+  const ratio = () => {
     const total = length(element, axis, true);
     const size = length(element, axis);
 
@@ -378,15 +352,24 @@ const dismiss = (
       ? Math.min(0.35, (size / total) * 0.35)
       : 0.35;
   };
+
+  const content =
+    ":is(.dialog-content, .layer-content) > " +
+    ":not([data-pan]), a, button";
+
+  const select =
+    ":is(.dialog-title, .layer-title), " + "[data-pan] > *";
+
   const off = swipe(arrow, {
     target: element,
-    ignore: dialog
-      ? ".dialog-title, .dialog-content > *, a, button"
-      : ".layer-head, .layer-content > *, a, button",
-    length: () => length(element, axis, dialog),
+    ignore: (event) =>
+      event.pointerType === "mouse"
+        ? `${select}, ${content}`
+        : content,
+    length: () => length(element, axis, true),
     ratio,
     start: () => {
-      stopOpening?.();
+      finish?.();
       animation = element.animate(
         [
           { transform: "translate(0)" },
@@ -417,14 +400,23 @@ const dismiss = (
 };
 
 export default async function layer(type, options = {}) {
-  const { actions = [] } = options;
+  const { actions = [], scroll } = options;
   const dialog = type === "dialog";
-  const locked = options.locked !== false;
+  const locked = options.locked === true;
+  const trigger =
+    document.activeElement instanceof HTMLElement
+      ? document.activeElement
+      : null;
+
+  const keyboard =
+    trigger?.matches(":focus-visible") === true;
+
   const { wrap, element, heading, buttons } = build(
     type,
     options
   );
-  const release = load();
+
+  const release = overlay();
 
   dom.body.append(wrap);
   mount(element);
@@ -433,14 +425,25 @@ export default async function layer(type, options = {}) {
 
   if (!translated) {
     wrap.remove();
-    release();
+    await release();
     return false;
   }
 
   return new Promise((finish) => {
-    let closed = false;
     let opening;
+    let closed = false;
+
     const off = [];
+    const clearFocus = () => {
+      if (
+        trigger &&
+        !keyboard &&
+        document.activeElement === trigger
+      ) {
+        trigger.blur();
+      }
+    };
+
     const close = async (value = false, smooth = true) => {
       if (closed) {
         return;
@@ -460,23 +463,45 @@ export default async function layer(type, options = {}) {
         element.close();
       }
 
+      clearFocus();
       wrap.remove();
 
-      if (dialog) {
-        light();
-      }
-
-      release();
+      await release();
+      clearFocus();
       finish(value);
     };
 
     actions.forEach((item, index) => {
       off.push(
-        dom.on(buttons[index], "click", () =>
-          close(item.value)
-        )
+        dom.on(buttons[index], "click", async () => {
+          const result = await item.run?.({
+            element,
+            button: buttons[index],
+            close
+          });
+
+          if (item.close === false || result === false) {
+            return;
+          }
+
+          close(result ?? item.value);
+        })
       );
     });
+
+    off.push(
+      dom.on(element, "click", (event) => {
+        const button = event.target.closest?.(
+          "button:enabled[data-layer-action]"
+        );
+
+        if (!button || !element.contains(button)) {
+          return;
+        }
+
+        close(dom.get(button, "data-layer-action"));
+      })
+    );
 
     if (dialog) {
       off.push(
@@ -486,7 +511,10 @@ export default async function layer(type, options = {}) {
       );
     }
 
-    if (type === "popover" || type === "sheet") {
+    if (
+      !locked &&
+      (type === "popover" || type === "sheet")
+    ) {
       off.push(
         dom.on(element, "click", (event) => {
           if (event.target !== element) {
@@ -507,7 +535,31 @@ export default async function layer(type, options = {}) {
       );
     }
 
+    window.getSelection()?.removeAllRanges();
     element.showModal();
+
+    const updateOverlay = () =>
+      release.strength(strength(element));
+
+    updateOverlay();
+    off.push(dom.on(window, "resize", updateOverlay));
+
+    if ("ResizeObserver" in window) {
+      const observer = new ResizeObserver(updateOverlay);
+
+      observer.observe(element);
+      off.push(() => observer.disconnect());
+    }
+
+    if (!dialog) {
+      element.focus({ preventScroll: true });
+    }
+
+    element.scrollTop = Number.isFinite(scroll)
+      ? scroll
+      : 0;
+
+    options.ready?.(element, close);
 
     if (dialog) {
       fade(element);
@@ -516,17 +568,14 @@ export default async function layer(type, options = {}) {
     }
 
     if (type === "popover") {
-      const center = () => place(element, options.anchor);
+      const update = () => origin(element, options.anchor);
 
-      off.push(dom.on(window, "resize", center));
-      off.push(
-        dom.on(window.visualViewport, "resize", center)
-      );
+      off.push(dom.on(window, "resize", update));
     }
 
     off.push(
       back.add(() => {
-        if (!locked) {
+        if (locked) {
           return false;
         }
 
@@ -534,15 +583,27 @@ export default async function layer(type, options = {}) {
       })
     );
 
-    if (locked && options.direction) {
+    if (
+      !locked &&
+      type === "sheet" &&
+      !dom.has("wearable") &&
+      options.snap !== false
+    ) {
       off.push(
-        dismiss(
-          element,
-          type,
-          options.direction,
+        snap(element, {
+          stage: options.stage,
           close,
-          () => opening?.finish()
-        )
+          finish: () => opening?.finish()
+        })
+      );
+    } else if (!locked && options.direction) {
+      off.push(
+        dismiss(element, type, {
+          dir: options.direction,
+          close,
+          finish: () => opening?.finish(),
+          shade: release.shade
+        })
       );
     }
   });

@@ -28,6 +28,7 @@ export default function log(dir, schema) {
 
   let day;
   let db;
+
   const open = (time) => {
     const next = date(time);
 

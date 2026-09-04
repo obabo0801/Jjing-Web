@@ -39,6 +39,7 @@ function durations(value) {
 
 function intervals(track, now) {
   const result = [];
+
   let start = track.start;
 
   track.pattern.forEach((duration, index) => {
@@ -83,6 +84,7 @@ function render() {
     intervals(track, now)
   );
   const pattern = [];
+
   let cursor = now;
 
   for (const [start, end] of merge(ranges)) {

@@ -6,10 +6,12 @@ import patterns from "#common/pattern";
 const file = (name) =>
   new URL(`../../assets/audio/${name}.mp3`, import.meta.url)
     .href;
+
 const backgrounds = Object.freeze({
   semenota: file("semenota"),
   sunflower: file("sunflower")
 });
+
 const effects = Object.freeze({
   bell: file("bell"),
   click: file("click"),
@@ -21,6 +23,7 @@ const effects = Object.freeze({
   snap: file("snap"),
   success: file("success")
 });
+
 const waves = new Set([
   "sine",
   "square",
@@ -31,9 +34,11 @@ const buffers = new Map();
 const players = new Map();
 const tones = new Set();
 const active = new Set();
+
 let track;
 let source = "";
 let token = 0;
+
 const load = (audio, url) => {
   if (!buffers.has(url)) {
     const request = fetch(url)
@@ -140,6 +145,7 @@ const beeps = (name, options = {}) => {
     })
     .filter(Boolean);
 };
+
 const effect = async (
   url,
   { channel = "system", delay = 0, volume = 1 } = {}
@@ -155,6 +161,7 @@ const effect = async (
   }
 
   const id = token;
+
   let buffer;
 
   try {
@@ -274,6 +281,7 @@ const clearTrack = (player) => {
   track = undefined;
   source = "";
 };
+
 const resetTrack = () => {
   if (!track) {
     return false;
@@ -335,6 +343,7 @@ export function music(
   on(player, "ended", () => clearTrack(player), {
     once: true
   });
+
   on(player, "error", () => clearTrack(player), {
     once: true
   });

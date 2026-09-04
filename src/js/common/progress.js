@@ -25,6 +25,7 @@ export default function progress(options = {}) {
   root.append(track, output);
 
   let value = 0;
+
   const set = (next) => {
     value = clamp(next);
 

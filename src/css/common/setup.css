@@ -1,0 +1,120 @@
+.setup-form,
+.setup-profile,
+.setup-field,
+.setup-field > label {
+  display: grid;
+  gap: 8px;
+}
+
+.setup-form {
+  width: min(100%, 36rem);
+  margin-inline: auto;
+}
+
+.setup-status {
+  min-height: 1.5em;
+
+  color: var(--mute);
+}
+
+.setup-status[data-state="error"] {
+  color: var(--error);
+}
+
+.setup-status[data-state="success"] {
+  color: var(--success);
+}
+
+.setup-profile {
+  box-sizing: border-box;
+  align-content: start;
+  justify-items: start;
+  gap: 0;
+
+  width: 100%;
+  padding-inline: 16px;
+
+  text-align: left;
+}
+
+dialog[data-drawer] .layer-content:has(> .setup-profile) {
+  padding-inline: 0;
+}
+
+.setup-profile > strong,
+.setup-profile > p {
+  word-break: keep-all;
+  text-wrap: pretty;
+}
+
+.setup-profile > p {
+  margin: 0;
+
+  white-space: pre-line;
+}
+
+.setup-profile > p:last-child {
+  margin-block-start: 16px;
+}
+
+.setup-avatar {
+  position: relative;
+  justify-self: center;
+
+  width: 128px;
+  margin-block-end: 8px;
+}
+
+.setup-avatar-media {
+  width: 100%;
+  min-height: 0;
+  height: 100%;
+  padding: 0;
+  border: 0;
+
+  transition:
+    background-color 160ms ease,
+    color 160ms ease,
+    opacity 160ms ease;
+}
+
+.setup-avatar-media > svg.icon {
+  width: 9rem;
+  height: 9rem;
+
+  transform: translateY(12px);
+}
+
+.setup-avatar-edit {
+  position: absolute;
+  z-index: 2;
+  inset-inline-end: 8px;
+  inset-block-end: 8px;
+
+  display: grid;
+  place-items: center;
+
+  width: 20px;
+  height: 20px;
+  border: 2px solid var(--canvas);
+  border-radius: 999px;
+
+  background: var(--background);
+  color: var(--text);
+  pointer-events: none;
+}
+
+.setup-avatar-edit > .icon {
+  width: 0.75rem;
+  height: 0.75rem;
+}
+
+.setup-avatar[data-loading] .setup-avatar-media {
+  opacity: 0.5;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .setup-avatar-media {
+    transition: none;
+  }
+}

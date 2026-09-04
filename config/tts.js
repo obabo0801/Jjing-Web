@@ -14,23 +14,30 @@ const dir = path.join(import.meta.dirname, "../data/tts");
 const timeout = 5000;
 const regions = { en: "en-US", ja: "ja-JP", ko: "ko-KR" };
 const mode = (process.env.TTS || "").trim().toLowerCase();
-const keyFile =
-  process.env.GOOGLE_APPLICATION_CREDENTIALS?.trim();
+const auth = process.env.GOOGLE_APPLICATION_CREDENTIALS;
 const enabled = ["login", "json"].includes(mode);
 const pending = new Map();
+
 let client;
 let retry = 0;
 
 mkdirSync(dir, { recursive: true });
 
-const query =
-  "INSERT INTO tts (file, uid, text, time) VALUES (?, ?, ?, ?)";
+const query = `INSERT INTO tts (
+  file, uid, text, time
+  )
+  VALUES (?, ?, ?, ?)
+  `;
+
 const record = (file, uid, text, time) =>
   run(query, [file, uid, text, time]);
+
 const clamp = (value, min, max) =>
   Math.min(max, Math.max(min, value));
+
 const within = async (promise) => {
   let timer;
+
   const limit = new Promise((_, reject) => {
     timer = setTimeout(() => {
       reject(new Error());
@@ -43,6 +50,7 @@ const within = async (promise) => {
     clearTimeout(timer);
   }
 };
+
 const language = (value) => {
   const lang = string(value).trim();
 
@@ -59,6 +67,7 @@ const language = (value) => {
 
   return `${code}-${region.toUpperCase()}`;
 };
+
 const prepare = (value) => {
   const rate = Number(value.rate);
   const pitch = Number(value.pitch);
@@ -76,6 +85,7 @@ const prepare = (value) => {
     voice
   };
 };
+
 const parts = (text) => {
   const chars = [...text];
   const result = [];
@@ -86,6 +96,7 @@ const parts = (text) => {
 
   return result;
 };
+
 const key = (provider, value) => {
   if (provider !== "google") {
     return value;
@@ -97,10 +108,12 @@ const key = (provider, value) => {
     rate: value.rate < 0.75 ? 0.24 : 1
   };
 };
+
 const voice = (provider, value) =>
   provider === "cloud"
     ? value.voice || "default"
     : "default";
+
 const name = (provider, value) => {
   const data = key(provider, value);
   const id = hash(
@@ -110,6 +123,7 @@ const name = (provider, value) => {
 
   return `${id}.mp3`;
 };
+
 const read = async (file) => {
   try {
     return await readFile(path.join(dir, file));
@@ -121,6 +135,7 @@ const read = async (file) => {
     return null;
   }
 };
+
 const find = async (provider, value) => {
   const file = name(provider, value);
   const audio = await read(file);
@@ -137,6 +152,7 @@ const find = async (provider, value) => {
     cached: true
   };
 };
+
 const cache = async (provider, value, options) => {
   const { create, uid, time } = options;
   const file = name(provider, value);
@@ -147,6 +163,7 @@ const cache = async (provider, value, options) => {
   }
 
   let task = pending.get(file);
+
   const cached = Boolean(task);
 
   if (!task) {
@@ -182,17 +199,19 @@ const cache = async (provider, value, options) => {
     cached
   };
 };
+
 const connect = () => {
   if (mode === "json") {
-    if (!keyFile) {
+    if (!auth) {
       throw new Error();
     }
 
-    return new TextToSpeechClient({ keyFilename: keyFile });
+    return new TextToSpeechClient({ authname: auth });
   }
 
   return new TextToSpeechClient();
 };
+
 const cloud = async (value) => {
   client ||= connect();
   await within(client.initialize());
@@ -215,6 +234,7 @@ const cloud = async (value) => {
     },
     { timeout }
   );
+
   const audio = response.audioContent;
 
   if (!audio) {
@@ -225,6 +245,7 @@ const cloud = async (value) => {
     ? Buffer.from(audio, "base64")
     : Buffer.from(audio);
 };
+
 const google = async (value) => {
   const audio = [];
 
@@ -254,6 +275,7 @@ const google = async (value) => {
 
   return Buffer.concat(audio);
 };
+
 const fromGoogle = (request, uid, time) =>
   cache("google", request, {
     create: () => google(request),

@@ -3,10 +3,28 @@ import { scrollable } from "#common/scroll";
 import * as pointer from "#common/pointer";
 
 const listeners = new Set();
-const hasSelection = () => {
+
+const selected = () => {
   const selection = window.getSelection();
 
   return Boolean(selection && !selection.isCollapsed);
+};
+
+const outside = (event) => {
+  const element = event.target;
+
+  if (!(element instanceof HTMLDialogElement)) {
+    return false;
+  }
+
+  const rect = element.getBoundingClientRect();
+
+  return (
+    event.clientX < rect.left ||
+    event.clientX > rect.right ||
+    event.clientY < rect.top ||
+    event.clientY > rect.bottom
+  );
 };
 
 export function listen(listener) {
@@ -31,16 +49,19 @@ export default function drag(target = document) {
   let dragging = false;
   let pending = false;
   let block = false;
+
   const reset = () => {
     scroller = null;
     pointerId = null;
     dragging = false;
     pending = false;
   };
+
   const start = (event) => {
     if (
       event.shiftKey ||
       !pointer.press(event) ||
+      outside(event) ||
       (event.target instanceof Element &&
         event.target.closest(
           "input, select, textarea, " +
@@ -68,6 +89,7 @@ export default function drag(target = document) {
     dragging = false;
     pending = false;
   };
+
   const move = (event) => {
     if (!pointer.match(event, pointerId) || !scroller) {
       return;
@@ -76,7 +98,7 @@ export default function drag(target = document) {
     const moveX = event.clientX - startX;
     const moveY = event.clientY - startY;
 
-    if (hasSelection()) {
+    if (selected()) {
       reset();
       return;
     }
@@ -100,6 +122,7 @@ export default function drag(target = document) {
     scroller.scrollTop = scrollTop - moveY;
     event.preventDefault();
   };
+
   const end = (event) => {
     if (!pointer.match(event, pointerId)) {
       return;
@@ -128,6 +151,7 @@ export default function drag(target = document) {
 
     reset();
   };
+
   const click = (event) => {
     if (!block) {
       return;
@@ -136,6 +160,7 @@ export default function drag(target = document) {
     event.preventDefault();
     event.stopPropagation();
   };
+
   const remove = [
     on(target, "pointerdown", start),
     on(target, "pointermove", move),

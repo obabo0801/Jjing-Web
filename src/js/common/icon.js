@@ -2,6 +2,16 @@ import * as dom from "#common/dom";
 
 const icons = {
   arrow: ["m9 18 6-6-6-6"],
+  camera: [
+    "M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9" +
+      "a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9" +
+      "a2 2 0 0 0-2-2h-3.5Z",
+    "M12 17a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z"
+  ],
+  edit: [
+    "M12 20h9",
+    "M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"
+  ],
   home: [
     "M3 11 12 3l9 8",
     "M5 10v10h14V10",
@@ -9,10 +19,49 @@ const icons = {
   ],
   reload: ["M20 11a8 8 0 1 0-2.34 5.66", "M20 4v7h-7"],
   close: ["M18 6 6 18", "m6 6 12 12"],
+  copy: ["M8 8h12v12H8z", "M4 16V4h12"],
+  error: [
+    "M21 12a9 9 0 1 1-18 0" + " 9 9 0 0 1 18 0Z",
+    "M12 8v5",
+    "M12 17h.01"
+  ],
+  "eye-off": [
+    "m3 3 18 18",
+    "M10.6 10.6a2 2 0 0 0 2.8 2.8",
+    "M9.9 4.2A10.5 10.5 0 0 1 12 4c5 0 9 4 10 8",
+    "M6.2 6.2A12 12 0 0 0 2 12c1 4 5 8 10 8"
+  ],
+  warning: [
+    "M21.73 18l-8-14" +
+      "a2 2 0 0 0-3.46 0" +
+      "l-8 14A2 2 0 0 0 4 21h16" +
+      "a2 2 0 0 0 1.73-3Z",
+    "M12 9v4",
+    "M12 17h.01"
+  ],
+  info: [
+    "M21 12a9 9 0 1 1-18 0" + " 9 9 0 0 1 18 0Z",
+    "M12 11v5",
+    "M12 8h.01"
+  ],
+  image: [
+    "M3 5h18v14H3Z",
+    "M8.5 11a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3Z",
+    "m3 17 5-5 4 4 3-3 6 6"
+  ],
   delete: [
     "M21 4H8l-7 8 7 8h13a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2Z",
     "m10 9 6 6",
     "m16 9-6 6"
+  ],
+  download: ["M12 3v12", "m7 10 5 5 5-5", "M5 21h14"],
+  flag: ["M5 22V4", "M5 4h12l-2 4 2 4H5"],
+  gift: [
+    "M20 12v10H4V12",
+    "M2 7h20v5H2z",
+    "M12 7v15",
+    "M12 7H7.5a2.5 2.5 0 1 1 0-5C11 2 12 7 12 7Z",
+    "M12 7h4.5a2.5 2.5 0 1 0 0-5C13 2 12 7 12 7Z"
   ],
   check: ["M20 6 9 17l-5-5"],
   dark: ["M12 3a6 6 0 0 0 9 9" + " 9 9 0 1 1-9-9Z"],
@@ -30,6 +79,14 @@ const icons = {
     "M2 12h20",
     "M12 2a15 15 0 0 1 0 20",
     "M12 2a15 15 0 0 0 0 20"
+  ],
+  link: [
+    "M10 13a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-2 2",
+    "M14 11a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l2-2"
+  ],
+  mail: [
+    "M4 4h16a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Z",
+    "m22 6-10 7L2 6"
   ],
   light: [
     "M12 16a4 4 0 1 0 0-8" + " 4 4 0 0 0 0 8Z",
@@ -90,6 +147,7 @@ const icons = {
     "M21 21l-4.35-4.35",
     "M10.5 18a7.5 7.5 0 1 0 0-15" + " 7.5 7.5 0 0 0 0 15Z"
   ],
+  send: ["M22 2 15 22l-4-9-9-4Z", "M22 2 11 13"],
   voice: [
     "M12 2a3 3 0 0 0-3 3v7" +
       "a3 3 0 0 0 6 0V5" +
@@ -97,6 +155,11 @@ const icons = {
     "M19 10v2a7 7 0 0 1-14 0v-2",
     "M12 19v3",
     "M8 22h8"
+  ],
+  whisper: [
+    "M6 8.5a6.5 6.5 0 1 1 13 0" +
+      "c0 6-3 6-3 8.5a3.5 3.5 0 0 1-7 0",
+    "M15 8.5a2.5 2.5 0 0 0-5 0v1" + "a2 2 0 0 0 2 2h1"
   ],
   wave: [
     "M4 10v4",
@@ -151,6 +214,10 @@ const icons = {
     "M8 12h6",
     "M3 3l18 18"
   ],
+  user: [
+    "M12 12a5 5 0 1 0 0-10 5 5 0 0 0 0 10Z",
+    "M4 22v-2a8 8 0 0 1 16 0v2Z"
+  ],
   vibration: [
     "M8 6h8v12H8z",
     "M4 8v8",
@@ -170,6 +237,7 @@ const icons = {
   ],
   "volume-mute": ["M11 5 6 9H2v6h4l5 4Z", "M2 6 15 18"]
 };
+
 const extensions = [
   "gif",
   "ico",
@@ -179,6 +247,7 @@ const extensions = [
   "svg",
   "webp"
 ];
+
 const positions = {
   left: "left",
   "←": "left",
@@ -198,12 +267,14 @@ const positions = {
   "↘": "bottom-right",
   center: "center"
 };
+
 const angles = {
   right: 0,
   bottom: 90,
   left: 180,
   top: -90
 };
+
 const isImage = (value) => {
   const path = value.split(/[?#]/)[0].toLowerCase();
 
@@ -211,6 +282,7 @@ const isImage = (value) => {
     path.endsWith(`.${extension}`)
   );
 };
+
 const svg = (paths) => {
   const icon = dom.svg("svg");
 
@@ -225,15 +297,32 @@ const svg = (paths) => {
 
   return icon;
 };
-const img = (source) => {
+
+const img = (source, element) => {
   const icon = dom.create("img");
 
   icon.src = source;
   icon.alt = "";
   icon.classList.add("icon");
 
+  dom.on(
+    icon,
+    "error",
+    () => {
+      const value = dom
+        .get(element, "data-default")
+        ?.trim();
+
+      if (value && value !== source) {
+        dom.set(element, "data-icon", value);
+      }
+    },
+    { once: true }
+  );
+
   return icon;
 };
+
 const text = (value) => {
   const icon = dom.create("span");
 
@@ -242,6 +331,7 @@ const text = (value) => {
 
   return icon;
 };
+
 const render = (element) => {
   dom.query(":scope > .icon", element)?.remove();
   element.classList.remove(
@@ -282,12 +372,14 @@ const render = (element) => {
   const icon = Object.hasOwn(icons, name)
     ? svg(icons[name])
     : isImage(name)
-      ? img(name)
+      ? img(name, element)
       : text(name);
+
   const angle = dom
     .get(element, "data-angle")
     ?.trim()
     .toLowerCase();
+
   const degree = Object.hasOwn(angles, angle)
     ? angles[angle]
     : Number(angle);
@@ -301,6 +393,7 @@ const render = (element) => {
 
   element.prepend(icon);
 };
+
 const scan = (root = document) => {
   if (root.matches?.("[data-icon]")) {
     render(root);
@@ -308,6 +401,7 @@ const scan = (root = document) => {
 
   dom.all("[data-icon]", root).forEach(render);
 };
+
 let observing = false;
 
 export default function icon() {

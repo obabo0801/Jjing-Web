@@ -155,23 +155,6 @@
   transition: color 160ms ease;
 }
 
-.wearable .picker-column[data-edit] .picker-input {
-  position: fixed;
-  z-index: 1001;
-
-  inset-block-start: 8dvh;
-  inset-inline: 12dvw;
-
-  width: auto;
-  height: 14dvh;
-  padding-inline: 16px;
-  border-radius: 999px;
-
-  background: var(--panel);
-
-  font-size: 2rem;
-}
-
 .compact:not(.wearable) .picker {
   --picker-row: min(60px, 14dvh);
 }

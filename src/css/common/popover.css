@@ -1,7 +1,10 @@
 dialog[data-popover] {
+  inset: 0;
+
   width: min(calc(100vw - 2rem), 64rem);
   max-width: none;
   max-height: min(calc(100dvh - 2rem), 64rem);
+  margin: auto;
   border-radius: 8px;
 
   overflow: auto;
@@ -15,5 +18,6 @@ dialog[data-popover][data-fullscreen] {
   height: 100dvh;
   max-height: none;
 
+  margin: 0;
   border-radius: 0;
 }

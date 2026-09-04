@@ -13,6 +13,7 @@ const directions = {
   top: "↑",
   "top-right": "↗"
 };
+
 const vectors = {
   "→": [1, 0],
   "↘": [1, 1],
@@ -27,6 +28,7 @@ const arrows = Object.values(directions);
 const ignored =
   "input, select, textarea, [contenteditable]";
 const handlers = [];
+
 let point = null;
 let off = [];
 
@@ -195,9 +197,12 @@ function match(direction, x, y) {
 }
 
 function blocked(event, selector) {
-  const value = selector
-    ? `${ignored}, ${selector}`
-    : ignored;
+  const custom =
+    typeof selector === "function"
+      ? selector(event)
+      : selector;
+
+  const value = custom ? `${ignored}, ${custom}` : ignored;
 
   return event.target.closest?.(value);
 }
@@ -217,6 +222,7 @@ function progress(direction, options) {
   let reached = false;
   let dragged = false;
   let value = 0;
+
   const limit = () => {
     const result = Number(
       typeof ratio === "function" ? ratio() : ratio
@@ -224,6 +230,7 @@ function progress(direction, options) {
 
     return Number.isFinite(result) ? result : 0.35;
   };
+
   const prepare = (nextId, x, y) => {
     id = nextId;
     startX = x;
@@ -232,12 +239,14 @@ function progress(direction, options) {
     reached = false;
     value = 0;
   };
+
   const reset = () => {
     id = undefined;
     moving = false;
     reached = false;
     value = 0;
   };
+
   const finish = (event, cancelled = false) => {
     const active = moving;
     const complete =
@@ -250,6 +259,7 @@ function progress(direction, options) {
       end?.(complete, current, event);
     }
   };
+
   const update = (x, y, event) => {
     if (!moving) {
       if (Math.hypot(x, y) < 4) {
@@ -292,6 +302,7 @@ function progress(direction, options) {
 
     return true;
   };
+
   const touchStart = (event) => {
     if (
       event.touches.length !== 1 ||
@@ -306,6 +317,7 @@ function progress(direction, options) {
     dragged = false;
     prepare(touch.identifier, touch.clientX, touch.clientY);
   };
+
   const touchMove = (event) => {
     const touch = [...event.touches].find(
       (item) => item.identifier === id
@@ -322,6 +334,7 @@ function progress(direction, options) {
       event.preventDefault();
     }
   };
+
   const touchEnd = (event) => {
     if (id === undefined) {
       return;
@@ -337,6 +350,7 @@ function progress(direction, options) {
 
     finish(event);
   };
+
   const touchCancel = (event) => {
     if (id === undefined) {
       return;
@@ -344,6 +358,7 @@ function progress(direction, options) {
 
     finish(event, true);
   };
+
   const pointerStart = (event) => {
     if (event.isPrimary) {
       dragged = false;
@@ -359,6 +374,7 @@ function progress(direction, options) {
 
     prepare(event.pointerId, event.clientX, event.clientY);
   };
+
   const pointerMove = (event) => {
     if (!pointer.match(event, id)) {
       return;
@@ -371,6 +387,7 @@ function progress(direction, options) {
       event.preventDefault();
     }
   };
+
   const pointerEnd = (event) => {
     if (!pointer.match(event, id)) {
       return;
@@ -378,6 +395,7 @@ function progress(direction, options) {
 
     finish(event);
   };
+
   const pointerCancel = (event) => {
     if (!pointer.match(event, id)) {
       return;
@@ -385,6 +403,7 @@ function progress(direction, options) {
 
     finish(event, true);
   };
+
   const click = (event) => {
     if (!dragged) {
       return;
@@ -394,6 +413,7 @@ function progress(direction, options) {
     event.stopPropagation();
     dragged = false;
   };
+
   const listeners = [
     on(target, "touchstart", touchStart, { passive: true }),
     on(target, "touchmove", touchMove, { passive: false }),

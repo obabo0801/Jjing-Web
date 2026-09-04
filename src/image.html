@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en" data-theme="system">
+  <head>
+    <meta charset="UTF-8" />
+
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0"
+    />
+
+    <meta name="referrer" content="no-referrer" />
+
+    <title data-i18n="image.phone">&#8203;</title>
+
+    <link
+      rel="icon"
+      href="/src/assets/favicon.ico"
+      sizes="any"
+    />
+
+    <link rel="stylesheet" href="/src/css/style.css" />
+  </head>
+
+  <body>
+    <main class="image-link">
+      <h1 data-i18n="image.phone"></h1>
+
+      <p data-i18n="image.phoneGuide"></p>
+
+      <button
+        type="button"
+        data-select
+        data-background
+        data-response
+        data-i18n="image.select"
+      ></button>
+
+      <input
+        type="file"
+        accept="image/jpeg,image/png,image/webp"
+        data-input
+        hidden
+      />
+
+      <p data-status></p>
+    </main>
+
+    <script type="module" src="/src/js/image.js"></script>
+  </body>
+</html>

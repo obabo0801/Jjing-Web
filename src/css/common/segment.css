@@ -59,9 +59,9 @@
 
   position: absolute;
   inset-block: 8px;
-  inset-inline-start: -1px;
+  inset-inline-start: -0.5px;
 
-  width: 1px;
+  width: 0.5px;
 
   background: var(--border);
 
@@ -110,6 +110,12 @@
 .segment button:focus-visible {
   background-image: var(--overlay);
   color: var(--thumb);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  :root[data-resize] .segment::after {
+    transition: background-color 160ms;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

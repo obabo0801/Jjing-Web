@@ -1,8 +1,22 @@
 import * as dom from "#common/dom";
 import vibrate from "#common/vibrate";
 
+let paused = 0;
+
+export const pause = () => {
+  paused += 1;
+
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      paused = Math.max(0, paused - 1);
+    });
+  });
+};
+
 export function scrollable(node) {
   let item = node instanceof Element ? node : null;
+
+  const layer = item?.closest("dialog[open]");
 
   while (item && item !== dom.body) {
     if (item instanceof HTMLElement && !item.hidden) {
@@ -10,6 +24,7 @@ export function scrollable(node) {
       const x =
         item.scrollWidth > item.clientWidth + 1 &&
         ["auto", "scroll"].includes(style.overflowX);
+
       const y =
         item.scrollHeight > item.clientHeight + 1 &&
         ["auto", "scroll"].includes(style.overflowY);
@@ -22,7 +37,7 @@ export function scrollable(node) {
     item = item.parentElement;
   }
 
-  return dom.scroller;
+  return layer ? null : dom.scroller;
 }
 
 export default function scroll() {
@@ -49,6 +64,7 @@ export default function scroll() {
 
     return null;
   };
+
   let previous = bound();
 
   dom.on(
@@ -57,7 +73,7 @@ export default function scroll() {
     () => {
       const position = bound();
 
-      if (position && position !== previous) {
+      if (!paused && position && position !== previous) {
         vibrate.play("touch");
       }
 

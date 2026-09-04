@@ -4,8 +4,10 @@ import { get, set } from "#common/storage";
 const modes = ["system", "light", "dark"];
 const scheme = matchMedia("(prefers-color-scheme: dark)");
 const meta = dom.query('meta[name="theme-color"]');
+
 let selected = "system";
 let listening = false;
+
 const sync = () => {
   dom.set(dom.root, "data-theme", selected);
 

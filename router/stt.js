@@ -35,6 +35,7 @@ const tooLong = (text) => [...text].length > 500;
 router.get("/", (_, res) => {
   res.json({ cloud: enabled });
 });
+
 router.post("/", raw, async (req, res) => {
   const id = uid(req);
   const ip = address(req);
@@ -55,6 +56,7 @@ router.post("/", raw, async (req, res) => {
         [id]
       )
     : null;
+
   const blocked = user
     ? await get(
         `
@@ -84,12 +86,14 @@ router.post("/", raw, async (req, res) => {
   }
 
   let text = string(data.text).trim();
+
   const lang = string(data.lang).trim();
   const pitch = ["low", "mid", "high", "unknown"].includes(
     data.pitch
   )
     ? data.pitch
     : "unknown";
+
   let type = text ? "browser" : "cloud";
 
   if (tooLong(text)) {
@@ -151,6 +155,7 @@ router.post("/", raw, async (req, res) => {
   }
 
   const time = now();
+
   let file;
 
   try {

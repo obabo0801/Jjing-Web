@@ -1,14 +1,20 @@
 import { Router } from "express";
 
-import identity from "#config/uid";
 import file from "#config/pages";
-import { allowed as admin } from "#middleware/admin";
+import * as profile from "#config/profile";
+import identity from "#config/uid";
+
+import string from "#src/string";
+
+import * as admin from "#middleware/admin";
 
 const hidden = new Set([
   "/service-work.js",
   "/manifest.json"
 ]);
+
 const html = (req) => req.path.endsWith(".html");
+
 const denied = (req) =>
   hidden.has(req.path) ||
   html(req) ||
@@ -39,10 +45,25 @@ const normal = (res, name) => {
 const router = Router();
 
 router.get("/", (_, res) => normal(res, "index"));
+
+router.get("/image", (req, res) => {
+  const token = string(req.query.token).trim();
+
+  if (!profile.valid(token)) {
+    return error(res);
+  }
+
+  res.set("Cache-Control", "no-store");
+
+  return send(res, "image");
+});
+
 router.get("/terms", (_, res) => normal(res, "terms"));
+
 router.get("/privacy", (_, res) => normal(res, "privacy"));
+
 router.get("/admin", async (req, res) => {
-  if (!(await admin(req))) {
+  if (!(await admin.allowed(req))) {
     return error(res);
   }
 
@@ -50,6 +71,7 @@ router.get("/admin", async (req, res) => {
 
   return send(res, "admin");
 });
+
 router.get("/maint", (req, res) => {
   if (req.get("x-maint") !== "true") {
     return error(res);
@@ -59,6 +81,7 @@ router.get("/maint", (req, res) => {
 
   return send(res, "maint", 503);
 });
+
 router.get("/denied", (req, res) => {
   if (identity(req) || req.get("x-denied") !== "true") {
     return error(res);
@@ -68,6 +91,7 @@ router.get("/denied", (req, res) => {
 
   return send(res, "denied");
 });
+
 router.get("/offline", (req, res) => {
   if (req.get("x-pwa-cache") !== "true") {
     return error(res);
@@ -77,6 +101,7 @@ router.get("/offline", (req, res) => {
 
   return send(res, "offline");
 });
+
 router.use((req, res, next) => {
   if (req.method !== "GET" || !denied(req)) {
     return next();

@@ -22,12 +22,14 @@ const clearRequests = () => {
         });
       }
     };
+
     request.onsuccess = () => {
       const database = request.result;
       const transaction = database.transaction(
         "requests",
         "readwrite"
       );
+
       const finish = () => {
         database.close();
         resolve();

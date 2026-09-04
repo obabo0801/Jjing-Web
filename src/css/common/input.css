@@ -12,7 +12,15 @@
 
   transition:
     background-color 160ms ease,
-    color 160ms ease;
+    border-color 160ms ease,
+    color 160ms ease,
+    box-shadow 160ms ease;
+}
+
+.input[data-voice] {
+  border-color: var(--active);
+
+  animation: input-ping 1.6s ease-out 240ms infinite;
 }
 
 .input [data-control] {
@@ -46,7 +54,7 @@
 
 .input-actions button {
   flex: none;
-  color: var(--mute);
+  border: 0;
 }
 
 .input:has([data-control]:disabled) {
@@ -65,8 +73,24 @@
   text-align: center;
 }
 
+@keyframes input-ping {
+  0% {
+    box-shadow: 0 0 0 0
+      color-mix(in srgb, var(--active) 45%, transparent);
+  }
+
+  75%,
+  100% {
+    box-shadow: 0 0 0 6px transparent;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .input {
     transition: none;
+  }
+
+  .input[data-voice] {
+    animation: none;
   }
 }

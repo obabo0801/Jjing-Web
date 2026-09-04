@@ -68,6 +68,7 @@ const prepare = async (locale, content) => {
     })
   );
 };
+
 const openDatabase = () =>
   new Promise((resolve, reject) => {
     const request = indexedDB.open("sync", 1);
@@ -82,13 +83,16 @@ const openDatabase = () =>
         });
       }
     };
+
     request.onsuccess = () => {
       resolve(request.result);
     };
+
     request.onerror = () => {
       reject(request.error);
     };
   });
+
 const requests = async () => {
   const database = await openDatabase();
 
@@ -114,6 +118,7 @@ const requests = async () => {
     transaction.onabort = fail;
   });
 };
+
 const removeRequest = async (id) => {
   const database = await openDatabase();
 
@@ -140,6 +145,7 @@ const removeRequest = async (id) => {
     transaction.onabort = fail;
   });
 };
+
 const fetchApi = async (request) => {
   const cache = await caches.open(offline);
   const saved = await cache.match(request);
@@ -160,6 +166,7 @@ const fetchApi = async (request) => {
     return saved || Response.error();
   }
 };
+
 const synchronize = async () => {
   for (const item of await requests()) {
     const response = await fetch(item.url, item.options);
@@ -176,9 +183,11 @@ const synchronize = async () => {
 self.addEventListener("install", (event) => {
   event.waitUntil(self.skipWaiting());
 });
+
 self.addEventListener("activate", (event) => {
   event.waitUntil(self.clients.claim());
 });
+
 self.addEventListener("fetch", (event) => {
   const { request } = event;
 
@@ -246,11 +255,13 @@ self.addEventListener("fetch", (event) => {
       .catch(() => new Response(null, { status: 503 }))
   );
 });
+
 self.addEventListener("sync", (event) => {
   if (event.tag === "api-sync") {
     event.waitUntil(synchronize());
   }
 });
+
 self.addEventListener("message", (event) => {
   if (event.data?.type === "sync") {
     event.waitUntil(synchronize());
@@ -262,6 +273,18 @@ self.addEventListener("message", (event) => {
     );
   }
 });
+
+const sendToast = async (data) => {
+  const pages = await self.clients.matchAll({
+    type: "window",
+    includeUncontrolled: true
+  });
+
+  pages.forEach((page) => {
+    page.postMessage({ type: "notify", data });
+  });
+};
+
 self.addEventListener("push", (event) => {
   let data = { title: "", body: "", image: "", url: "/" };
 
@@ -276,12 +299,15 @@ self.addEventListener("push", (event) => {
   const { title, body, image, url } = data;
 
   event.waitUntil(
-    self.registration.showNotification(title, {
-      body,
-      icon: "/icons/icon-192.png",
-      ...(image && { image }),
-      data: { url }
-    })
+    Promise.all([
+      self.registration.showNotification(title, {
+        body,
+        icon: "/icons/icon-192.png",
+        ...(image && { image }),
+        data: { url }
+      }),
+      sendToast(data)
+    ])
   );
 });
 

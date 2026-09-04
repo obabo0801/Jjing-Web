@@ -1,5 +1,6 @@
 const clean = (value) =>
   value?.replaceAll('"', "").trim() || "";
+
 const os = (req) => {
   const wearable = req.get("x-wearable") === "true";
   const value = clean(req.get("sec-ch-ua-platform"));
@@ -40,6 +41,7 @@ const os = (req) => {
 
   return "Unknown";
 };
+
 const browser = (req) => {
   const brands = req.get("sec-ch-ua") || "";
   const agent = req.get("user-agent") || "";

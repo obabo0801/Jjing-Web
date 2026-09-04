@@ -17,6 +17,7 @@ const regions = { en: "en-US", ja: "ja-JP", ko: "ko-KR" };
 preload("voice.listening", "voice.processing");
 
 let session;
+
 const language = () => {
   const value = dom.root.lang || navigator.language || "ko";
   const lang = value.toLowerCase();
@@ -24,9 +25,11 @@ const language = () => {
 
   return regions[base] || lang;
 };
+
 const desktop = async (options) => {
   const { lang, deviceId, target, signal, stop } = options;
   const stream = await media.microphone(deviceId);
+
   let stopVisual = () => {};
 
   try {
@@ -44,6 +47,7 @@ const desktop = async (options) => {
       signal,
       keep: true
     });
+
     const spoken = await audio.silence(
       stream,
       signal,
@@ -84,9 +88,11 @@ const desktop = async (options) => {
     media.close(stream);
   }
 };
+
 const remote = async (options) => {
   const { lang, deviceId, target, signal, stop } = options;
   const stream = await media.microphone(deviceId);
+
   let stopVisual = () => {};
 
   try {
@@ -133,6 +139,7 @@ const remote = async (options) => {
     media.close(stream);
   }
 };
+
 const match = (text, keywords, lang) => {
   const value = text.toLocaleLowerCase(lang);
 
@@ -177,8 +184,10 @@ export default async function voice(
   const stopper = new AbortController();
   const { signal } = controller;
   const stop = stopper.signal;
+
   let finish;
   let output = { action: "none" };
+
   const done = new Promise((resolve) => {
     finish = resolve;
   });
@@ -226,6 +235,7 @@ export default async function voice(
       : keywords?.[lang] || keywords?.[base] || [];
     const state = device();
     const input = { lang, deviceId, target, signal, stop };
+
     let result;
 
     if (

@@ -8,7 +8,9 @@ const buffers = new Map();
 const logged = new Set();
 const requests = new Set();
 const sources = new Map();
+
 let token = 0;
+
 const synth = window.speechSynthesis;
 
 export const busy = () =>
@@ -28,6 +30,7 @@ const key = (text, { lang, pitch, rate, voice, type }) =>
     voice: voice || "",
     type: type || ""
   });
+
 const record = (text, options) => {
   const id = key(text, options);
 
@@ -86,6 +89,7 @@ const browser = (text, options, report = true) => {
 
   return speech;
 };
+
 const load = (audio, text, options) => {
   const id = key(text, options);
 
@@ -136,6 +140,7 @@ const load = (audio, text, options) => {
 
   return buffers.get(id);
 };
+
 const remote = async (text, options) => {
   const audio = context();
 
@@ -144,6 +149,7 @@ const remote = async (text, options) => {
   }
 
   const id = token;
+
   let buffer;
 
   try {

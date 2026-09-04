@@ -10,3 +10,21 @@
 .wearable .app {
   padding: 8dvw;
 }
+
+.music-volume {
+  display: grid;
+  gap: 8px;
+
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+
+  background: var(--background);
+}
+
+.communication-test {
+  display: grid;
+  gap: 8px;
+
+  width: min(calc(100vw - 32px), 40rem);
+}

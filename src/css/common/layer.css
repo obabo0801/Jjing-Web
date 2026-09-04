@@ -27,6 +27,28 @@ dialog[data-sheet]::backdrop {
   background: transparent;
 }
 
+dialog:is(
+    [data-dialog],
+    [data-popover],
+    [data-drawer],
+    [data-sheet]
+  )[open] {
+  display: block;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+:root:has(
+  dialog:is(
+      [data-dialog],
+      [data-popover],
+      [data-drawer],
+      [data-sheet]
+    )[open]
+) {
+  overflow: hidden;
+}
+
 .layer-head,
 .layer-content,
 .layer-actions {
@@ -39,17 +61,24 @@ dialog[data-sheet]::backdrop {
 }
 
 .layer-title {
-  margin: 0;
+  width: fit-content;
+  max-width: 100%;
+  margin: 0 auto;
+
   font-size: 1.5rem;
 }
 
 .layer-content {
   display: grid;
   gap: 16px;
-  padding-block-end: 16px;
+  padding-block: 16px;
 
   overflow-wrap: anywhere;
   white-space: pre-line;
+}
+
+.layer-head + .layer-content {
+  padding-block-start: 0;
 }
 
 .layer-text {
@@ -67,22 +96,153 @@ dialog[data-sheet]::backdrop {
   min-width: 0;
 }
 
-dialog[data-popover][data-swipe-x],
-dialog[data-drawer][data-swipe-x],
-dialog[data-sheet][data-swipe-x],
-dialog[data-popover][data-swipe-x] *,
-dialog[data-drawer][data-swipe-x] *,
-dialog[data-sheet][data-swipe-x] * {
-  touch-action: pan-y;
+:root:not(.wearable) .layer-actions > button > .icon {
+  display: none;
 }
 
-dialog[data-popover][data-swipe-y],
-dialog[data-drawer][data-swipe-y],
-dialog[data-sheet][data-swipe-y],
-dialog[data-popover][data-swipe-y] *,
-dialog[data-drawer][data-swipe-y] *,
-dialog[data-sheet][data-swipe-y] * {
-  touch-action: pan-x;
+dialog:is(
+    [data-dialog],
+    [data-popover],
+    [data-drawer],
+    [data-sheet]
+  )[data-fullscreen]
+  .layer-actions {
+  padding-block-end: max(12px, env(safe-area-inset-bottom));
+}
+
+.wearable
+  dialog:is(
+    [data-dialog],
+    [data-popover],
+    [data-drawer],
+    [data-sheet]
+  ) {
+  inset: 0;
+
+  width: 100%;
+  max-width: none;
+  height: 100dvh;
+  max-height: none;
+
+  margin: 0;
+  padding: 10dvh 8dvw;
+  border: 0;
+  border-radius: 0;
+}
+
+.wearable :is(.dialog-title, .layer-title) {
+  font-size: 2rem;
+}
+
+.wearable :is(.dialog-content, .layer-content) {
+  padding: 16px;
+
+  text-align: center;
+  font-size: 1.75rem;
+  line-height: 1.4;
+}
+
+.wearable :is(.dialog-content, .layer-content) > span {
+  justify-self: center;
+}
+
+.wearable .layer-actions {
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 32px;
+
+  padding-block-start: 8px;
+}
+
+.wearable .layer-actions button {
+  flex: 0 0 auto;
+
+  width: 96px;
+  height: 96px;
+}
+
+.wearable .layer-actions .icon {
+  width: 2.5rem;
+  height: 2.5rem;
+}
+
+.wearable .layer-actions button[data-icon] .layer-label {
+  display: none;
+}
+
+.small:not(.wearable)
+  dialog:is(
+    [data-dialog],
+    [data-popover],
+    [data-drawer]
+  )[open] {
+  inset: 0;
+
+  width: 100%;
+  max-width: none;
+  height: 100dvh;
+  max-height: none;
+
+  margin: 0;
+  border: 0;
+  border-radius: 0;
+
+  scrollbar-width: none;
+}
+
+.small:not(.wearable)
+  dialog:is(
+    [data-dialog],
+    [data-popover],
+    [data-drawer],
+    [data-sheet]
+  )[open]::-webkit-scrollbar {
+  display: none;
+}
+
+.small:not(.wearable)
+  :is(
+    .dialog-head,
+    .layer-head,
+    .dialog-content,
+    .layer-content,
+    .layer-actions
+  ) {
+  padding-inline: 0;
+}
+
+.small:not(.wearable) :is(.dialog-content, .layer-content) {
+  overflow: visible;
+  text-align: center;
+}
+
+.small:not(.wearable)
+  :is(.dialog-content, .layer-content)
+  > span {
+  justify-self: center;
+}
+
+.small:not(.wearable)
+  :is(.dialog-content, .layer-content)
+  > .input {
+  padding-inline: 0;
+}
+
+.small:not(.wearable)
+  :is(.dialog-content, .layer-content)
+  > .input
+  [data-control] {
+  padding-inline: 0;
+  text-align: center;
+}
+
+.small:not(.wearable) .layer-actions {
+  flex-direction: column;
+}
+
+.small:not(.wearable) .layer-actions button {
+  flex: 0 0 auto;
+  width: 100%;
 }
 
 dialog[data-popover][data-swipe],

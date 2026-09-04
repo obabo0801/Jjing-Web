@@ -7,7 +7,9 @@ import api from "#common/api";
 import { get, set } from "#common/storage";
 
 const required = new Set();
+
 let messages = {};
+
 const updateText = (element, value) => {
   const icon = dom.query(":scope > .icon", element);
 
@@ -80,6 +82,7 @@ export default async function translate(
           update
         }))
   );
+
   const names = [
     ...new Set([
       ...targets.map(({ key }) => key),
@@ -110,11 +113,13 @@ export default async function translate(
     const { lang, text } = decode(value);
 
     dom.root.lang = lang;
+
     messages = Object.fromEntries(
       entries
         .map(([name, key]) => [name, text[key]])
         .filter(([, value]) => typeof value === "string")
     );
+
     targets.forEach(({ element, key, update }) => {
       const value = messages[key];
 

@@ -107,6 +107,7 @@
 
 :is(.radio, .checkbox):has(input:focus-visible) {
   background-image: var(--overlay);
+  color: var(--thumb);
 }
 
 :is(.radio, .checkbox) input:focus-visible {

@@ -18,6 +18,7 @@ export default async function upload(
       },
       body: file
     });
+
     const json = response.headers
       .get("content-type")
       ?.includes("application/json");

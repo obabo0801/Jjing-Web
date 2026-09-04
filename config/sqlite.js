@@ -12,13 +12,29 @@ const db = new sqlite3.Database(
 );
 
 db.configure("busyTimeout", 5000);
-db.exec(`
+
+const execute = (query) =>
+  new Promise((resolve, reject) => {
+    db.exec(query, (error) => {
+      if (error) {
+        return reject(error);
+      }
+
+      resolve();
+    });
+  });
+
+await execute(`
   PRAGMA journal_mode = WAL;
 
   CREATE TABLE IF NOT EXISTS user (
     uid TEXT PRIMARY KEY,
     name TEXT,
     email TEXT,
+    image TEXT,
+    avatar TEXT,
+    setup INTEGER NOT NULL DEFAULT 0
+      CHECK (setup IN (0, 1)),
     role INTEGER NOT NULL DEFAULT 1
       CHECK (role IN (0, 1)),
     ip TEXT NOT NULL,
@@ -32,6 +48,16 @@ db.exec(`
     reason TEXT,
     log INTEGER NOT NULL DEFAULT 0
       CHECK (log IN (0, 1)),
+    time TEXT NOT NULL
+      DEFAULT (datetime('now', '+9 hours'))
+  );
+
+  CREATE TABLE IF NOT EXISTS draft (
+    uid TEXT PRIMARY KEY,
+    name TEXT NOT NULL COLLATE NOCASE,
+    email TEXT NOT NULL,
+    image TEXT,
+    avatar TEXT,
     time TEXT NOT NULL
       DEFAULT (datetime('now', '+9 hours'))
   );
@@ -70,6 +96,14 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS user_ip
     ON user (ip);
 
+  CREATE UNIQUE INDEX IF NOT EXISTS user_name
+    ON user (name COLLATE NOCASE)
+    WHERE name IS NOT NULL
+      AND trim(name) <> '';
+
+  CREATE UNIQUE INDEX IF NOT EXISTS draft_name
+    ON draft (name COLLATE NOCASE);
+
   CREATE INDEX IF NOT EXISTS block_uid
     ON block (uid);
 
@@ -94,6 +128,24 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS stt_uid
     ON stt (uid);
 `);
+
+const columns = await new Promise((resolve, reject) => {
+  db.all("PRAGMA table_info(user)", (error, rows) => {
+    if (error) {
+      return reject(error);
+    }
+
+    resolve(rows);
+  });
+});
+
+if (!columns.some(({ name }) => name === "setup")) {
+  await execute(`
+    ALTER TABLE user
+    ADD COLUMN setup INTEGER NOT NULL DEFAULT 0
+      CHECK (setup IN (0, 1))
+  `);
+}
 
 export const get = (query, params = []) =>
   new Promise((resolve, reject) => {

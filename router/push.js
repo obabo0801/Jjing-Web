@@ -17,6 +17,43 @@ router.get("/", (_, res) => {
 
   res.json({ key });
 });
+
+router.put("/", async (req, res) => {
+  if (!enabled) {
+    return res.status(503).end();
+  }
+
+  const id = uid(req);
+  const endpoint = req.body?.endpoint;
+
+  if (typeof endpoint !== "string") {
+    return res.status(400).end();
+  }
+
+  if (!id) {
+    return res.status(401).end();
+  }
+
+  const saved = await get(
+    `
+      SELECT uid
+      FROM web
+      WHERE endpoint = ?
+    `,
+    [endpoint]
+  );
+
+  if (!saved) {
+    return res.status(404).end();
+  }
+
+  if (saved.uid !== id) {
+    return res.status(409).end();
+  }
+
+  return res.status(204).end();
+});
+
 router.post("/", async (req, res) => {
   if (!enabled) {
     return res.status(503).end();
@@ -53,6 +90,7 @@ router.post("/", async (req, res) => {
         [id]
       )
     : null;
+
   const blocked = await get(
     `
     SELECT 1
@@ -68,7 +106,7 @@ router.post("/", async (req, res) => {
     return res.status(403).end();
   }
 
-  await run(
+  const result = await run(
     `
     INSERT INTO web (
       uid,
@@ -77,13 +115,19 @@ router.post("/", async (req, res) => {
     )
     VALUES (?, ?, ?)
     ON CONFLICT(endpoint) DO UPDATE SET
-      uid = excluded.uid,
       data = excluded.data
+    WHERE web.uid = excluded.uid
   `,
     [id, endpoint, JSON.stringify(subscription)]
   );
+
+  if (!result.changes) {
+    return res.status(409).end();
+  }
+
   res.status(204).end();
 });
+
 router.delete("/", async (req, res) => {
   const id = uid(req);
   const endpoint = req.body?.endpoint;

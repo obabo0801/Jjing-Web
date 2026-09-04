@@ -22,17 +22,20 @@ const cookie = {
   signed: Boolean(process.env.COOKIE_SECRET),
   maxAge: 365 * 24 * 60 * 60 * 1000
 };
+
 const clear = {
   httpOnly: cookie.httpOnly,
   sameSite: cookie.sameSite,
   secure: cookie.secure,
   path: "/"
 };
+
 const remember = (res, uid) => {
   if (uid) {
     res.cookie(key, uid, cookie);
   }
 };
+
 const status = (value) => {
   const code = Number(value);
 
@@ -51,10 +54,12 @@ router.get(usage, (req, res) => {
 
   res.json({ size });
 });
+
 router.delete("/", (_, res) => {
   res.clearCookie(key, clear);
   res.status(204).end();
 });
+
 router.get("/", async (req, res) => {
   const uid = identity(req);
   const ip = address(req);
@@ -84,9 +89,12 @@ router.get("/", async (req, res) => {
 
   res.json({ valid: Boolean(user) });
 });
+
 router.post("/", async (req, res) => {
   const saved = identity(req);
+
   let uid = saved;
+
   const path = string(req.body?.path, "/").slice(0, 2048);
   const result = status(req.body?.result);
   const ip = address(req);
@@ -98,6 +106,7 @@ router.post("/", async (req, res) => {
   }
 
   const { os, browser } = client(req);
+
   let user = uid
     ? await get(
         `
@@ -152,7 +161,12 @@ router.post("/", async (req, res) => {
     remember(res, uid);
 
     const first = await run(
-      "UPDATE block SET log = 1 WHERE rowid = ? AND log = 0",
+      `
+      UPDATE block
+      SET log = 1
+      WHERE rowid = ?
+        AND log = 0
+      `,
       [blocked.id]
     );
 

@@ -1,0 +1,68 @@
+.console {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+
+  min-width: 0;
+  min-height: 12rem;
+  max-height: 24rem;
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+
+  background: #181818;
+  color: #eeeeee;
+
+  font-family:
+    ui-monospace, "Cascadia Code", Consolas, monospace;
+  font-size: 1rem;
+  line-height: 1.5;
+
+  overflow: auto;
+  overscroll-behavior: contain;
+
+  transition:
+    background-color 160ms ease,
+    border-color 160ms ease,
+    color 160ms ease;
+}
+
+.console:focus-visible {
+  outline: 0;
+}
+
+.console-line {
+  flex: none;
+
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+
+  transition: color 160ms ease;
+}
+
+.console-line[data-console="error"] {
+  color: var(--error);
+}
+
+.console-line[data-console="warning"] {
+  color: var(--warning);
+}
+
+.console-line[data-console="success"] {
+  color: var(--success);
+}
+
+.console-line[data-console="info"] {
+  color: var(--info);
+}
+
+.console-line[data-console="mute"] {
+  color: var(--mute);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .console,
+  .console-line {
+    transition: none;
+  }
+}

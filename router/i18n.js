@@ -14,15 +14,19 @@ const hash = (value) =>
     .update(value.toLowerCase())
     .digest("hex")
     .slice(0, 8);
+
 const encode = (value) =>
   Buffer.from(JSON.stringify(value), "utf8").toString(
     "base64"
   );
+
 const decode = (value) =>
   JSON.parse(Buffer.from(value, "base64").toString("utf8"));
+
 const files = Object.fromEntries(
   langs.map((lang) => [hash(lang), lang])
 );
+
 const languages = Object.fromEntries(
   langs.map((lang) => [lang, hash(lang)])
 );
@@ -31,6 +35,7 @@ const defaultLang = langs.includes("ko") ? "ko" : langs[0];
 router.get("/", (_, res) => {
   res.json({ [content]: encode(languages) });
 });
+
 router.get("/:file", (req, res) => {
   const lang = files[req.params.file];
 
@@ -47,6 +52,7 @@ router.get("/:file", (req, res) => {
 
   res.json({ [content]: encode({ lang, text }) });
 });
+
 router.post("/", (req, res) => {
   let body;
 
@@ -67,19 +73,23 @@ router.post("/", (req, res) => {
   const mode = string(body.lang, "system")
     .trim()
     .toLowerCase();
+
   const selected =
     mode === "system"
       ? req.acceptsLanguages(...langs)
       : mode;
+
   const lang = langs.includes(selected)
     ? selected
     : defaultLang;
+
   const source = Object.fromEntries(
     Object.entries(locale(lang)).map(([key, value]) => [
       hash(key),
       value
     ])
   );
+
   const keys = Array.isArray(body.keys)
     ? [
         ...new Set(
@@ -87,6 +97,7 @@ router.post("/", (req, res) => {
         )
       ].slice(0, 100)
     : [];
+
   const text = Object.fromEntries(
     keys
       .filter((key) => Object.hasOwn(source, key))
