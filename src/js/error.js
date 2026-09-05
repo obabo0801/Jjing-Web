@@ -1,5 +1,5 @@
 import * as dom from "#common/dom";
-import i18n from "#common/i18n";
+import * as i18n from "#common/i18n";
 import init from "#common/init";
 import sound from "#common/sound";
 import vibrate from "#common/vibrate";
@@ -22,7 +22,7 @@ try {
   const allowed = await access(true, "error");
 
   if (allowed) {
-    await i18n();
+    await i18n.translate();
     page.hidden = false;
   }
 } finally {

@@ -1,5 +1,5 @@
 import * as dom from "#common/dom";
-import i18n, { message } from "#common/i18n";
+import * as i18n from "#common/i18n";
 import progress from "#common/progress";
 import sound from "#common/sound";
 import swipe from "#common/swipe";
@@ -61,7 +61,7 @@ const createText = (tag, name, value) => {
   const element = dom.create(tag);
 
   element.className = name;
-  element.textContent = message(value) || value;
+  element.textContent = i18n.message(value) || value;
   dom.set(element, "data-i18n", value);
 
   return element;
@@ -243,7 +243,7 @@ export default function toast(options = {}) {
   }
 
   host().append(element);
-  i18n().catch(() => false);
+  i18n.translate().catch(() => false);
 
   if (effect) {
     sound.play(effect);

@@ -3,7 +3,7 @@ import limit from "#config/upload";
 import dialog from "#common/dialog";
 import drawer from "#common/drawer";
 import edit from "#common/image";
-import { message, preload } from "#common/i18n";
+import * as i18n from "#common/i18n";
 import * as profile from "#common/profile";
 import avatar from "#common/avatar";
 import sheet from "#common/sheet";
@@ -42,7 +42,7 @@ const keys = [
   "setup.uploadError"
 ];
 
-preload(...keys);
+i18n.preload(...keys);
 
 const validName = (value) =>
   /^[\p{L}\p{N} _-]{2,20}$/u.test(value);
@@ -56,7 +56,7 @@ const text = (tag, name, key) => {
   const element = dom.create(tag);
 
   element.className = name;
-  element.textContent = message(key) || key;
+  element.textContent = i18n.message(key) || key;
   dom.set(element, "data-i18n", key);
 
   return element;
@@ -66,7 +66,7 @@ const format = (key, values) =>
   Object.entries(values).reduce(
     (value, [name, content]) =>
       value.replaceAll(`{${name}}`, content),
-    message(key) || key
+    i18n.message(key) || key
   );
 
 const field = (name, type = "text") => {
@@ -107,7 +107,7 @@ const field = (name, type = "text") => {
 };
 
 const state = (element, key, value) => {
-  element.textContent = message(key) || key;
+  element.textContent = i18n.message(key) || key;
   dom.set(element, "data-state", value);
 };
 
@@ -341,7 +341,7 @@ const portrait = (source, original = source) => {
         code.alt = "";
 
         guide.textContent =
-          message("image.scan") || "image.scan";
+          i18n.message("image.scan") || "image.scan";
 
         dom.set(guide, "data-i18n", "image.scan");
 
@@ -505,7 +505,7 @@ const finish = async (user, picture, close) => {
   });
 
   optional.textContent =
-    message("setup.optional") || "setup.optional";
+    i18n.message("setup.optional") || "setup.optional";
   root.append(greeting, welcome, optional);
 
   return drawer({

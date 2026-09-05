@@ -1,5 +1,5 @@
 import * as dom from "#common/dom";
-import { preload } from "#common/i18n";
+import * as i18n from "#common/i18n";
 import device from "#common/device";
 import sound from "#common/sound";
 
@@ -14,7 +14,7 @@ export { microphones } from "#common/voice/media";
 
 const regions = { en: "en-US", ja: "ja-JP", ko: "ko-KR" };
 
-preload("voice.listening", "voice.processing");
+i18n.preload("voice.listening", "voice.processing");
 
 let session;
 

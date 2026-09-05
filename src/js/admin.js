@@ -2,7 +2,7 @@ import { admin } from "#config/route";
 
 import * as dom from "#common/dom";
 import api from "#common/api";
-import i18n from "#common/i18n";
+import * as i18n from "#common/i18n";
 import init from "#common/init";
 import upload from "#common/upload";
 
@@ -41,7 +41,7 @@ const start = async () => {
       return;
     }
 
-    await i18n();
+    await i18n.translate();
 
     const form = dom.query(".admin-form");
     const output = dom.query(".admin-result");

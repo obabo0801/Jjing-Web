@@ -66,6 +66,8 @@ export const decode = (value) => {
   return JSON.parse(new TextDecoder().decode(bytes));
 };
 
+export { translate };
+
 export default async function translate(
   mode = get("lang", "system")
 ) {

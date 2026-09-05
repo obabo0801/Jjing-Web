@@ -1,8 +1,8 @@
 import * as dom from "#common/dom";
 import drawer from "#common/drawer";
-import { message, preload } from "#common/i18n";
+import * as i18n from "#common/i18n";
 
-preload("toggle.on", "toggle.off");
+i18n.preload("toggle.on", "toggle.off");
 
 const opened = new WeakSet();
 
@@ -22,7 +22,7 @@ const text = (element, enabled) => {
   const key = enabled ? "toggle.on" : "toggle.off";
 
   dom.set(element, "data-i18n", key);
-  element.textContent = message(key) || key;
+  element.textContent = i18n.message(key) || key;
 };
 
 const update = (

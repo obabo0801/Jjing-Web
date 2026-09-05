@@ -2,7 +2,7 @@ import * as dom from "#common/dom";
 import dialog from "#common/dialog";
 import drawer from "#common/drawer";
 import viewer from "#common/image/view";
-import { message, preload } from "#common/i18n";
+import * as i18n from "#common/i18n";
 import popover from "#common/popover";
 import * as profile from "#common/profile";
 import avatar from "#common/avatar";
@@ -34,7 +34,7 @@ const keys = [
   "profile.away"
 ];
 
-preload(...keys);
+i18n.preload(...keys);
 
 const emit = (target, type, detail) => {
   target?.dispatchEvent(
@@ -93,7 +93,7 @@ const setState = (status, last, value, time) => {
     state === "online" ? "profile.active" : "profile.away";
 
   dom.set(last, "data-i18n", key);
-  last.textContent = message(key) || key;
+  last.textContent = i18n.message(key) || key;
 };
 
 const copy = async (value) => {

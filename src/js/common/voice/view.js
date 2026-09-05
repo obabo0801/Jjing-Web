@@ -1,5 +1,5 @@
 import * as dom from "#common/dom";
-import { message } from "#common/i18n";
+import * as i18n from "#common/i18n";
 
 const views = new WeakMap();
 const isControl = (target) =>
@@ -20,7 +20,7 @@ const surface = (target) => {
 
 export const status = (target, name) => {
   if (isControl(target)) {
-    target.placeholder = message(name);
+    target.placeholder = i18n.message(name);
   }
 };
 

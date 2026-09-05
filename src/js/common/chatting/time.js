@@ -1,10 +1,10 @@
 import * as dom from "#common/dom";
-import { message, preload } from "#common/i18n";
+import * as i18n from "#common/i18n";
 
 const key = "chatting.yesterday";
 const day = 86_400_000;
 
-preload(key);
+i18n.preload(key);
 
 const parse = (value) => {
   if (value instanceof Date || typeof value === "number") {
@@ -73,7 +73,7 @@ export const format = (value) => {
   }
 
   if (passed === 1) {
-    return `${message(key)} ${clock}`.trim();
+    return `${i18n.message(key)} ${clock}`.trim();
   }
 
   const full = [

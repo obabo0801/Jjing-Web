@@ -1,13 +1,13 @@
 import * as css from "#common/css";
 import * as dom from "#common/dom";
-import { message, register } from "#common/i18n";
+import * as i18n from "#common/i18n";
 
 const selector = "[data-tooltip], [title]";
 
 let tip;
 let source;
 
-register("data-tooltip", () => {});
+i18n.register("data-tooltip", () => {});
 
 const convert = (element) => {
   const title = dom.get(element, "title");
@@ -31,7 +31,7 @@ const convert = (element) => {
 const content = (element) => {
   const key = dom.get(element, "data-tooltip")?.trim();
 
-  return key ? message(key) || key : "";
+  return key ? i18n.message(key) || key : "";
 };
 
 const hide = (element = source) => {

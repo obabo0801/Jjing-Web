@@ -1,7 +1,7 @@
 import * as css from "#common/css";
 import * as dom from "#common/dom";
 import * as history from "#common/back";
-import translate from "#common/i18n";
+import * as i18n from "#common/i18n";
 import mount from "#common/mount";
 import overlay from "#common/overlay";
 import snap from "#common/sheet/snap";
@@ -442,7 +442,9 @@ async function open(type, options) {
   dom.body.append(wrap);
   mount(element);
 
-  const translated = await translate().catch(() => false);
+  const translated = await i18n
+    .translate()
+    .catch(() => false);
 
   if (!translated) {
     css.remove(element);
