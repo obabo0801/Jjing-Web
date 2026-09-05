@@ -24,9 +24,15 @@ router.put("/", async (req, res) => {
   }
 
   const id = uid(req);
-  const endpoint = req.body?.endpoint;
+  const subscription = req.body?.subscription;
+  const endpoint = subscription?.endpoint;
+  const keys = subscription?.keys;
 
-  if (typeof endpoint !== "string") {
+  if (
+    typeof endpoint !== "string" ||
+    typeof keys?.auth !== "string" ||
+    typeof keys?.p256dh !== "string"
+  ) {
     return res.status(400).end();
   }
 
@@ -34,16 +40,19 @@ router.put("/", async (req, res) => {
     return res.status(401).end();
   }
 
-  const saved = await get(
+  const result = await run(
     `
-      SELECT uid
-      FROM web
-      WHERE endpoint = ?
+      UPDATE web
+      SET
+        data = ?,
+        time = datetime('now', '+9 hours')
+      WHERE uid = ?
+        AND endpoint = ?
     `,
-    [endpoint]
+    [JSON.stringify(subscription), id, endpoint]
   );
 
-  if (!saved || saved.uid !== id) {
+  if (!result.changes) {
     return res.status(404).end();
   }
 
@@ -111,7 +120,8 @@ router.post("/", async (req, res) => {
     )
     VALUES (?, ?, ?)
     ON CONFLICT(endpoint) DO UPDATE SET
-      data = excluded.data
+      data = excluded.data,
+      time = datetime('now', '+9 hours')
     WHERE web.uid = excluded.uid
   `,
     [id, endpoint, JSON.stringify(subscription)]

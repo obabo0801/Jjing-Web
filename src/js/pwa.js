@@ -63,10 +63,10 @@ const decodeKey = (value) => {
   );
 };
 
-const status = (subscription) =>
+const refresh = (subscription) =>
   api(route.push, {
     method: "PUT",
-    data: { endpoint: subscription.endpoint }
+    data: { subscription }
   });
 
 export async function active(registration) {
@@ -86,7 +86,7 @@ export async function active(registration) {
     return false;
   }
 
-  const result = await status(subscription);
+  const result = await refresh(subscription);
 
   if (result.status === 404) {
     await subscription.unsubscribe().catch(() => false);
@@ -124,7 +124,7 @@ export async function subscribe(registration) {
     await registration.pushManager.getSubscription();
 
   if (saved) {
-    const result = await status(saved);
+    const result = await refresh(saved);
 
     if (result.ok) {
       return true;
