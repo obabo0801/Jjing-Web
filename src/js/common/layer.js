@@ -8,6 +8,8 @@ import snap from "#common/sheet/snap";
 import swipe, { resolve } from "#common/swipe";
 import vibrate from "#common/vibrate";
 import viewport from "#common/viewport";
+import once from "#common/once";
+import { trigger as clicked } from "#common/button";
 
 const reduce = matchMedia(
   "(prefers-reduced-motion: reduce)"
@@ -36,19 +38,7 @@ const types = {
   drawer: "data-drawer",
   sheet: "data-sheet"
 };
-const recent = new WeakMap();
-
-const duplicate = (element) => {
-  if (!element) {
-    return false;
-  }
-
-  const now = performance.now();
-  const previous = recent.get(element);
-
-  recent.set(element, now);
-  return previous !== undefined && now - previous < 400;
-};
+const opening = once();
 
 const text = (tag, name, key) => {
   const element = dom.create(tag);
@@ -430,7 +420,7 @@ const dismiss = (element, type, options) => {
   };
 };
 
-export default async function layer(type, options = {}) {
+async function open(type, options) {
   const { actions = [], scroll } = options;
   const dialog = type === "dialog";
   const locked = options.locked === true;
@@ -441,10 +431,6 @@ export default async function layer(type, options = {}) {
 
   const keyboard =
     trigger?.matches(":focus-visible") === true;
-
-  if (duplicate(trigger)) {
-    return false;
-  }
 
   const { wrap, element, buttons, back } = build(
     type,
@@ -696,4 +682,13 @@ export default async function layer(type, options = {}) {
       );
     }
   });
+}
+
+export default function layer(type, options = {}) {
+  const source =
+    options.anchor instanceof Element
+      ? options.anchor
+      : clicked || document.activeElement;
+
+  return opening(source, () => open(type, options));
 }

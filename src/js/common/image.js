@@ -2,6 +2,7 @@ import * as css from "#common/css";
 import * as dom from "#common/dom";
 import device from "#common/device";
 import popover from "#common/popover";
+import double from "#common/image/double";
 
 const create = (tag, name) => {
   const element = dom.create(tag);
@@ -344,6 +345,15 @@ export default async function edit(file, options = {}) {
     return true;
   };
 
+  const tapping = double(stage, {
+    scale: () => model.scale,
+    point: position,
+    zoom: (value, point) => {
+      showZoom(value);
+      zoomTo(value, point);
+    }
+  });
+
   const beginPinch = () => {
     const points = [...gesture.pointers.values()].slice(
       0,
@@ -494,6 +504,7 @@ export default async function edit(file, options = {}) {
   };
 
   const rotateBy = (difference) => {
+    tapping.cancel();
     const radians = (difference * Math.PI) / 180;
     const cosine = Math.cos(radians);
     const sine = Math.sin(radians);
@@ -514,6 +525,7 @@ export default async function edit(file, options = {}) {
       return;
     }
 
+    tapping.cancel();
     measure();
 
     const point = position(event);
@@ -611,44 +623,58 @@ export default async function edit(file, options = {}) {
 
   const removeResize = [dom.on(window, "resize", resize)];
 
-  const confirmed = await popover({
-    anchor: options.anchor,
-    back: true,
-    title: options.title || "image.title",
-    content: root,
-    ready: measure,
-    actions: [
-      {
-        text: "image.reset",
-        close: false,
-        run: () => {
-          Object.assign(model, {
-            angle: 0,
-            scale: 1,
-            x: 0,
-            y: 0
-          });
-          render();
-        },
-        data: ["data-neutral"]
-      },
-      {
-        text: "image.confirm",
-        value: true,
-        data: ["data-confirm"]
-      }
-    ],
-    fullscreen: !device().window
-  });
+  let confirmed;
 
-  removeResize.forEach((remove) => remove());
-  clearTimeout(timer.hold);
-  clearTimeout(timer.cursor);
-  clearTimeout(timer.click);
-  cancelAnimationFrame(raf.measure);
-  cancelAnimationFrame(raf.draw);
-  raf.measure = null;
-  raf.draw = null;
+  try {
+    confirmed = await popover({
+      anchor: options.anchor,
+      back: true,
+      title: options.title || "image.title",
+      content: root,
+      ready: measure,
+      actions: [
+        {
+          text: "image.reset",
+          close: false,
+          run: () => {
+            tapping.cancel();
+            Object.assign(model, {
+              angle: 0,
+              scale: 1,
+              x: 0,
+              y: 0
+            });
+            render();
+          },
+          data: ["data-neutral"]
+        },
+        {
+          text: "image.confirm",
+          value: true,
+          run: () => tapping.cancel(),
+          data: ["data-confirm"]
+        }
+      ],
+      fullscreen: !device().window
+    });
+  } catch (error) {
+    if (url) {
+      URL.revokeObjectURL(url);
+    }
+
+    css.remove(root);
+    throw error;
+  } finally {
+    removeResize.forEach((remove) => remove());
+    tapping.destroy();
+    clearTimeout(timer.hold);
+    clearTimeout(timer.cursor);
+    clearTimeout(timer.click);
+    cancelAnimationFrame(raf.measure);
+    cancelAnimationFrame(raf.draw);
+    raf.measure = null;
+    raf.draw = null;
+  }
 
   if (confirmed) {
     paint();

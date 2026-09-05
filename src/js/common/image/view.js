@@ -1,6 +1,7 @@
 import * as css from "#common/css";
 import * as dom from "#common/dom";
 import popover from "#common/popover";
+import double from "#common/image/double";
 
 const clamp = (value, min, max) =>
   Math.min(max, Math.max(min, value));
@@ -29,6 +30,7 @@ export default async function view(source, anchor) {
   image.className = "image-view-media";
   image.alt = "";
   image.draggable = false;
+  dom.set(root, "data-drag", "none");
 
   stage.append(image);
   root.append(stage);
@@ -57,12 +59,15 @@ export default async function view(source, anchor) {
 
     const limitX = Math.max(
       0,
-      (imageWidth * fit * state.scale - width) / 2
+      (imageWidth * fit * state.scale - root.clientWidth) /
+        2
     );
 
     const limitY = Math.max(
       0,
-      (imageHeight * fit * state.scale - height) / 2
+      (imageHeight * fit * state.scale -
+        root.clientHeight) /
+        2
     );
 
     state.x = clamp(state.x, -limitX, limitX);
@@ -101,17 +106,17 @@ export default async function view(source, anchor) {
   };
 
   const point = (event) => {
-    const rect = stage.getBoundingClientRect();
+    const rect = root.getBoundingClientRect();
 
     return {
       x:
         (event.clientX - rect.left) *
-          (stage.clientWidth / rect.width) -
-        stage.clientWidth / 2,
+          (root.clientWidth / rect.width) -
+        root.clientWidth / 2,
       y:
         (event.clientY - rect.top) *
-          (stage.clientHeight / rect.height) -
-        stage.clientHeight / 2
+          (root.clientHeight / rect.height) -
+        root.clientHeight / 2
     };
   };
 
@@ -125,6 +130,12 @@ export default async function view(source, anchor) {
     render();
   };
 
+  const gesture = double(root, {
+    scale: () => state.scale,
+    point,
+    zoom
+  });
+
   const beginPinch = () => {
     const points = [...state.pointers.values()].slice(0, 2);
 
@@ -136,7 +147,7 @@ export default async function view(source, anchor) {
       center: midpoint(points)
     };
     state.pan = null;
-    dom.remove(stage, "data-moving");
+    dom.remove(root, "data-moving");
   };
 
   const release = (event) => {
@@ -153,19 +164,19 @@ export default async function view(source, anchor) {
         .next().value;
 
       state.pan = { id, ...current };
-      dom.set(stage, "data-moving", "");
+      dom.set(root, "data-moving", "");
     } else {
       state.pan = null;
-      dom.remove(stage, "data-moving");
+      dom.remove(root, "data-moving");
     }
   };
 
   const off = [
     dom.on(image, "load", render),
     dom.on(window, "resize", measure),
-    dom.on(stage, "dragstart", prevent),
+    dom.on(root, "dragstart", prevent),
     dom.on(
-      stage,
+      root,
       "wheel",
       (event) => {
         if (event.ctrlKey) {
@@ -188,7 +199,7 @@ export default async function view(source, anchor) {
       },
       { passive: false }
     ),
-    dom.on(stage, "pointerdown", (event) => {
+    dom.on(root, "pointerdown", (event) => {
       if (
         event.pointerType === "mouse" &&
         event.button !== 0
@@ -200,16 +211,16 @@ export default async function view(source, anchor) {
       const current = point(event);
 
       state.pointers.set(event.pointerId, current);
-      stage.setPointerCapture(event.pointerId);
+      root.setPointerCapture(event.pointerId);
 
       if (state.pointers.size === 1) {
         state.pan = { id: event.pointerId, ...current };
-        dom.set(stage, "data-moving", "");
+        dom.set(root, "data-moving", "");
       } else if (state.pointers.size === 2) {
         beginPinch();
       }
     }),
-    dom.on(stage, "pointermove", (event) => {
+    dom.on(root, "pointermove", (event) => {
       if (!state.pointers.has(event.pointerId)) {
         return;
       }
@@ -254,23 +265,25 @@ export default async function view(source, anchor) {
         render();
       }
     }),
-    dom.on(stage, "pointerup", release),
-    dom.on(stage, "pointercancel", release),
-    dom.on(stage, "lostpointercapture", release)
+    dom.on(root, "pointerup", release),
+    dom.on(root, "pointercancel", release),
+    dom.on(root, "lostpointercapture", release)
   ];
 
   image.src = source;
 
-  const result = await popover({
-    anchor,
-    back: true,
-    content: root,
-    fullscreen: true,
-    ready: measure
-  });
-
-  off.forEach((remove) => remove());
-  cancelAnimationFrame(state.frame);
-  css.remove(root);
-  return result;
+  try {
+    return await popover({
+      anchor,
+      back: true,
+      content: root,
+      fullscreen: true,
+      ready: measure
+    });
+  } finally {
+    gesture.destroy();
+    off.forEach((remove) => remove());
+    cancelAnimationFrame(state.frame);
+    css.remove(root);
+  }
 }

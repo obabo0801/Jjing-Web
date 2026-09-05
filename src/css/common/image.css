@@ -37,16 +37,6 @@ dialog[data-popover][data-fullscreen]
   height: 100%;
 
   background: var(--black);
-  overflow: hidden;
-}
-
-.image-view-stage {
-  display: grid;
-  place-items: center;
-
-  width: min(100%, 100dvh);
-  aspect-ratio: 1;
-
   cursor: grab;
   touch-action: none;
   overflow: hidden;
@@ -55,7 +45,15 @@ dialog[data-popover][data-fullscreen]
   user-select: none;
 }
 
-.image-view-stage[data-moving] {
+.image-view-stage {
+  display: grid;
+  place-items: center;
+
+  width: min(100%, 100dvh);
+  aspect-ratio: 1;
+}
+
+.image-view[data-moving] {
   cursor: grabbing;
 }
 

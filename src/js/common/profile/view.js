@@ -6,6 +6,9 @@ import { message, preload } from "#common/i18n";
 import popover from "#common/popover";
 import * as profile from "#common/profile";
 import avatar from "#common/avatar";
+import once from "#common/once";
+
+const opening = once();
 
 const keys = [
   "profile.uid",
@@ -475,11 +478,7 @@ const content = (user, target, options, handlers) => {
   return root;
 };
 
-export default async function view(
-  anchor,
-  target,
-  options
-) {
+async function open(anchor, target, options) {
   const result = await request(options);
   const handlers = new Map();
   const user = result ?? {
@@ -505,4 +504,12 @@ export default async function view(
   });
 
   return handlers.get(value)?.();
+}
+
+export default function view(anchor, target, options) {
+  const key = options.own
+    ? "me"
+    : options.uid || anchor || target;
+
+  return opening(key, () => open(anchor, target, options));
 }
