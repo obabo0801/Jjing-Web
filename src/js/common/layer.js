@@ -9,7 +9,7 @@ import swipe, { resolve } from "#common/swipe";
 import vibrate from "#common/vibrate";
 import viewport from "#common/viewport";
 import once from "#common/once";
-import { trigger as clicked } from "#common/button";
+import * as button from "#common/button";
 
 const reduce = matchMedia(
   "(prefers-reduced-motion: reduce)"
@@ -688,7 +688,7 @@ export default function layer(type, options = {}) {
   const source =
     options.anchor instanceof Element
       ? options.anchor
-      : clicked || document.activeElement;
+      : button.trigger || document.activeElement;
 
   return opening(source, () => open(type, options));
 }

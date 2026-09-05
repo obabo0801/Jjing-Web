@@ -99,6 +99,7 @@ export default function double(
           return;
         }
 
+        event.preventDefault();
         stop();
         pointers.add(event.pointerId);
         press =
@@ -140,8 +141,14 @@ export default function double(
       capture: true,
       passive: true
     }),
-    dom.on(element, "dblclick", (event) =>
-      event.preventDefault()
+    ...["selectstart", "dragstart", "dblclick"].map(
+      (type) =>
+        dom.on(
+          element,
+          type,
+          (event) => event.preventDefault(),
+          true
+        )
     ),
     dom.on(window, "resize", cancel)
   ];

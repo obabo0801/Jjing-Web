@@ -14,8 +14,6 @@ const midpoint = ([first, second]) => ({
   y: (first.y + second.y) / 2
 });
 
-const prevent = (event) => event.preventDefault();
-
 export default async function view(source, anchor) {
   if (!source) {
     return false;
@@ -174,7 +172,6 @@ export default async function view(source, anchor) {
   const off = [
     dom.on(image, "load", render),
     dom.on(window, "resize", measure),
-    dom.on(root, "dragstart", prevent),
     dom.on(
       root,
       "wheel",
@@ -207,7 +204,6 @@ export default async function view(source, anchor) {
         return;
       }
 
-      event.preventDefault();
       const current = point(event);
 
       state.pointers.set(event.pointerId, current);
