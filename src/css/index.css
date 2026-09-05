@@ -28,3 +28,15 @@
 
   width: min(calc(100vw - 32px), 40rem);
 }
+
+:is(.small, .wearable) .app {
+  grid-template-columns: minmax(0, 1fr);
+  align-content: start;
+}
+
+:is(.small, .wearable) .communication-test {
+  width: 100%;
+  min-width: 0;
+  max-width: 40rem;
+  margin-inline: auto;
+}

@@ -101,6 +101,8 @@
 }
 
 .select-option {
+  position: relative;
+
   justify-content: flex-start;
 
   width: 100%;
@@ -109,6 +111,21 @@
 
   background: transparent;
   text-align: left;
+}
+
+.select-option:not(:last-child)::after {
+  content: "";
+
+  position: absolute;
+  inset-inline: 8px;
+  inset-block-end: 0;
+
+  height: 0.5px;
+
+  background: var(--border);
+  pointer-events: none;
+
+  transition: background-color 160ms ease;
 }
 
 .select-option[data-selected] {
@@ -135,7 +152,7 @@
   min-height: 72px;
   padding-inline: 24px;
 
-  font-size: 1.75rem;
+  font-size: 2rem;
   text-align: center;
 }
 
@@ -151,12 +168,37 @@
 
 .wearable .select-option {
   justify-content: center;
-  font-size: 1.75rem;
+  font-size: 2rem;
+}
+
+:is(.small, .wearable) .select-toggle {
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 8px 0;
+
+  text-align: center;
+}
+
+:is(.small, .wearable) .select-value {
+  max-width: 100%;
+}
+
+:is(.small, .wearable) .select-option {
+  justify-content: center;
+  min-width: max-content;
+  padding-inline: 8px;
+
+  text-align: center;
+  word-break: keep-all;
+  overflow-wrap: normal;
 }
 
 @media (prefers-reduced-motion: reduce) {
   .select,
   .select-toggle > .icon,
+  .select-option::after,
   .select-menu {
     transition: none;
   }

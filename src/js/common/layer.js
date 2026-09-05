@@ -1,5 +1,6 @@
-import * as back from "#common/back";
+import * as css from "#common/css";
 import * as dom from "#common/dom";
+import * as history from "#common/back";
 import translate from "#common/i18n";
 import mount from "#common/mount";
 import overlay from "#common/overlay";
@@ -34,6 +35,19 @@ const types = {
   popover: "data-popover",
   drawer: "data-drawer",
   sheet: "data-sheet"
+};
+const recent = new WeakMap();
+
+const duplicate = (element) => {
+  if (!element) {
+    return false;
+  }
+
+  const now = performance.now();
+  const previous = recent.get(element);
+
+  recent.set(element, now);
+  return previous !== undefined && now - previous < 400;
 };
 
 const text = (tag, name, key) => {
@@ -78,6 +92,7 @@ const action = (item, wearable) => {
 const build = (type, options) => {
   const { title, content, actions = [] } = options;
   const dialog = type === "dialog";
+  const hasBack = options.back === true && !options.locked;
   const name = dialog ? "dialog" : "layer";
   const wearable = dom.has("wearable");
   const wrap = dom.create("div");
@@ -86,8 +101,8 @@ const build = (type, options) => {
   dom.set(element, types[type], "");
   dom.set(element, "closedby", "none");
 
-  if (!dialog) {
-    dom.set(element, "tabindex", "-1");
+  if (hasBack) {
+    dom.set(element, "data-back", "");
   }
 
   if (options.fullscreen || wearable) {
@@ -99,19 +114,25 @@ const build = (type, options) => {
   }
 
   if (options.size) {
-    element.style.setProperty("--layer-size", options.size);
+    css.set(element, { "--layer-size": options.size });
   }
 
   const head = dom.create("header");
+  const back = hasBack ? dom.create("button") : null;
 
   head.className = `${name}-head`;
 
-  const heading = text("h2", `${name}-title`, title);
-
-  if (dialog) {
-    dom.set(heading, "tabindex", "-1");
-    dom.set(heading, "autofocus", "");
+  if (back) {
+    back.type = "button";
+    back.className = "layer-back";
+    dom.set(back, "data-circle", "");
+    dom.set(back, "data-background", "");
+    dom.set(back, "data-icon", "arrow");
+    dom.set(back, "data-angle", "left");
+    dom.set(back, "data-response", "");
   }
+
+  const heading = text("h2", `${name}-title`, title);
 
   if (title || dialog) {
     head.append(heading);
@@ -145,6 +166,10 @@ const build = (type, options) => {
 
   footer.append(...buttons);
 
+  if (back) {
+    element.append(back);
+  }
+
   if (title || dialog) {
     element.append(head);
   }
@@ -156,7 +181,7 @@ const build = (type, options) => {
   }
 
   wrap.append(element);
-  return { wrap, element, heading, buttons };
+  return { wrap, element, buttons, back };
 };
 
 const fade = (element, out = false) => {
@@ -204,13 +229,19 @@ const origin = (element, anchor) => {
     ? rect.top + rect.height / 2 - box.top
     : height / 2;
 
-  element.style.transformOrigin = `${x}px ${y}px`;
+  css.set(element, { "transform-origin": `${x}px ${y}px` });
   return scale;
 };
 
 const enter = (element, type, anchor) => {
+  const fullscreen =
+    dom.get(element, "data-fullscreen") !== null;
+
   const scale =
-    type === "popover" ? origin(element, anchor) : 1;
+    type === "popover" &&
+    (!fullscreen || anchor instanceof Element)
+      ? origin(element, anchor)
+      : 1;
 
   if (reduce.matches) {
     return null;
@@ -411,12 +442,16 @@ export default async function layer(type, options = {}) {
   const keyboard =
     trigger?.matches(":focus-visible") === true;
 
-  const { wrap, element, heading, buttons } = build(
+  if (duplicate(trigger)) {
+    return false;
+  }
+
+  const { wrap, element, buttons, back } = build(
     type,
     options
   );
 
-  const release = overlay();
+  const release = overlay(element);
 
   dom.body.append(wrap);
   mount(element);
@@ -424,6 +459,7 @@ export default async function layer(type, options = {}) {
   const translated = await translate().catch(() => false);
 
   if (!translated) {
+    css.remove(element);
     wrap.remove();
     await release();
     return false;
@@ -452,6 +488,8 @@ export default async function layer(type, options = {}) {
       closed = true;
       off.forEach((remove) => remove());
 
+      const dimming = release(smooth);
+
       if (smooth && dialog) {
         await fade(element, true);
       } else if (smooth && opening && !reduce.matches) {
@@ -459,32 +497,64 @@ export default async function layer(type, options = {}) {
         await opening.finished.catch(() => {});
       }
 
+      await dimming;
+
       if (element.open) {
         element.close();
       }
 
       clearFocus();
+      css.remove(element);
       wrap.remove();
 
-      await release();
       clearFocus();
       finish(value);
     };
 
+    if (back) {
+      const shadow = () => {
+        if (element.scrollTop > 0) {
+          dom.set(back, "data-shadow", "");
+        } else {
+          dom.remove(back, "data-shadow");
+        }
+      };
+
+      off.push(
+        dom.on(back, "click", () => {
+          history.back().catch(console.error);
+        }),
+        dom.on(element, "scroll", shadow, { passive: true })
+      );
+      shadow();
+    }
+
     actions.forEach((item, index) => {
+      let running = false;
+
       off.push(
         dom.on(buttons[index], "click", async () => {
-          const result = await item.run?.({
-            element,
-            button: buttons[index],
-            close
-          });
-
-          if (item.close === false || result === false) {
+          if (running) {
             return;
           }
 
-          close(result ?? item.value);
+          running = true;
+
+          try {
+            const result = await item.run?.({
+              element,
+              button: buttons[index],
+              close
+            });
+
+            if (item.close === false || result === false) {
+              return;
+            }
+
+            await close(result ?? item.value);
+          } finally {
+            running = false;
+          }
         })
       );
     });
@@ -537,12 +607,27 @@ export default async function layer(type, options = {}) {
 
     window.getSelection()?.removeAllRanges();
     element.showModal();
+    release.open();
 
-    const updateOverlay = () =>
-      release.strength(strength(element));
+    let overlayFrame;
+
+    const updateOverlay = () => {
+      if (overlayFrame) {
+        return;
+      }
+
+      overlayFrame = requestAnimationFrame(() => {
+        overlayFrame = undefined;
+        release.strength(strength(element));
+      });
+    };
 
     updateOverlay();
     off.push(dom.on(window, "resize", updateOverlay));
+    off.push(() => {
+      cancelAnimationFrame(overlayFrame);
+      overlayFrame = undefined;
+    });
 
     if ("ResizeObserver" in window) {
       const observer = new ResizeObserver(updateOverlay);
@@ -567,14 +652,18 @@ export default async function layer(type, options = {}) {
       opening = enter(element, type, options.anchor);
     }
 
-    if (type === "popover") {
+    if (
+      type === "popover" &&
+      (dom.get(element, "data-fullscreen") === null ||
+        options.anchor instanceof Element)
+    ) {
       const update = () => origin(element, options.anchor);
 
       off.push(dom.on(window, "resize", update));
     }
 
     off.push(
-      back.add(() => {
+      history.add(() => {
         if (locked) {
           return false;
         }

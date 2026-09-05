@@ -6,7 +6,7 @@ dialog[data-sheet] {
   width: 100%;
   max-width: none;
   height: var(--layer-size, auto);
-  max-height: 90dvh;
+  max-height: none;
 
   border-inline: 0;
   border-block-end: 0;
@@ -14,58 +14,15 @@ dialog[data-sheet] {
 }
 
 :root:not(.wearable) dialog[data-sheet] {
-  --sheet-size: var(--sheet-half, 50dvh);
-
-  height: var(--sheet-size);
-}
-
-:root:not(.wearable)
-  dialog[data-sheet][data-sheet-stage="peek"] {
-  --sheet-size: var(
-    --sheet-peek,
-    clamp(6rem, 20dvh, 12rem)
-  );
-}
-
-:root:not(.wearable)
-  dialog[data-sheet][data-sheet-stage="half"] {
-  --sheet-size: var(--sheet-half, 50dvh);
-}
-
-:root:not(.wearable)
-  dialog[data-sheet][data-sheet-stage="full"] {
-  --sheet-size: var(--sheet-full, 90dvh);
-}
-
-:root:not(.wearable) dialog[data-sheet][open] {
-  display: block;
-  overflow-y: auto;
-  overscroll-behavior: contain;
+  height: var(--sheet-height, 50dvh);
 }
 
 :root:not(.wearable) dialog[data-sheet] > .layer-content {
   align-content: start;
 }
 
-.small:not(.wearable) dialog[data-sheet] > .layer-actions {
-  flex-direction: row;
-  padding-inline: 16px;
-}
-
-.small:not(.wearable)
-  dialog[data-sheet]
-  > .layer-actions
-  button {
-  flex: 1;
-  width: auto;
-}
-
 dialog[data-sheet]::before {
   content: "";
-
-  position: sticky;
-  inset-block-start: 8px;
-  z-index: 1;
 
   display: block;
   flex: 0 0 auto;

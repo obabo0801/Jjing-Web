@@ -1,5 +1,7 @@
 .progress {
   --bar: color-mix(in srgb, var(--text) 16%, transparent);
+
+  --progress: 0%;
 }
 
 .progress[data-progress="linear"] {
@@ -20,7 +22,7 @@
 }
 
 .progress[data-progress="linear"] .progress-fill {
-  width: 0;
+  width: var(--progress);
   height: 100%;
   border-radius: inherit;
 
@@ -42,6 +44,11 @@
   width: 48px;
   aspect-ratio: 1;
   border-radius: 50%;
+
+  background: conic-gradient(
+    var(--focus) var(--progress),
+    var(--bar) 0
+  );
 }
 
 .progress[data-progress="circular"] .progress-track {

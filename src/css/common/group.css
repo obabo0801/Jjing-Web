@@ -16,6 +16,9 @@
 
 .group[data-view="grid"] {
   grid-template-columns: repeat(5, minmax(0, 1fr));
+
+  gap: 8px;
+  padding: 8px;
 }
 
 .group[data-view="grid"] > .group-item::before {
@@ -92,8 +95,61 @@
   min-height: 72px;
 }
 
-.wearable .group-item > .icon {
-  margin-inline-start: 24px;
+:is(.small, .wearable) .group[data-view="grid"] {
+  grid-template-columns: repeat(
+    auto-fit,
+    minmax(min(100%, 6rem), 1fr)
+  );
+  justify-items: center;
+  padding-inline: 0;
+}
+
+:is(.small, .wearable) .group button {
+  min-width: 0;
+  max-width: 100%;
+}
+
+:is(.small, .wearable) .group button[data-circle] {
+  min-height: 0;
+  height: auto;
+  aspect-ratio: 1;
+}
+
+:is(.small, .wearable) .group-item {
+  grid-template-columns: minmax(0, 1fr);
+  justify-items: center;
+  gap: 8px;
+  padding-block: 8px;
+
+  text-align: center;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
+
+:is(.small, .wearable) .group-item > .icon {
+  margin-inline: 0;
+}
+
+:is(.small, .wearable) .group-item > :not(.icon) {
+  grid-column: 1;
+}
+
+:is(.small, .wearable) .group-item > button,
+:is(.small, .wearable) .group-item > .switch > label {
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+
+  text-align: center;
+}
+
+:is(.small, .wearable) .group-item > :is(button, .switch) {
+  padding: 8px 0;
+}
+
+:is(.small, .wearable) .group-item > button > [data-icon] {
+  margin-inline: 0;
 }
 
 @media (prefers-reduced-motion: reduce) {

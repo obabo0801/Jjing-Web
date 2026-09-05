@@ -1,3 +1,4 @@
+import * as css from "#common/css";
 import * as dom from "#common/dom";
 import { message, register } from "#common/i18n";
 
@@ -50,28 +51,44 @@ const place = () => {
   }
 
   const target = source.getBoundingClientRect();
-  const box = tip.getBoundingClientRect();
+  const width = tip.offsetWidth;
+  const height = tip.offsetHeight;
+  const viewport = dom.root;
   const gap = 8;
   const edge = 8;
-  const below = target.top < box.height + gap + edge;
+  const above = target.top - gap - edge;
+  const under =
+    viewport.clientHeight - target.bottom - gap - edge;
+  const below = above < height && under > above;
   const center = target.left + target.width / 2;
-  const left = Math.min(
-    innerWidth - box.width - edge,
-    Math.max(edge, center - box.width / 2)
+  const left = Math.max(
+    edge,
+    Math.min(
+      viewport.clientWidth - width - edge,
+      center - width / 2
+    )
   );
 
-  const top = below
-    ? target.bottom + gap
-    : target.top - box.height - gap;
+  const top = Math.max(
+    edge,
+    Math.min(
+      viewport.clientHeight - height - edge,
+      below
+        ? target.bottom + gap
+        : target.top - height - gap
+    )
+  );
 
   const arrow = Math.min(
-    box.width - 12,
+    width - 12,
     Math.max(12, center - left)
   );
 
-  tip.style.left = `${left}px`;
-  tip.style.top = `${top}px`;
-  tip.style.setProperty("--tooltip-arrow", `${arrow}px`);
+  css.set(tip, {
+    left: `${left}px`,
+    top: `${top}px`,
+    "--tooltip-arrow": `${arrow}px`
+  });
   dom.set(tip, "data-side", below ? "bottom" : "top");
 };
 

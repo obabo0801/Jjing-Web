@@ -1,10 +1,13 @@
 :root {
   color-scheme: light dark;
 
-  --background: light-dark(#ffffff, #181818);
+  --white: #ffffff;
+  --black: #000000;
+
+  --background: light-dark(var(--white), #181818);
   --canvas: light-dark(#f2f1f6, #262626);
-  --panel: light-dark(#ffffff, #262626);
-  --surface: light-dark(#ffffff, #3a3a3c);
+  --panel: light-dark(var(--white), #262626);
+  --surface: light-dark(var(--white), #3a3a3c);
   --neutral: light-dark(#c9c8cd, #161616);
 
   --text: light-dark(#181818, #eeeeee);
@@ -14,10 +17,10 @@
   --shadow: 0 4px 16px #00000033;
   --shade: light-dark(#00000066, #00000099);
 
-  --thumb: #ffffff;
+  --thumb: var(--white);
   --track: light-dark(#a4a3a8, #646368);
-  --hover: light-dark(#181818, #ffffff);
-  --select: light-dark(#ffffff, #292929);
+  --hover: light-dark(#181818, var(--white));
+  --select: light-dark(var(--white), #292929);
 
   --error: #ff453a;
   --warning: #ff9500;

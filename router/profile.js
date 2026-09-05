@@ -1,11 +1,12 @@
 import { raw, Router } from "express";
 
 import * as events from "#config/events";
-import store from "#config/image";
+import store, { transform } from "#config/image";
 import * as profile from "#config/profile";
 import recent from "#config/log/recent";
 import { get, run } from "#config/sqlite";
 import identity from "#config/uid";
+import limit from "#config/upload";
 
 import string from "#src/string";
 
@@ -14,9 +15,28 @@ import admin from "#middleware/admin";
 const router = Router();
 
 const upload = raw({
-  type: ["image/jpeg", "image/png", "image/webp"],
-  limit: "5mb"
+  type: [
+    "image/jpeg",
+    "image/png",
+    "image/webp",
+    "image/gif"
+  ],
+  limit
 });
+
+const imageEdit = (request) => {
+  const value = request.get("x-image-edit");
+
+  if (!value) {
+    return null;
+  }
+
+  try {
+    return JSON.parse(value);
+  } catch {
+    return null;
+  }
+};
 
 const validName = (value) =>
   /^[\p{L}\p{N} _-]{2,20}$/u.test(value);
@@ -52,12 +72,13 @@ const find = (uid) =>
     [uid]
   );
 
-const saveImage = async (uid, body) => {
+const saveImage = async (uid, body, edit = null) => {
   const image = await store(body, "users", {
     width: 256,
     height: 256,
     fit: "cover",
-    quality: 85
+    quality: 85,
+    edit
   });
 
   if (!image) {
@@ -258,7 +279,11 @@ router.post("/image", upload, async (req, res) => {
     return res.status(400).end();
   }
 
-  const image = await saveImage(uid, req.body);
+  const image = await saveImage(
+    uid,
+    req.body,
+    imageEdit(req)
+  );
 
   if (!image) {
     return res.status(415).end();
@@ -348,8 +373,26 @@ router.post(
       return res.status(400).end();
     }
 
-    item.file = Buffer.from(req.body);
-    item.type = req.get("content-type");
+    const edit = imageEdit(req);
+
+    let file;
+
+    try {
+      file = edit
+        ? await transform(req.body, edit, 85)
+        : Buffer.from(req.body);
+    } catch {
+      file = null;
+    }
+
+    if (!file) {
+      return res.status(415).end();
+    }
+
+    item.file = file;
+    item.type = edit
+      ? "image/webp"
+      : req.get("content-type");
 
     profile.refresh(item);
 
@@ -387,6 +430,7 @@ router.get("/:uid", async (req, res) => {
     uid: user.uid,
     short: user.uid.slice(0, 8),
     name: user.name || "",
+    image: user.image || "",
     avatar: user.avatar || "",
     number: user.number,
     setup: Boolean(user.setup),

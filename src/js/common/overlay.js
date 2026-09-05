@@ -7,31 +7,13 @@ const reduce = matchMedia(
 const clamp = (value) =>
   Math.min(1, Math.max(0, Number(value) || 0));
 
-const create = () => {
-  const wrap = dom.create("div");
-  const element = dom.create("dialog");
-
-  dom.set(element, "data-overlay", "");
-  dom.set(element, "closedby", "none");
-
-  dom.on(element, "cancel", (event) =>
-    event.preventDefault()
-  );
-
-  wrap.append(element);
-  dom.body.append(wrap);
-
-  return { wrap, element };
-};
-
-export default function overlay() {
-  const { wrap, element } = create();
-
-  let backdrop;
+export default function overlay(element) {
+  let effect;
   let frame;
   let done;
   let level = 0;
   let strength = 0;
+  let opened = false;
   let closed = false;
 
   const stop = () => {
@@ -59,26 +41,35 @@ export default function overlay() {
   };
 
   const animation = () => {
-    if (backdrop) {
-      return backdrop;
+    if (!opened) {
+      return null;
     }
 
-    backdrop = element.animate(keyframes(), {
+    if (effect) {
+      return effect;
+    }
+
+    effect = element.animate(keyframes(), {
       duration: 1,
       fill: "both",
       pseudoElement: "::backdrop"
     });
 
-    backdrop.pause();
-    backdrop.currentTime = level;
+    effect.pause();
+    effect.currentTime = level;
 
-    return backdrop;
+    return effect;
   };
 
   const paint = (value) => {
+    level = clamp(value);
+
     const current = animation();
 
-    level = clamp(value);
+    if (!current) {
+      return;
+    }
+
     current.pause();
     current.currentTime = level;
   };
@@ -122,25 +113,36 @@ export default function overlay() {
       frame = requestAnimationFrame(run);
     });
 
-  element.showModal();
-  move(1);
-
-  const release = async () => {
+  const release = async (smooth = true) => {
     if (closed) {
       return;
     }
 
     closed = true;
 
-    await move(0);
-    stop();
-
-    if (element.open) {
-      element.close();
+    if (!opened) {
+      return;
     }
 
-    backdrop?.cancel();
-    wrap.remove();
+    if (smooth) {
+      await move(0);
+    } else {
+      stop();
+      paint(0);
+    }
+
+    stop();
+
+    effect?.cancel();
+  };
+
+  release.open = () => {
+    if (opened || closed) {
+      return;
+    }
+
+    opened = true;
+    move(1);
   };
 
   release.shade = (value = 0) => {
@@ -150,7 +152,7 @@ export default function overlay() {
 
   release.strength = (value = 0) => {
     strength = clamp(value);
-    backdrop?.effect?.setKeyframes(keyframes());
+    effect?.effect?.setKeyframes(keyframes());
   };
 
   return release;

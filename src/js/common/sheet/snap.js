@@ -1,11 +1,8 @@
+import * as css from "#common/css";
 import * as dom from "#common/dom";
 import swipe from "#common/swipe";
 import vibrate from "#common/vibrate";
-import viewport from "#common/viewport";
 
-const reduce = matchMedia(
-  "(prefers-reduced-motion: reduce)"
-);
 const stages = ["peek", "half", "full"];
 
 const index = (value) => {
@@ -14,8 +11,11 @@ const index = (value) => {
   return result < 0 ? 1 : result;
 };
 
+const clamp = (value, minimum, maximum) =>
+  Math.min(maximum, Math.max(minimum, value));
+
 const points = () => {
-  const { height } = viewport();
+  const height = window.innerHeight;
   const rem =
     Number.parseFloat(
       getComputedStyle(dom.root).fontSize
@@ -29,135 +29,146 @@ const points = () => {
   return [peek, half, height * 0.9];
 };
 
+const nearest = (height, sizes) => {
+  const target = sizes.reduce((result, size) =>
+    Math.abs(size - height) < Math.abs(result - height)
+      ? size
+      : result
+  );
+
+  return Math.abs(target - height) <= 48 ? target : height;
+};
+
 export default function snap(element, options = {}) {
-  let stage = index(options.stage);
-  let animation;
-  let settling = false;
-  let disposed = false;
-  let from = 0;
-  let target = stage;
-  let targetHeight = 0;
+  const initial = index(options.stage);
+
+  let sizes = points();
+  let height = sizes[initial];
+  let resizeFrame;
+  let gesture = null;
+
+  const render = (value) => {
+    height = clamp(value, sizes[0], sizes[2]);
+    css.set(element, { "--sheet-height": `${height}px` });
+  };
 
   const configure = () => {
-    const [peek, half, full] = points();
+    const ratio = sizes[2] ? height / sizes[2] : 1;
 
-    element.style.setProperty("--sheet-peek", `${peek}px`);
-    element.style.setProperty("--sheet-half", `${half}px`);
-    element.style.setProperty("--sheet-full", `${full}px`);
-  };
-
-  const render = () => {
-    dom.set(element, "data-sheet-stage", stages[stage]);
-  };
-
-  const settle = async (next) => {
-    const closing = next < 0;
-    const height = closing ? 0 : points()[next];
-
-    settling = true;
-    animation = element.animate(
-      [
-        {
-          height: `${element.getBoundingClientRect().height}px`
-        },
-        { height: `${height}px` }
-      ],
-      {
-        duration: reduce.matches ? 0 : 200,
-        easing: "ease-out",
-        fill: "forwards"
-      }
-    );
-
-    await animation.finished.catch(() => {});
-
-    if (disposed) {
-      return;
-    }
-
-    if (closing) {
-      animation.cancel();
-      animation = undefined;
-      settling = false;
-      element.style.removeProperty("height");
-      dom.remove(element, "data-sheet-drag");
-      options.close?.(false, false);
-      return;
-    }
-
-    stage = next;
-    render();
-    element.style.height = `${height}px`;
-    animation.cancel();
-    animation = undefined;
-    settling = false;
-    element.style.removeProperty("height");
-    dom.remove(element, "data-sheet-drag");
+    sizes = points();
+    render(nearest(sizes[2] * ratio, sizes));
   };
 
   const blocked = (step) => {
     const top = element.scrollTop;
     const max = element.scrollHeight - element.clientHeight;
     const up = step > 0;
-    const full = stage === stages.length - 1;
-    const scrolling = up ? top < max : top > 0;
+    const full = height >= sizes[2] - 1;
+    const scrolling = full && (up ? top < max : top > 0);
 
-    if (settling || (up && full) || scrolling) {
+    if ((up && full) || scrolling) {
       return "*";
     }
 
     return "button, a";
   };
 
+  const resize = () => {
+    if (gesture || resizeFrame) {
+      return;
+    }
+
+    resizeFrame = requestAnimationFrame(() => {
+      resizeFrame = undefined;
+
+      if (!gesture) {
+        configure();
+      }
+    });
+  };
+
+  const stop = () => {
+    gesture = null;
+    dom.remove(element, "data-swipe");
+  };
+
+  const finish = (value, cancelled) => {
+    if (!gesture) {
+      return;
+    }
+
+    const { from, target } = gesture;
+
+    if (cancelled) {
+      stop();
+      render(from);
+    } else {
+      const next = from + (target - from) * value;
+
+      if (target === 0 && next < sizes[0] * 0.5) {
+        stop();
+        options.close?.(false, false);
+        return;
+      }
+
+      const snapped = nearest(next, sizes);
+
+      stop();
+      render(snapped);
+
+      if (from < sizes[2] - 1 && snapped === sizes[2]) {
+        vibrate.play(25);
+      }
+    }
+
+    configure();
+  };
+
   const bind = (direction, step) =>
     swipe(direction, {
       target: element,
       ignore: () => blocked(step),
-      length: () => {
-        const next = stage + step;
-        const height = next < 0 ? 0 : points()[next];
-
-        return Math.abs(height - points()[stage]) || 1;
-      },
-      ratio: 0.25,
+      length: () =>
+        gesture
+          ? Math.abs(gesture.target - gesture.from) || 1
+          : 1,
       start: () => {
         options.finish?.();
-        from = element.getBoundingClientRect().height;
-        target = stage + step;
-        targetHeight = target < 0 ? 0 : points()[target];
-        dom.set(element, "data-sheet-drag", "");
+        gesture = {
+          from: element.getBoundingClientRect().height,
+          target: step > 0 ? sizes[2] : 0
+        };
+        dom.set(element, "data-swipe", "");
       },
       move: (value) => {
-        const height = from + (targetHeight - from) * value;
+        if (!gesture) {
+          return;
+        }
 
-        element.style.height = `${height}px`;
+        const next =
+          gesture.from +
+          (gesture.target - gesture.from) * value;
+
+        height = next;
+        css.set(element, { "--sheet-height": `${next}px` });
       },
-      reach: () => vibrate.play(25),
-      end: (complete) => {
-        settle(complete ? target : stage);
-      }
+      end: (_complete, value, _event, cancelled) =>
+        finish(value, cancelled)
     });
 
-  configure();
-  render();
+  render(height);
 
   const remove = [
     bind("↑", 1),
     bind("↓", -1),
-    dom.on(window, "resize", configure)
+    dom.on(window, "resize", resize)
   ];
 
-  if (window.visualViewport) {
-    remove.push(
-      dom.on(window.visualViewport, "resize", configure)
-    );
-  }
-
   return () => {
-    disposed = true;
     remove.forEach((off) => off());
-    animation?.cancel();
-    element.style.removeProperty("height");
-    dom.remove(element, "data-sheet-drag");
+    cancelAnimationFrame(resizeFrame);
+    gesture = null;
+    css.set(element, { "--sheet-height": null });
+    dom.remove(element, "data-swipe");
   };
 }

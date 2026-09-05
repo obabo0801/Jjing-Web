@@ -1,4 +1,5 @@
 import * as dom from "#common/dom";
+import limit from "#config/upload";
 import dialog from "#common/dialog";
 import drawer from "#common/drawer";
 import edit from "#common/image";
@@ -27,6 +28,7 @@ const keys = [
   "image.gallery",
   "image.phone",
   "image.scan",
+  "image.sizeError",
   "image.reset",
   "image.save",
   "setup.greeting",
@@ -67,16 +69,13 @@ const format = (key, values) =>
 const field = (name, type = "text") => {
   const root = dom.create("div");
   const label = dom.create("label");
-  const title = text(
-    "span",
-    "setup-label",
-    `setup.${name}`
-  );
+  const title = text("span", "label-key", `setup.${name}`);
   const control = dom.create("span");
   const input = dom.create("input");
   const status = dom.create("small");
 
   root.className = "setup-field";
+  label.className = "label";
   control.className = "input";
   status.className = "setup-status";
   input.type = type;
@@ -114,9 +113,8 @@ const portrait = (source) => {
   const media = avatar(source, "button");
   const mark = dom.create("span");
 
-  root.className = "setup-avatar";
-  media.root.classList.add("setup-avatar-media");
-  mark.className = "setup-avatar-edit";
+  root.className = "profile-avatar";
+  mark.className = "profile-edit";
 
   dom.set(media.root, "data-response", "");
   dom.set(media.root, "data-tooltip", "image.select");
@@ -154,7 +152,8 @@ const portrait = (source) => {
     let draftUrl = url;
     let temporary = false;
 
-    const show = () => stage.set(draftUrl || source);
+    const show = () =>
+      stage.set(draftUrl || source, draft?.edit);
 
     const offLink = profile.onLink((token) => {
       if (temporary && draftUrl) {
@@ -173,7 +172,8 @@ const portrait = (source) => {
 
       button.type = "button";
       input.type = "file";
-      input.accept = "image/jpeg,image/png,image/webp";
+      input.accept =
+        "image/jpeg,image/png,image/webp,image/gif";
       input.hidden = true;
 
       dom.set(button, "data-icon", `${icon} center`);
@@ -197,6 +197,14 @@ const portrait = (source) => {
           return;
         }
 
+        if (file.size > limit) {
+          toast({
+            type: "error",
+            title: "image.sizeError"
+          });
+          return;
+        }
+
         const result = await adjust(file, button);
 
         if (!result) {
@@ -208,7 +216,7 @@ const portrait = (source) => {
         }
 
         draft = result;
-        draftUrl = URL.createObjectURL(result);
+        draftUrl = URL.createObjectURL(result.file);
         temporary = true;
         show();
       });
@@ -360,7 +368,7 @@ const portrait = (source) => {
 
     pending = draft;
     url = draftUrl;
-    media.set(url || source);
+    media.set(url || source, pending?.edit);
   };
 
   dom.on(media.root, "click", () => {
@@ -411,6 +419,7 @@ const finish = async (user, picture, close) => {
   root.append(greeting, welcome, optional);
 
   return drawer({
+    back: true,
     title: "setup.title",
     content: root,
     side: "right",
@@ -447,9 +456,12 @@ const finish = async (user, picture, close) => {
 
           toast({
             type: "error",
-            title: uploaded.ok
-              ? "setup.saveError"
-              : "setup.uploadError"
+            title:
+              uploaded.status === 413
+                ? "image.sizeError"
+                : uploaded.ok
+                  ? "setup.saveError"
+                  : "setup.uploadError"
           });
           button.disabled = false;
           picture.busy(false);
@@ -543,10 +555,13 @@ export default async function editor(user, ready) {
   });
 
   const result = await dialog({
+    back: true,
     title: "setup.title",
     content: form,
     locked: true,
-    ready: () => {
+    ready: (element) => {
+      element.tabIndex = -1;
+      element.focus({ preventScroll: true });
       ready?.();
 
       if (name.input.value) {

@@ -10,8 +10,8 @@
   border: 1px solid var(--border);
   border-radius: 8px;
 
-  background: #181818;
-  color: #eeeeee;
+  background: var(--black);
+  color: var(--text);
 
   font-family:
     ui-monospace, "Cascadia Code", Consolas, monospace;

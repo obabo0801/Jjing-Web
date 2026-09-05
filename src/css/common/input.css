@@ -38,6 +38,9 @@
 
 .input [data-control]::placeholder {
   color: var(--mute);
+  font: inherit;
+  text-align: inherit;
+  opacity: 1;
 }
 
 .input [data-control]::-webkit-search-cancel-button {
@@ -67,10 +70,36 @@
 
 .wearable .input [data-control] {
   min-height: 72px;
-  padding-inline: 24px;
 
   font-size: 1.75rem;
+}
+
+:is(.small, .wearable) .input {
+  grid-template-columns: minmax(0, 1fr);
+  padding-inline: 0;
+}
+
+:is(.small, .wearable) .input [data-control] {
+  padding-inline: 0;
   text-align: center;
+}
+
+:is(.small, .wearable) .input textarea[data-control] {
+  padding-inline: 8px;
+  text-align: center;
+}
+
+:is(.small, .wearable) .input-actions {
+  flex-wrap: wrap;
+  justify-content: center;
+
+  min-width: 0;
+  padding-inline: 0;
+}
+
+:is(.small, .wearable) .input-actions button {
+  min-width: 0;
+  max-width: 100%;
 }
 
 @keyframes input-ping {

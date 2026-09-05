@@ -18,6 +18,18 @@
   background: var(--background);
 }
 
+.label:has(> .input) {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+
+  min-width: 0;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+}
+
 .label-key {
   min-width: 0;
 
@@ -29,4 +41,26 @@
 
   color: var(--mute);
   text-align: right;
+}
+
+:is(.small, .wearable) .label {
+  flex-direction: column;
+  justify-content: center;
+  gap: 8px;
+
+  min-width: 0;
+  padding: 8px 0;
+
+  text-align: center;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
+
+:is(.small, .wearable)
+  .label
+  :is(.label-key, .label-value) {
+  min-width: 0;
+  max-width: 100%;
+  white-space: normal;
+  text-align: center;
 }

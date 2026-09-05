@@ -36,6 +36,10 @@ img.icon {
   align-items: center;
 }
 
+[data-icon][data-image] > .icon {
+  display: none;
+}
+
 .icon-center {
   justify-content: center;
 }

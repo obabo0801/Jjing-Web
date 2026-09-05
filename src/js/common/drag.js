@@ -65,7 +65,8 @@ export default function drag(target = document) {
       (event.target instanceof Element &&
         event.target.closest(
           "input, select, textarea, " +
-            "[contenteditable], .range"
+            "[contenteditable], .range, " +
+            '[data-drag="none"]'
         ))
     ) {
       return;
@@ -92,6 +93,11 @@ export default function drag(target = document) {
 
   const move = (event) => {
     if (!pointer.match(event, pointerId) || !scroller) {
+      return;
+    }
+
+    if (scroller.closest("[data-swipe]")) {
+      reset();
       return;
     }
 

@@ -8,6 +8,11 @@
   background: var(--canvas);
   color: var(--text);
   overflow: hidden;
+
+  transition:
+    background-color 160ms ease,
+    color 160ms ease,
+    opacity 160ms ease;
 }
 
 .avatar > .icon,
@@ -20,8 +25,19 @@
   height: 100%;
 
   object-fit: cover;
+  translate: var(--avatar-x, 0) var(--avatar-y, 0);
+  rotate: var(--avatar-angle, 0deg);
+  scale: var(--avatar-scale, 1);
 }
 
-.avatar[data-image] > .icon {
-  display: none;
+:is(.small, .wearable) .avatar {
+  grid-template-columns: minmax(0, 1fr);
+  min-width: 0;
+  max-width: 100%;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .avatar {
+    transition: none;
+  }
 }

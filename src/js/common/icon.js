@@ -2,6 +2,11 @@ import * as dom from "#common/dom";
 
 const icons = {
   arrow: ["m9 18 6-6-6-6"],
+  phone: [
+    "M7 2h10a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2Z",
+    "M10 5h4",
+    "M12 18h.01"
+  ],
   camera: [
     "M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9" +
       "a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9" +
@@ -18,6 +23,12 @@ const icons = {
     "M9 20v-6h6v6"
   ],
   reload: ["M20 11a8 8 0 1 0-2.34 5.66", "M20 4v7h-7"],
+  rotate: [
+    "M21 12a9 9 0 0 0-15.5-6.2L3 8",
+    "M3 3v5h5",
+    "M3 12a9 9 0 0 0 15.5 6.2L21 16",
+    "M21 21v-5h-5"
+  ],
   close: ["M18 6 6 18", "m6 6 12 12"],
   copy: ["M8 8h12v12H8z", "M4 16V4h12"],
   error: [

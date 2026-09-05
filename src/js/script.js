@@ -42,6 +42,7 @@ try {
       });
 
       append(chat, {
+        uid: "9cd41a93-4b97-4f33-9509-461c9cfe795b",
         name: "테스트",
         text: "채팅 테스트 메시지입니다."
       });

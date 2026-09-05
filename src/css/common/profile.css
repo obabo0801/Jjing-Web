@@ -1,4 +1,4 @@
-.profile-view {
+.profile {
   display: grid;
   gap: 16px;
 
@@ -18,22 +18,71 @@
   position: relative;
 
   display: grid;
+  justify-self: center;
 
   width: 128px;
   aspect-ratio: 1;
   margin-block-end: 8px;
 }
 
-.profile-media {
+.profile-avatar > .avatar {
   width: 100%;
+  min-height: 0;
   height: 100%;
 }
 
-.profile-media[data-icon~="user"] > svg.icon {
+.profile-avatar > button.avatar {
+  padding: 0;
+  border: 0;
+}
+
+.profile-avatar > .avatar[data-icon~="user"] > svg.icon {
   width: 8rem;
   height: 8rem;
 
   transform: translateY(10px);
+}
+
+.profile-avatar
+  > button.avatar[data-icon~="user"]
+  > svg.icon {
+  width: 9rem;
+  height: 9rem;
+
+  transform: translateY(12px);
+}
+
+.profile-edit {
+  position: absolute;
+  z-index: 2;
+  inset-inline-end: 8px;
+  inset-block-end: 8px;
+
+  display: grid;
+  place-items: center;
+
+  width: 20px;
+  height: 20px;
+  border: 2px solid var(--canvas);
+  border-radius: 999px;
+
+  background: var(--background);
+  color: var(--text);
+  pointer-events: none;
+
+  transition:
+    background-color 160ms ease,
+    border-color 160ms ease,
+    color 160ms ease;
+}
+
+.profile-edit > .icon {
+  width: 0.75rem;
+  height: 0.75rem;
+}
+
+.profile-avatar[data-loading] > .avatar {
+  opacity: 0.5;
 }
 
 .profile-status {
@@ -79,13 +128,12 @@
   display: none;
 }
 
-.profile-manage,
-.profile-context {
+.profile-section {
   display: grid;
   gap: 16px;
 }
 
-.profile-label {
+.profile .label {
   border: 0;
   border-radius: 0;
 
@@ -93,13 +141,13 @@
   user-select: none;
 }
 
-.profile-label > .label-key {
+.profile .label > .label-key {
   flex: none;
 
   white-space: nowrap;
 }
 
-.profile-label-value {
+.profile-value {
   display: flex;
   flex: 1;
   align-items: center;
@@ -109,7 +157,7 @@
   min-width: 0;
 }
 
-.profile-label-value > .label-value {
+.profile-value > .label-value {
   flex: 1;
 
   min-width: 0;
@@ -141,11 +189,11 @@
   margin-inline-start: auto;
 }
 
-.profile-item-label {
+.profile .group-item > button > span:not(.profile-next) {
   min-width: 0;
 }
 
-.profile-switch {
+.profile .switch {
   border: 0;
   border-radius: 0;
 
@@ -155,6 +203,31 @@
 .profile-next > .icon {
   width: 1.25rem;
   height: 1.25rem;
+}
+
+:is(.small, .wearable) .profile-head {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+:is(.small, .wearable) .profile-avatar {
+  min-width: 0;
+  max-width: 100%;
+}
+
+:is(.small, .wearable)
+  .profile-avatar
+  > .avatar[data-icon~="user"]
+  > svg.icon {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 1;
+  transform: translateY(8.333%);
+}
+
+:is(.small, .wearable) .profile-value {
+  flex-direction: column;
+  justify-content: center;
+  max-width: 100%;
 }
 
 .chatting-message[data-blocked] {
@@ -174,7 +247,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .profile-avatar,
+  .profile-edit,
   .profile-status,
   .chatting-message[data-blocked] {
     transition: none;

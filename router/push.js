@@ -43,12 +43,8 @@ router.put("/", async (req, res) => {
     [endpoint]
   );
 
-  if (!saved) {
+  if (!saved || saved.uid !== id) {
     return res.status(404).end();
-  }
-
-  if (saved.uid !== id) {
-    return res.status(409).end();
   }
 
   return res.status(204).end();

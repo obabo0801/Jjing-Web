@@ -52,7 +52,7 @@
   background: transparent;
   color: inherit;
   text-align: left;
-  font-size: 0.9rem;
+  font-size: 1rem;
 }
 
 .chatting-profile {
@@ -73,10 +73,6 @@
   height: 32px;
   padding: 0;
   border: 0;
-
-  transition:
-    background-color 160ms ease,
-    color 160ms ease;
 }
 
 .chatting-avatar[data-icon~="user"] > svg.icon {
@@ -95,7 +91,7 @@
 
 .chatting-time {
   color: var(--mute);
-  font-size: 0.8rem;
+  font-size: 1rem;
   white-space: nowrap;
 
   transition: color 160ms ease;
@@ -347,6 +343,164 @@
   padding-block: calc((72px - 1.4em) / 2);
 }
 
+:is(.small, .wearable) .chatting {
+  grid-template-rows: clamp(10rem, 50dvh, 20rem) auto;
+  min-height: 0;
+  max-height: none;
+}
+
+.small:not(.wearable) .chatting-list {
+  padding: 8px;
+}
+
+:is(.small, .wearable) .chatting-form {
+  padding-inline: 0;
+}
+
+:is(.small, .wearable) .chatting-profile {
+  flex-wrap: wrap;
+  max-width: 100%;
+}
+
+:is(.small, .wearable) .chatting-name {
+  min-width: 0;
+  max-width: 100%;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
+
+:is(.small, .wearable)
+  .chatting[data-chatting]
+  .chatting-message {
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-areas:
+    "profile"
+    "text"
+    "time";
+  max-width: 100%;
+}
+
+:is(.small, .wearable)
+  .chatting[data-chatting="stream"]
+  .chatting-message {
+  padding-inline: 0;
+}
+
+:is(.small, .wearable)
+  .chatting[data-chatting="stream"]
+  .chatting-message[data-follow],
+:is(.small, .wearable)
+  .chatting[data-chatting="messenger"]
+  .chatting-message[data-own] {
+  grid-template-areas:
+    "text"
+    "time";
+}
+
+:is(.small, .wearable)
+  .chatting[data-chatting]
+  .chatting-message[data-own] {
+  align-self: flex-end;
+}
+
+:is(.small, .wearable)
+  .chatting[data-chatting]
+  .chatting-message
+  .chatting-text {
+  margin-inline-start: 0;
+  text-align: start;
+  line-height: 1.5;
+}
+
+:is(.small, .wearable)
+  .chatting[data-chatting="messenger"]
+  .chatting-text {
+  padding: 8px;
+}
+
+:is(.small, .wearable)
+  .chatting[data-chatting]
+  .chatting-message
+  .chatting-time {
+  justify-self: start;
+  font-size: 0.875rem;
+  opacity: 1;
+}
+
+:is(.small, .wearable)
+  .chatting[data-chatting]
+  .chatting-message[data-own]
+  .chatting-time {
+  justify-self: end;
+}
+
+.wearable .chatting-text {
+  font-size: 1.5rem;
+}
+
+.wearable .chatting-name {
+  font-size: 1.25rem;
+}
+
+.wearable
+  .chatting[data-chatting]
+  .chatting-message
+  .chatting-time {
+  font-size: 1rem;
+}
+
+:is(.small, .wearable) .chatting-input {
+  field-sizing: content;
+  max-height: calc(60px + 1.4em);
+  overflow-y: auto;
+}
+
+.wearable .chatting-input {
+  max-height: calc(72px + 1.4em);
+}
+
+.small .chatting[data-chatting] .chatting-message,
+.small
+  .chatting[data-chatting]
+  .chatting-message[data-own] {
+  align-self: center;
+}
+
+.small .chatting[data-chatting] .chatting-profile {
+  justify-self: center;
+  justify-content: center;
+}
+
+.small
+  .chatting[data-chatting]
+  .chatting-message
+  .chatting-time,
+.small
+  .chatting[data-chatting]
+  .chatting-message[data-own]
+  .chatting-time {
+  justify-self: center;
+}
+
+.small
+  .chatting[data-chatting]
+  .chatting-message
+  :is(.chatting-name, .chatting-text, .chatting-time) {
+  text-align: center;
+}
+
+.small:not(.wearable) .chatting-bottom[data-circle] {
+  width: 32px;
+  min-height: 32px;
+  height: 32px;
+  inset-block-end: calc(var(--chatting-form, 77px) + 8px);
+}
+
+.small:not(.wearable) .chatting-bottom > .icon {
+  width: 16px;
+  height: 16px;
+}
+
 .chatting[data-chatting="stream"]
   .chatting-message[data-follow]:is(:active, [data-action])
   .chatting-time {
@@ -369,7 +523,6 @@
 @media (prefers-reduced-motion: reduce) {
   .chatting,
   .chatting-form,
-  .chatting-avatar,
   .chatting-time,
   .chatting-message,
   .chatting-text,

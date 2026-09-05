@@ -21,10 +21,6 @@ dialog[data-dialog] {
     color 160ms ease;
 }
 
-dialog[data-dialog]::backdrop {
-  background: transparent;
-}
-
 .dialog-head {
   padding: 16px 16px 16px;
   text-align: center;

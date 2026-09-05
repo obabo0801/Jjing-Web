@@ -256,7 +256,7 @@ function progress(direction, options) {
     reset();
 
     if (active) {
-      end?.(complete, current, event);
+      end?.(complete, current, event, cancelled);
     }
   };
 
@@ -304,11 +304,12 @@ function progress(direction, options) {
   };
 
   const touchStart = (event) => {
-    if (
-      event.touches.length !== 1 ||
-      hasSelection() ||
-      blocked(event, ignore)
-    ) {
+    if (event.touches.length !== 1) {
+      finish(event, true);
+      return;
+    }
+
+    if (hasSelection() || blocked(event, ignore)) {
       return;
     }
 
@@ -330,9 +331,11 @@ function progress(direction, options) {
     const x = touch.clientX - startX;
     const y = touch.clientY - startY;
 
-    if (update(x, y, event)) {
+    if (moving || match(direction, x, y)) {
       event.preventDefault();
     }
+
+    update(x, y, event);
   };
 
   const touchEnd = (event) => {

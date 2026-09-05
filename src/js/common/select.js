@@ -1,5 +1,5 @@
-import * as back from "#common/back";
 import * as dom from "#common/dom";
+import * as back from "#common/back";
 import sound from "#common/sound";
 import vibrate from "#common/vibrate";
 

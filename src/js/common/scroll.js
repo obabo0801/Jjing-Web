@@ -41,20 +41,15 @@ export function scrollable(node) {
 }
 
 export default function scroll() {
-  const target = dom.scroller;
-
-  if (!target) {
-    return;
-  }
-
-  const bound = () => {
+  const previous = new WeakMap();
+  const bound = (target) => {
     const max = target.scrollHeight - target.clientHeight;
 
-    if (max <= 0) {
+    if (max <= 1) {
       return null;
     }
 
-    if (target.scrollTop <= 0) {
+    if (target.scrollTop <= 1) {
       return "top";
     }
 
@@ -65,20 +60,51 @@ export default function scroll() {
     return null;
   };
 
-  let previous = bound();
+  if (dom.scroller) {
+    previous.set(dom.scroller, {
+      top: dom.scroller.scrollTop,
+      edge: bound(dom.scroller)
+    });
+  }
 
   dom.on(
-    window,
+    document,
     "scroll",
-    () => {
-      const position = bound();
+    (event) => {
+      const target =
+        event.target === document
+          ? dom.scroller
+          : event.target;
 
-      if (!paused && position && position !== previous) {
+      if (
+        !(target instanceof HTMLElement) ||
+        (target !== dom.scroller &&
+          (!dom.has("wearable") ||
+            !target.closest("dialog[open]")))
+      ) {
+        return;
+      }
+
+      const position = bound(target);
+      const last = previous.get(target) ?? {
+        top: 0,
+        edge: "top"
+      };
+
+      if (
+        !paused &&
+        position &&
+        position !== last.edge &&
+        target.scrollTop !== last.top
+      ) {
         vibrate.play("touch");
       }
 
-      previous = position;
+      previous.set(target, {
+        top: target.scrollTop,
+        edge: position
+      });
     },
-    { passive: true }
+    { passive: true, capture: true }
   );
 }

@@ -1,8 +1,11 @@
 export default async function upload(
   path,
-  file,
+  value,
   options = {}
 ) {
+  const file = value instanceof Blob ? value : value?.file;
+  const edit = value instanceof Blob ? null : value?.edit;
+
   if (!(file instanceof Blob) || !file.size) {
     return { ok: false, status: 0, data: null };
   }
@@ -14,6 +17,9 @@ export default async function upload(
       headers: {
         "Content-Type":
           file.type || "application/octet-stream",
+        ...(edit
+          ? { "X-Image-Edit": JSON.stringify(edit) }
+          : {}),
         ...options.headers
       },
       body: file

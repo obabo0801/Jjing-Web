@@ -2,7 +2,8 @@
   position: fixed;
   z-index: 1000;
 
-  max-width: min(20rem, calc(100vw - 16px));
+  width: max-content;
+  max-width: min(20rem, calc(100% - 16px));
   padding: 8px 12px;
   border: 1px solid var(--border);
   border-radius: 8px;

@@ -1,4 +1,5 @@
 import * as dom from "#common/dom";
+import limit from "#config/upload";
 import edit from "#common/image";
 import i18n, { message, preload } from "#common/i18n";
 import init from "#common/init";
@@ -9,6 +10,7 @@ preload(
   "image.phoneGuide",
   "image.select",
   "image.sent",
+  "image.sizeError",
   "image.invalid",
   "image.uploadError"
 );
@@ -51,6 +53,11 @@ try {
         return;
       }
 
+      if (file.size > limit) {
+        state("image.sizeError");
+        return;
+      }
+
       const image = await edit(file, {
         anchor: button,
         shape: "circle",
@@ -76,7 +83,9 @@ try {
       state(
         result.status === 404
           ? "image.invalid"
-          : "image.uploadError"
+          : result.status === 413
+            ? "image.sizeError"
+            : "image.uploadError"
       );
     });
   }
