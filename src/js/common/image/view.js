@@ -278,7 +278,7 @@ export default async function view(source, anchor) {
       content: root,
       fullscreen: true,
       ready: () => {
-        restore = theme.color("#000000");
+        restore = theme.color(root);
         measure();
       }
     });

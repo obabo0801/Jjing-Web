@@ -5,12 +5,9 @@ const modes = ["system", "light", "dark"];
 const scheme = matchMedia("(prefers-color-scheme: dark)");
 const colors = new Map();
 
-let selected = "system";
 let listening = false;
 
 const sync = () => {
-  const mode = dom.get(dom.root, "data-theme") || selected;
-
   let meta = dom.query('meta[name="theme-color"]');
 
   if (!meta) {
@@ -19,16 +16,13 @@ const sync = () => {
     document.head.append(meta);
   }
 
-  const dark =
-    mode === "system" ? scheme.matches : mode === "dark";
-
+  const source = [...colors.values()].at(-1) || dom.root;
   const color =
-    [...colors.values()].at(-1) ||
-    (dark
-      ? dom.has("wearable")
-        ? "#000000"
-        : "#181818"
-      : "#ffffff");
+    source instanceof Element
+      ? getComputedStyle(
+          source.isConnected ? source : dom.root
+        ).backgroundColor
+      : source;
 
   dom.set(meta, "content", color);
 };
@@ -54,7 +48,6 @@ export default function theme(mode) {
     mode = "system";
   }
 
-  selected = mode;
   set("theme", mode);
   dom.set(dom.root, "data-theme", mode);
 
@@ -66,6 +59,25 @@ export default function theme(mode) {
         sync();
       }
     });
+    for (const type of [
+      "transitionend",
+      "transitioncancel"
+    ]) {
+      dom.on(
+        document,
+        type,
+        (event) => {
+          if (
+            event.propertyName === "background-color" &&
+            (event.target === dom.root ||
+              [...colors.values()].includes(event.target))
+          ) {
+            sync();
+          }
+        },
+        true
+      );
+    }
     const observer = new MutationObserver(sync);
 
     observer.observe(dom.root, {
