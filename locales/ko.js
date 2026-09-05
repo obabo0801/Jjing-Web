@@ -121,6 +121,7 @@ export default {
     uploadError: "이미지를 업로드하지 못했습니다."
   },
   image: {
+    loadError: "이미지를 불러오지 못했습니다.",
     title: "이미지 조절",
     select: "이미지 선택",
     camera: "카메라",

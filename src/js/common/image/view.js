@@ -2,6 +2,7 @@ import * as css from "#common/css";
 import * as dom from "#common/dom";
 import popover from "#common/popover";
 import double from "#common/image/double";
+import * as theme from "#common/theme";
 
 const clamp = (value, min, max) =>
   Math.min(max, Math.max(min, value));
@@ -268,15 +269,21 @@ export default async function view(source, anchor) {
 
   image.src = source;
 
+  let restore;
+
   try {
     return await popover({
       anchor,
       back: true,
       content: root,
       fullscreen: true,
-      ready: measure
+      ready: () => {
+        restore = theme.color("#000000");
+        measure();
+      }
     });
   } finally {
+    restore?.();
     gesture.destroy();
     off.forEach((remove) => remove());
     cancelAnimationFrame(state.frame);

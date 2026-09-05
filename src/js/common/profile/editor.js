@@ -8,6 +8,7 @@ import * as profile from "#common/profile";
 import avatar from "#common/avatar";
 import sheet from "#common/sheet";
 import toast from "#common/toast";
+import once from "#common/once";
 
 const keys = [
   "setup.title",
@@ -24,6 +25,8 @@ const keys = [
   "setup.emailInvalid",
   "setup.next",
   "image.select",
+  "image.title",
+  "image.loadError",
   "image.camera",
   "image.gallery",
   "image.phone",
@@ -108,7 +111,7 @@ const state = (element, key, value) => {
   dom.set(element, "data-state", value);
 };
 
-const portrait = (source) => {
+const portrait = (source, original = source) => {
   const root = dom.create("div");
   const media = avatar(source, "button");
   const mark = dom.create("span");
@@ -126,10 +129,11 @@ const portrait = (source) => {
   let pending;
   let url;
 
-  const adjust = async (file, anchor) => {
+  const adjust = async (file, anchor, previous) => {
     try {
       return await edit(file, {
         anchor,
+        edit: previous,
         shape: "circle",
         width: 512,
         height: 512
@@ -141,8 +145,13 @@ const portrait = (source) => {
 
   const select = async () => {
     const panel = dom.create("div");
-    const stage = avatar();
+    const stage = avatar("", "button");
     const options = dom.create("div");
+    const revise = once();
+
+    stage.root.tabIndex = -1;
+    dom.set(stage.root, "data-response", "");
+    dom.set(stage.root, "data-tooltip", "image.title");
 
     panel.className = "image-select";
     options.className = "group";
@@ -151,9 +160,92 @@ const portrait = (source) => {
     let draft = pending;
     let draftUrl = url;
     let temporary = false;
+    let version = 0;
+    let adjusting = false;
 
-    const show = () =>
+    const show = () => {
+      version += 1;
       stage.set(draftUrl || source, draft?.edit);
+      stage.root.disabled =
+        adjusting || !(draftUrl || source);
+    };
+
+    const update = (result) => {
+      if (temporary && draftUrl) {
+        URL.revokeObjectURL(draftUrl);
+      }
+
+      draft = result;
+      draftUrl = URL.createObjectURL(result.file);
+      temporary = true;
+      show();
+    };
+
+    dom.on(stage.root, "click", () => {
+      revise(stage.root, async () => {
+        if (stage.root.disabled) {
+          return;
+        }
+
+        const current = version;
+        const previous = draft?.edit;
+
+        let file = draft?.file;
+
+        adjusting = true;
+        stage.root.disabled = true;
+
+        try {
+          if (!file) {
+            const response = await fetch(
+              draftUrl || original
+            );
+
+            if (!response.ok) {
+              throw new Error("image.loadError");
+            }
+
+            file = await response.blob();
+          }
+
+          if (current !== version || !panel.isConnected) {
+            return;
+          }
+
+          if (file.size > limit) {
+            toast({
+              type: "error",
+              title: "image.sizeError"
+            });
+            return;
+          }
+
+          const result = await adjust(
+            file,
+            stage.root,
+            previous
+          );
+
+          if (
+            result &&
+            current === version &&
+            panel.isConnected
+          ) {
+            update(result);
+          }
+        } catch {
+          if (current === version && panel.isConnected) {
+            toast({
+              type: "error",
+              title: "image.loadError"
+            });
+          }
+        } finally {
+          adjusting = false;
+          stage.root.disabled = !(draftUrl || source);
+        }
+      }).catch(() => {});
+    });
 
     const offLink = profile.onLink((token) => {
       if (temporary && draftUrl) {
@@ -211,14 +303,7 @@ const portrait = (source) => {
           return;
         }
 
-        if (temporary && draftUrl) {
-          URL.revokeObjectURL(draftUrl);
-        }
-
-        draft = result;
-        draftUrl = URL.createObjectURL(result.file);
-        temporary = true;
-        show();
+        update(result);
       });
 
       return { button, input };
@@ -368,6 +453,11 @@ const portrait = (source) => {
 
     pending = draft;
     url = draftUrl;
+
+    if (pending) {
+      profile.clearLink();
+    }
+
     media.set(url || source, pending?.edit);
   };
 
@@ -476,7 +566,10 @@ const finish = async (user, picture, close) => {
 
 export default async function editor(user, ready) {
   const form = dom.create("div");
-  const picture = portrait(user.avatar);
+  const picture = portrait(
+    user.avatar,
+    user.image || user.avatar
+  );
   const name = field("name");
   const email = field("email", "email");
 

@@ -631,7 +631,28 @@ export default async function edit(file, options = {}) {
       back: true,
       title: options.title || "image.title",
       content: root,
-      ready: measure,
+      ready: () => {
+        measure();
+
+        if (options.edit) {
+          const number = (value, fallback = 0) =>
+            Number.isFinite(Number(value))
+              ? Number(value)
+              : fallback;
+
+          Object.assign(model, {
+            angle: number(options.edit.angle) % 360,
+            scale: clamp(
+              number(options.edit.scale, 1),
+              1,
+              3
+            ),
+            x: number(options.edit.x) * layout.width,
+            y: number(options.edit.y) * layout.height
+          });
+          paint();
+        }
+      },
       actions: [
         {
           text: "image.reset",

@@ -166,6 +166,8 @@ dialog[data-popover][data-fullscreen]
 
 .image-select > .avatar {
   width: 128px;
+  padding: 0;
+  border: 0;
 }
 
 .image-select > .avatar > svg.icon {
