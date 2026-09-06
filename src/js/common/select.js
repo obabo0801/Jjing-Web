@@ -1,5 +1,5 @@
-import * as back from "#common/back";
 import * as dom from "#common/dom";
+import * as back from "#common/back";
 import sound from "#common/sound";
 import vibrate from "#common/vibrate";
 
@@ -9,18 +9,13 @@ let current;
 let off = () => {};
 let listening = false;
 
-const source = (element) =>
-  dom.query(":scope > select", element);
+const source = (element) => dom.query(":scope > select", element);
 
-const menu = (element) =>
-  dom.query(":scope > .select-menu", element);
+const menu = (element) => dom.query(":scope > .select-menu", element);
 
 const sync = (element) => {
   const input = source(element);
-  const button = dom.query(
-    ":scope > .select-toggle",
-    element
-  );
+  const button = dom.query(":scope > .select-toggle", element);
   const value = dom.query(".select-value", button);
   const option = input?.selectedOptions[0];
   const key = dom.get(option, "data-i18n");
@@ -38,18 +33,15 @@ const sync = (element) => {
     dom.remove(value, "data-i18n");
   }
 
-  dom
-    .all(".select-option", menu(element))
-    .forEach((item) => {
-      const selected =
-        Number(item.dataset.index) === input.selectedIndex;
+  dom.all(".select-option", menu(element)).forEach((item) => {
+    const selected = Number(item.dataset.index) === input.selectedIndex;
 
-      if (selected) {
-        dom.set(item, "data-selected", "");
-      } else {
-        dom.remove(item, "data-selected");
-      }
-    });
+    if (selected) {
+      dom.set(item, "data-selected", "");
+    } else {
+      dom.remove(item, "data-selected");
+    }
+  });
 };
 
 const close = (focus = false) => {
@@ -92,10 +84,8 @@ const open = (element) => {
 
   requestAnimationFrame(() => {
     const option =
-      dom.query(
-        ".select-option[data-selected]:enabled",
-        list
-      ) ?? dom.query(".select-option:enabled", list);
+      dom.query(".select-option[data-selected]:enabled", list) ??
+      dom.query(".select-option:enabled", list);
 
     option?.focus({ preventScroll: true });
   });
@@ -118,13 +108,9 @@ const choose = (button) => {
   close(true);
 
   if (changed) {
-    input.dispatchEvent(
-      new Event("input", { bubbles: true })
-    );
+    input.dispatchEvent(new Event("input", { bubbles: true }));
 
-    input.dispatchEvent(
-      new Event("change", { bubbles: true })
-    );
+    input.dispatchEvent(new Event("change", { bubbles: true }));
   }
 };
 
@@ -138,24 +124,22 @@ const bind = (element) => {
   const button = dom.create("button");
   const value = dom.create("span");
   const list = dom.create("div");
-  const options = [...input.options].map(
-    (option, index) => {
-      const item = dom.create("button");
-      const key = dom.get(option, "data-i18n");
+  const options = [...input.options].map((option, index) => {
+    const item = dom.create("button");
+    const key = dom.get(option, "data-i18n");
 
-      item.type = "button";
-      item.className = "select-option";
-      item.dataset.index = String(index);
-      item.disabled = option.disabled;
-      item.textContent = option.textContent;
+    item.type = "button";
+    item.className = "select-option";
+    item.dataset.index = String(index);
+    item.disabled = option.disabled;
+    item.textContent = option.textContent;
 
-      if (key) {
-        dom.set(item, "data-i18n", key);
-      }
-
-      return item;
+    if (key) {
+      dom.set(item, "data-i18n", key);
     }
-  );
+
+    return item;
+  });
 
   button.type = "button";
   button.className = "select-toggle";
@@ -175,10 +159,7 @@ const bind = (element) => {
   sync(element);
 
   dom.on(list, "toggle", (event) => {
-    if (
-      event.newState === "closed" &&
-      current === element
-    ) {
+    if (event.newState === "closed" && current === element) {
       close();
     }
   });
@@ -215,9 +196,7 @@ export default function select(root = document) {
       return;
     }
 
-    const option = event.target.closest?.(
-      ".select-option:enabled"
-    );
+    const option = event.target.closest?.(".select-option:enabled");
 
     if (option) {
       choose(option);

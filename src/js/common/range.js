@@ -9,10 +9,7 @@ const paint = (input) => {
   const value = Number(input.value);
   const size = max - min;
   const percent = size
-    ? Math.min(
-        100,
-        Math.max(0, ((value - min) / size) * 100)
-      )
+    ? Math.min(100, Math.max(0, ((value - min) / size) * 100))
     : 0;
   const container = input.closest(".range");
   const fill = dom.query(".range-fill", container);
@@ -44,14 +41,10 @@ export const move = (input, value) => {
 
   clearTimeout(moving.get(input));
   dom.set(container, "data-move", "");
-  input.value = String(
-    Math.min(max, Math.max(min, number))
-  );
+  input.value = String(Math.min(max, Math.max(min, number)));
 
   if (bound.has(input)) {
-    input.dispatchEvent(
-      new Event("input", { bubbles: true })
-    );
+    input.dispatchEvent(new Event("input", { bubbles: true }));
   } else {
     paint(input);
   }
@@ -121,20 +114,18 @@ const drag = (input) => {
 };
 
 export default function range(root = document) {
-  dom
-    .all('.range input[type="range"]', root)
-    .forEach((input) => {
+  dom.all('.range input[type="range"]', root).forEach((input) => {
+    paint(input);
+
+    if (bound.has(input)) {
+      return;
+    }
+
+    dom.on(input, "input", () => {
       paint(input);
-
-      if (bound.has(input)) {
-        return;
-      }
-
-      dom.on(input, "input", () => {
-        paint(input);
-        play(input);
-      });
-      drag(input);
-      bound.add(input);
+      play(input);
     });
+    drag(input);
+    bound.add(input);
+  });
 }

@@ -72,10 +72,7 @@ export const listen = (options) => {
 
     if (!text || value.startsWith(text)) {
       text = value;
-    } else if (
-      !text.startsWith(value) &&
-      !text.endsWith(value)
-    ) {
+    } else if (!text.startsWith(value) && !text.endsWith(value)) {
       text = `${text} ${value}`.trim();
     }
 
@@ -92,12 +89,7 @@ export const listen = (options) => {
   });
 
   dom.on(recognition, "error", (event) => {
-    if (
-      keep &&
-      event.error === "no-speech" &&
-      !stopped &&
-      !signal?.aborted
-    ) {
+    if (keep && event.error === "no-speech" && !stopped && !signal?.aborted) {
       return;
     }
 
@@ -156,16 +148,9 @@ export const native = async (options) => {
     return { text: "", confidence: 0 };
   }
 
-  const heard = listen({
-    lang,
-    stream: null,
-    target,
-    signal
-  });
+  const heard = listen({ lang, stream: null, target, signal });
 
-  const off = dom.on(stop, "abort", heard.stop, {
-    once: true
-  });
+  const off = dom.on(stop, "abort", heard.stop, { once: true });
 
   if (stop.aborted) {
     heard.stop();

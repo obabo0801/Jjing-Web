@@ -84,10 +84,7 @@ function turn(a, b, c) {
     return 0;
   }
 
-  const value = Math.max(
-    -1,
-    Math.min(1, (ax * cx + ay * cy) / size)
-  );
+  const value = Math.max(-1, Math.min(1, (ax * cx + ay * cy) / size));
 
   return 180 - (Math.acos(value) * 180) / Math.PI;
 }
@@ -131,10 +128,7 @@ function detect(path) {
     return null;
   }
 
-  if (
-    distance(path[0], path.at(-1)) >
-    Math.max(32, size * 0.35)
-  ) {
+  if (distance(path[0], path.at(-1)) > Math.max(32, size * 0.35)) {
     return null;
   }
 
@@ -193,9 +187,7 @@ function touchMove(event) {
     return;
   }
 
-  const touch = [...event.touches].find(
-    (item) => item.identifier === id
-  );
+  const touch = [...event.touches].find((item) => item.identifier === id);
 
   if (!touch) {
     return;
@@ -226,11 +218,7 @@ function touchEnd(event) {
 }
 
 function pointerDown(event) {
-  if (
-    !event.isPrimary ||
-    !pointer.press(event) ||
-    !event.shiftKey
-  ) {
+  if (!event.isPrimary || !pointer.press(event) || !event.shiftKey) {
     return;
   }
 
@@ -301,10 +289,7 @@ function unwatch() {
 export default function gesture(value, listener) {
   const shape = String(value).trim();
 
-  if (
-    !shapes.includes(shape) ||
-    typeof listener !== "function"
-  ) {
+  if (!shapes.includes(shape) || typeof listener !== "function") {
     return () => {};
   }
 

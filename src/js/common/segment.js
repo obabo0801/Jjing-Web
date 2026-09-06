@@ -18,19 +18,14 @@ export default function segment() {
   dom.on(window.visualViewport, "resize", resize);
 
   dom.on(document, "click", (event) => {
-    const button = event.target.closest?.(
-      ".segment button:enabled"
-    );
+    const button = event.target.closest?.(".segment button:enabled");
 
     if (!button) {
       return;
     }
 
     const container = button.closest(".segment");
-    const selected = dom.query(
-      "button[data-selected]",
-      container
-    );
+    const selected = dom.query("button[data-selected]", container);
 
     if (selected === button) {
       return;

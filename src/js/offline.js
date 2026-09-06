@@ -1,8 +1,8 @@
-import { content, i18n } from "#config/route";
+import { content, i18n as path } from "#config/route";
 
 import * as dom from "#common/dom";
 import api from "#common/api";
-import { decode } from "#common/i18n";
+import * as i18n from "#common/i18n";
 import init from "#common/init";
 import available from "#common/page";
 import * as storage from "#common/storage";
@@ -46,14 +46,14 @@ if (location.pathname === "/offline") {
 }
 
 try {
-  const list = await api(i18n);
+  const list = await api(path);
   const value = list.data?.[content];
 
   if (!list.ok || typeof value !== "string") {
     throw new Error();
   }
 
-  const languages = decode(value);
+  const languages = i18n.decode(value);
   const mode = storage.get("lang", "system").toLowerCase();
   const system = navigator.language.toLowerCase();
   const lang = mode === "system" ? system : mode;
@@ -67,14 +67,14 @@ try {
     throw new Error();
   }
 
-  const result = await api(`${i18n}/${file}`);
+  const result = await api(`${path}/${file}`);
   const data = result.data?.[content];
 
   if (!result.ok || typeof data !== "string") {
     throw new Error();
   }
 
-  const { lang: selected, text } = decode(data);
+  const { lang: selected, text } = i18n.decode(data);
 
   dom.root.lang = selected;
   dom.all("[data-i18n]").forEach((element) => {

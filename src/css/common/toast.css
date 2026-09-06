@@ -40,11 +40,7 @@
   overflow: hidden;
   border-radius: 8px;
 
-  background: color-mix(
-    in srgb,
-    var(--toast-color) 80%,
-    transparent
-  );
+  background: color-mix(in srgb, var(--toast-color) 80%, transparent);
   box-shadow: var(--shadow);
   color: var(--toast-text);
 
@@ -117,11 +113,7 @@
 }
 
 .toast-mark[data-background] {
-  background: color-mix(
-    in srgb,
-    currentColor 20%,
-    transparent
-  );
+  background: color-mix(in srgb, currentColor 20%, transparent);
 }
 
 .toast-mark .icon {
@@ -191,9 +183,7 @@
   animation: toast-loading 800ms linear infinite;
 }
 
-.toast-media
-  > .progress[data-progress="circular"]
-  .progress-track {
+.toast-media > .progress[data-progress="circular"] .progress-track {
   background: var(--toast-color);
 }
 
@@ -258,8 +248,7 @@
 
 @keyframes toast-ping {
   0% {
-    box-shadow: 0 0 0 0
-      color-mix(in srgb, var(--toast-text) 40%, transparent);
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--toast-text) 40%, transparent);
   }
 
   75%,

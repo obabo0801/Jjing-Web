@@ -14,12 +14,7 @@ let token = 0;
 const synth = window.speechSynthesis;
 
 export const busy = () =>
-  Boolean(
-    requests.size ||
-    sources.size ||
-    synth?.speaking ||
-    synth?.pending
-  );
+  Boolean(requests.size || sources.size || synth?.speaking || synth?.pending);
 
 const key = (text, { lang, pitch, rate, voice, type }) =>
   JSON.stringify({
@@ -42,11 +37,7 @@ const record = (text, options) => {
   fetch(`/api${route}`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      text,
-      voice: options.voice,
-      type: "browser"
-    })
+    body: JSON.stringify({ text, voice: options.voice, type: "browser" })
   })
     .then((response) => {
       if (!response.ok) {
@@ -67,9 +58,7 @@ const browser = (text, options, report = true) => {
 
   const { lang, pitch, rate, voice, volume } = options;
   const speech = new SpeechSynthesisUtterance(text);
-  const selected = voices().find(
-    (item) => item.name === voice
-  );
+  const selected = voices().find((item) => item.name === voice);
   const name = selected?.name || "default";
 
   speech.lang = lang;
@@ -80,11 +69,7 @@ const browser = (text, options, report = true) => {
   synth.speak(speech);
 
   if (report) {
-    record(text, {
-      ...options,
-      voice: name,
-      type: "browser"
-    });
+    record(text, { ...options, voice: name, type: "browser" });
   }
 
   return speech;
@@ -102,14 +87,7 @@ const load = (audio, text, options) => {
     const request = fetch(`/api${route}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        text,
-        lang,
-        pitch,
-        rate,
-        voice,
-        type
-      }),
+      body: JSON.stringify({ text, lang, pitch, rate, voice, type }),
       signal: controller.signal
     })
       .then((response) => {
@@ -123,9 +101,7 @@ const load = (audio, text, options) => {
 
         return response.arrayBuffer();
       })
-      .then((data) =>
-        data ? audio.decodeAudioData(data) : null
-      )
+      .then((data) => (data ? audio.decodeAudioData(data) : null))
       .catch((error) => {
         buffers.delete(id);
 
@@ -190,14 +166,7 @@ const remote = async (text, options) => {
 
 export async function speak(
   text,
-  {
-    lang = dom.root.lang,
-    pitch = 0,
-    rate = 1,
-    voice,
-    volume = 1,
-    type
-  } = {}
+  { lang = dom.root.lang, pitch = 0, rate = 1, voice, volume = 1, type } = {}
 ) {
   const value = string(text).trim();
 
@@ -221,10 +190,7 @@ export async function speak(
     return remote(value, { ...options, type });
   }
 
-  const cloud = await remote(value, {
-    ...options,
-    type: "cloud"
-  });
+  const cloud = await remote(value, { ...options, type: "cloud" });
 
   if (cloud) {
     return cloud;

@@ -1,12 +1,14 @@
 import * as dom from "#common/dom";
+import limit from "#config/upload";
 import dialog from "#common/dialog";
 import drawer from "#common/drawer";
 import edit from "#common/image";
-import { message, preload } from "#common/i18n";
+import * as i18n from "#common/i18n";
 import * as profile from "#common/profile";
 import avatar from "#common/avatar";
 import sheet from "#common/sheet";
 import toast from "#common/toast";
+import once from "#common/once";
 
 const keys = [
   "setup.title",
@@ -23,10 +25,13 @@ const keys = [
   "setup.emailInvalid",
   "setup.next",
   "image.select",
+  "image.title",
+  "image.loadError",
   "image.camera",
   "image.gallery",
   "image.phone",
   "image.scan",
+  "image.sizeError",
   "image.reset",
   "image.save",
   "setup.greeting",
@@ -37,21 +42,18 @@ const keys = [
   "setup.uploadError"
 ];
 
-preload(...keys);
+i18n.preload(...keys);
 
-const validName = (value) =>
-  /^[\p{L}\p{N} _-]{2,20}$/u.test(value);
+const validName = (value) => /^[\p{L}\p{N} _-]{2,20}$/u.test(value);
 
 const validEmail = (value) =>
-  !value ||
-  (value.length <= 254 &&
-    /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value));
+  !value || (value.length <= 254 && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value));
 
 const text = (tag, name, key) => {
   const element = dom.create(tag);
 
   element.className = name;
-  element.textContent = message(key) || key;
+  element.textContent = i18n.message(key) || key;
   dom.set(element, "data-i18n", key);
 
   return element;
@@ -59,24 +61,20 @@ const text = (tag, name, key) => {
 
 const format = (key, values) =>
   Object.entries(values).reduce(
-    (value, [name, content]) =>
-      value.replaceAll(`{${name}}`, content),
-    message(key) || key
+    (value, [name, content]) => value.replaceAll(`{${name}}`, content),
+    i18n.message(key) || key
   );
 
 const field = (name, type = "text") => {
   const root = dom.create("div");
   const label = dom.create("label");
-  const title = text(
-    "span",
-    "setup-label",
-    `setup.${name}`
-  );
+  const title = text("span", "label-key", `setup.${name}`);
   const control = dom.create("span");
   const input = dom.create("input");
   const status = dom.create("small");
 
   root.className = "setup-field";
+  label.className = "label";
   control.className = "input";
   status.className = "setup-status";
   input.type = type;
@@ -92,11 +90,7 @@ const field = (name, type = "text") => {
   }
 
   dom.set(input, "data-control", "");
-  dom.set(
-    input,
-    "data-i18n-placeholder",
-    `setup.${name}Placeholder`
-  );
+  dom.set(input, "data-i18n-placeholder", `setup.${name}Placeholder`);
   label.append(title, control);
   control.append(input);
   root.append(label, status);
@@ -105,18 +99,17 @@ const field = (name, type = "text") => {
 };
 
 const state = (element, key, value) => {
-  element.textContent = message(key) || key;
+  element.textContent = i18n.message(key) || key;
   dom.set(element, "data-state", value);
 };
 
-const portrait = (source) => {
+const portrait = (source, original = source) => {
   const root = dom.create("div");
   const media = avatar(source, "button");
   const mark = dom.create("span");
 
-  root.className = "setup-avatar";
-  media.root.classList.add("setup-avatar-media");
-  mark.className = "setup-avatar-edit";
+  root.className = "profile-avatar";
+  mark.className = "profile-edit";
 
   dom.set(media.root, "data-response", "");
   dom.set(media.root, "data-tooltip", "image.select");
@@ -128,10 +121,11 @@ const portrait = (source) => {
   let pending;
   let url;
 
-  const adjust = async (file, anchor) => {
+  const adjust = async (file, anchor, previous) => {
     try {
       return await edit(file, {
         anchor,
+        edit: previous,
         shape: "circle",
         width: 512,
         height: 512
@@ -143,8 +137,13 @@ const portrait = (source) => {
 
   const select = async () => {
     const panel = dom.create("div");
-    const stage = avatar();
+    const stage = avatar("", "button");
     const options = dom.create("div");
+    const revise = once();
+
+    stage.root.tabIndex = -1;
+    dom.set(stage.root, "data-response", "");
+    dom.set(stage.root, "data-tooltip", "image.title");
 
     panel.className = "image-select";
     options.className = "group";
@@ -153,8 +152,75 @@ const portrait = (source) => {
     let draft = pending;
     let draftUrl = url;
     let temporary = false;
+    let version = 0;
+    let adjusting = false;
 
-    const show = () => stage.set(draftUrl || source);
+    const show = () => {
+      version += 1;
+      stage.set(draftUrl || source, draft?.edit);
+      stage.root.disabled = adjusting || !(draftUrl || source);
+    };
+
+    const update = (result) => {
+      if (temporary && draftUrl) {
+        URL.revokeObjectURL(draftUrl);
+      }
+
+      draft = result;
+      draftUrl = URL.createObjectURL(result.file);
+      temporary = true;
+      show();
+    };
+
+    dom.on(stage.root, "click", () => {
+      revise(stage.root, async () => {
+        if (stage.root.disabled) {
+          return;
+        }
+
+        const rev = version;
+        const previous = draft?.edit;
+
+        let file = draft?.file;
+
+        adjusting = true;
+        stage.root.disabled = true;
+
+        try {
+          if (!file) {
+            const response = await fetch(draftUrl || original);
+
+            if (!response.ok) {
+              throw new Error("image.loadError");
+            }
+
+            file = await response.blob();
+          }
+
+          if (rev !== version || !panel.isConnected) {
+            return;
+          }
+
+          if (file.size > limit) {
+            toast({ type: "error", title: "image.sizeError" });
+            return;
+          }
+
+          const result = await adjust(file, stage.root, previous);
+
+          if (result && rev === version && panel.isConnected) {
+            update(result);
+          }
+        } catch {
+          if (rev === version && panel.isConnected) {
+            toast({ type: "error", title: "image.loadError" });
+          }
+        } finally {
+          adjusting = false;
+          stage.root.disabled = !(draftUrl || source);
+        }
+      }).catch(() => {});
+    });
 
     const offLink = profile.onLink((token) => {
       if (temporary && draftUrl) {
@@ -173,7 +239,7 @@ const portrait = (source) => {
 
       button.type = "button";
       input.type = "file";
-      input.accept = "image/jpeg,image/png,image/webp";
+      input.accept = "image/jpeg,image/png,image/webp,image/gif";
       input.hidden = true;
 
       dom.set(button, "data-icon", `${icon} center`);
@@ -197,20 +263,18 @@ const portrait = (source) => {
           return;
         }
 
+        if (file.size > limit) {
+          toast({ type: "error", title: "image.sizeError" });
+          return;
+        }
+
         const result = await adjust(file, button);
 
         if (!result) {
           return;
         }
 
-        if (temporary && draftUrl) {
-          URL.revokeObjectURL(draftUrl);
-        }
-
-        draft = result;
-        draftUrl = URL.createObjectURL(result);
-        temporary = true;
-        show();
+        update(result);
       });
 
       return { button, input };
@@ -247,15 +311,11 @@ const portrait = (source) => {
         code.className = "image-phone-code";
         code.alt = "";
 
-        guide.textContent =
-          message("image.scan") || "image.scan";
+        guide.textContent = i18n.message("image.scan") || "image.scan";
 
         dom.set(guide, "data-i18n", "image.scan");
 
-        code.src = await QRCode.toDataURL(url.href, {
-          width: 240,
-          margin: 1
-        });
+        code.src = await QRCode.toDataURL(url.href, { width: 240, margin: 1 });
 
         content.append(code, guide);
 
@@ -271,11 +331,7 @@ const portrait = (source) => {
             });
           },
           actions: [
-            {
-              text: "image.cancel",
-              icon: "close",
-              data: ["data-neutral"]
-            }
+            { text: "image.cancel", icon: "close", data: ["data-neutral"] }
           ]
         });
 
@@ -294,11 +350,7 @@ const portrait = (source) => {
           choose("image", "image.gallery")
         ];
 
-    dom.set(
-      options,
-      "data-columns",
-      String(choices.length)
-    );
+    dom.set(options, "data-columns", String(choices.length));
 
     options.append(...choices.map(({ button }) => button));
 
@@ -360,7 +412,12 @@ const portrait = (source) => {
 
     pending = draft;
     url = draftUrl;
-    media.set(url || source);
+
+    if (pending) {
+      profile.clearLink();
+    }
+
+    media.set(url || source, pending?.edit);
   };
 
   dom.on(media.root, "click", () => {
@@ -398,19 +455,17 @@ const finish = async (user, picture, close) => {
 
   root.className = "setup-profile";
   dom.set(root, "data-pan", "");
-  greeting.textContent = format("setup.greeting", {
-    name: user.name
-  });
+  greeting.textContent = format("setup.greeting", { name: user.name });
 
   welcome.textContent = format("setup.welcome", {
     number: String(user.number)
   });
 
-  optional.textContent =
-    message("setup.optional") || "setup.optional";
+  optional.textContent = i18n.message("setup.optional") || "setup.optional";
   root.append(greeting, welcome, optional);
 
   return drawer({
+    back: true,
     title: "setup.title",
     content: root,
     side: "right",
@@ -435,9 +490,7 @@ const finish = async (user, picture, close) => {
             picture.saved();
           }
 
-          const saved = uploaded.ok
-            ? await profile.complete()
-            : uploaded;
+          const saved = uploaded.ok ? await profile.complete() : uploaded;
 
           if (saved.ok) {
             await close(true);
@@ -447,9 +500,12 @@ const finish = async (user, picture, close) => {
 
           toast({
             type: "error",
-            title: uploaded.ok
-              ? "setup.saveError"
-              : "setup.uploadError"
+            title:
+              uploaded.status === 413
+                ? "image.sizeError"
+                : uploaded.ok
+                  ? "setup.saveError"
+                  : "setup.uploadError"
           });
           button.disabled = false;
           picture.busy(false);
@@ -464,7 +520,7 @@ const finish = async (user, picture, close) => {
 
 export default async function editor(user, ready) {
   const form = dom.create("div");
-  const picture = portrait(user.avatar);
+  const picture = portrait(user.avatar, user.image || user.avatar);
   const name = field("name");
   const email = field("email", "email");
 
@@ -473,23 +529,19 @@ export default async function editor(user, ready) {
   name.input.value = user.name || "";
   email.input.value = user.email || "";
 
-  let available = false;
-  let emailValid = true;
-  let saving = false;
+  let available = true;
   let timer;
   let version = 0;
 
   const refresh = () =>
-    form.dispatchEvent(
-      new Event("input", { bubbles: true })
-    );
+    form.dispatchEvent(new Event("input", { bubbles: true }));
 
   dom.on(name.input, "input", () => {
     clearTimeout(timer);
-    available = false;
+    available = true;
 
     const value = name.input.value.trim();
-    const current = ++version;
+    const rev = ++version;
 
     if (!validName(value)) {
       state(name.status, "setup.nameInvalid", "error");
@@ -500,7 +552,7 @@ export default async function editor(user, ready) {
     timer = setTimeout(async () => {
       const result = await profile.checkName(value);
 
-      if (current !== version) {
+      if (rev !== version) {
         return;
       }
 
@@ -511,11 +563,10 @@ export default async function editor(user, ready) {
       }
 
       available = result.data?.available === true;
+
       state(
         name.status,
-        available
-          ? "setup.nameAvailable"
-          : "setup.nameUnavailable",
+        available ? "setup.nameAvailable" : "setup.nameUnavailable",
         available ? "success" : "error"
       );
       refresh();
@@ -524,8 +575,7 @@ export default async function editor(user, ready) {
 
   dom.on(email.input, "input", () => {
     const value = email.input.value.trim();
-
-    emailValid = validEmail(value);
+    const valid = validEmail(value);
 
     if (!value) {
       email.status.textContent = "";
@@ -535,30 +585,27 @@ export default async function editor(user, ready) {
 
     state(
       email.status,
-      emailValid
-        ? "setup.emailAvailable"
-        : "setup.emailInvalid",
-      emailValid ? "success" : "error"
+      valid ? "setup.emailAvailable" : "setup.emailInvalid",
+      valid ? "success" : "error"
     );
   });
 
   const result = await dialog({
+    back: true,
     title: "setup.title",
     content: form,
     locked: true,
-    ready: () => {
+    ready: (element) => {
+      element.tabIndex = -1;
+      element.focus({ preventScroll: true });
       ready?.();
 
       if (name.input.value) {
-        name.input.dispatchEvent(
-          new Event("input", { bubbles: true })
-        );
+        name.input.dispatchEvent(new Event("input", { bubbles: true }));
       }
 
       if (email.input.value) {
-        email.input.dispatchEvent(
-          new Event("input", { bubbles: true })
-        );
+        email.input.dispatchEvent(new Event("input", { bubbles: true }));
       }
     },
     actions: [
@@ -567,53 +614,39 @@ export default async function editor(user, ready) {
         icon: "arrow",
         data: ["data-confirm"],
         close: false,
-        disabled: () => saving || !available || !emailValid,
+        disabled: () =>
+          !validName(name.input.value.trim()) ||
+          !available ||
+          !validEmail(email.input.value.trim()),
         run: async ({ close }) => {
-          saving = true;
-          refresh();
+          const saved = await profile.save({
+            name: name.input.value.trim(),
+            email: email.input.value.trim()
+          });
 
-          try {
-            const saved = await profile.save({
-              name: name.input.value.trim(),
-              email: email.input.value.trim()
-            });
-
-            if (!saved.ok) {
-              if (saved.status === 409) {
-                available = false;
-                state(
-                  name.status,
-                  "setup.nameUnavailable",
-                  "error"
-                );
-              } else {
-                toast({
-                  type: "error",
-                  title: "setup.saveError"
-                });
-              }
-
-              return false;
+          if (!saved.ok) {
+            if (saved.status === 409) {
+              available = false;
+              state(name.status, "setup.nameUnavailable", "error");
+              refresh();
+            } else {
+              toast({ type: "error", title: "setup.saveError" });
             }
-
-            const linked = await profile.applyLink();
-
-            if (!linked.ok) {
-              toast({
-                type: "error",
-                title: "setup.uploadError"
-              });
-
-              return false;
-            }
-
-            await finish(saved.data, picture, close);
 
             return false;
-          } finally {
-            saving = false;
-            refresh();
           }
+
+          const linked = await profile.applyLink();
+
+          if (!linked.ok) {
+            toast({ type: "error", title: "setup.uploadError" });
+
+            return false;
+          }
+
+          await finish(saved.data, picture, close);
+
+          return false;
         }
       }
     ]

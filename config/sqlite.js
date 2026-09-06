@@ -1,15 +1,12 @@
-import { mkdirSync } from "node:fs";
-import path from "node:path";
-
 import sqlite3 from "sqlite3";
 
-const dir = path.join(import.meta.dirname, "../data");
+import * as path from "#config/path";
 
-mkdirSync(dir, { recursive: true });
+const dir = path.data();
 
-const db = new sqlite3.Database(
-  path.join(dir, "service.db")
-);
+path.mkdirSync(dir, { recursive: true });
+
+const db = new sqlite3.Database(path.data("service.db"));
 
 db.configure("busyTimeout", 5000);
 
@@ -35,8 +32,8 @@ await execute(`
     avatar TEXT,
     setup INTEGER NOT NULL DEFAULT 0
       CHECK (setup IN (0, 1)),
-    role INTEGER NOT NULL DEFAULT 1
-      CHECK (role IN (0, 1)),
+    role INTEGER NOT NULL DEFAULT 0
+      CHECK (role IN (-1, 0)),
     ip TEXT NOT NULL,
     date TEXT NOT NULL
       DEFAULT (datetime('now', '+9 hours'))

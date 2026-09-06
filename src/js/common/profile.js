@@ -66,12 +66,8 @@ export const read = async (uid = "me", options = {}) => {
     return pending.get(id);
   }
 
-  const request = api(
-    `${path}/${encodeURIComponent(id)}`
-  ).then((result) =>
-    result.ok
-      ? { ...result, data: remember(id, result.data) }
-      : result
+  const request = api(`${path}/${encodeURIComponent(id)}`).then((result) =>
+    result.ok ? { ...result, data: remember(id, result.data) } : result
   );
 
   pending.set(id, request);
@@ -120,27 +116,19 @@ export const linkImage = (token) =>
 export const checkName = (name) =>
   api(`${path}/name?name=${encodeURIComponent(name)}`);
 
-export const save = (data) =>
-  api(path, { method: "PATCH", data });
+export const save = (data) => api(path, { method: "PATCH", data });
 
-export const uploadAvatar = (file) =>
-  upload(`${path}/image`, file);
+export const uploadAvatar = (file) => upload(`${path}/image`, file);
 
-export const imageLink = () =>
-  api(`${path}/image/link`, { method: "POST" });
+export const imageLink = () => api(`${path}/image/link`, { method: "POST" });
 
 export const uploadLink = (token, file) =>
-  upload(
-    `${path}/image/link/${encodeURIComponent(token)}`,
-    file
-  );
+  upload(`${path}/image/link/${encodeURIComponent(token)}`, file);
 
 export const useLink = (token) =>
-  api(
-    `${path}/image/link/` +
-      `${encodeURIComponent(token)}/use`,
-    { method: "POST" }
-  );
+  api(`${path}/image/link/` + `${encodeURIComponent(token)}/use`, {
+    method: "POST"
+  });
 
 export const applyLink = async () => {
   if (!linked) {
@@ -164,9 +152,7 @@ export const block = (uid, reason) =>
   });
 
 export const complete = async () => {
-  const result = await api(`${path}/complete`, {
-    method: "POST"
-  });
+  const result = await api(`${path}/complete`, { method: "POST" });
 
   if (result.ok) {
     await read("me", { fresh: true });

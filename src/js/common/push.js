@@ -16,9 +16,7 @@ const authorize = async () => {
   }
 
   try {
-    return (
-      (await Notification.requestPermission()) === "granted"
-    );
+    return (await Notification.requestPermission()) === "granted";
   } catch {
     return false;
   }

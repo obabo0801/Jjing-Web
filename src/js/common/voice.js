@@ -1,5 +1,5 @@
 import * as dom from "#common/dom";
-import { preload } from "#common/i18n";
+import * as i18n from "#common/i18n";
 import device from "#common/device";
 import sound from "#common/sound";
 
@@ -14,7 +14,7 @@ export { microphones } from "#common/voice/media";
 
 const regions = { en: "en-US", ja: "ja-JP", ko: "ko-KR" };
 
-preload("voice.listening", "voice.processing");
+i18n.preload("voice.listening", "voice.processing");
 
 let session;
 
@@ -40,19 +40,9 @@ const desktop = async (options) => {
     stopVisual = view.visualize(target, stream);
 
     const saved = media.record(stream);
-    const heard = speech.listen({
-      lang,
-      stream,
-      target,
-      signal,
-      keep: true
-    });
+    const heard = speech.listen({ lang, stream, target, signal, keep: true });
 
-    const spoken = await audio.silence(
-      stream,
-      signal,
-      stop
-    );
+    const spoken = await audio.silence(stream, signal, stop);
 
     heard.stop();
 
@@ -60,10 +50,7 @@ const desktop = async (options) => {
       saved.recorder.stop();
     }
 
-    const [blob, recognized] = await Promise.all([
-      saved.done,
-      heard.done
-    ]);
+    const [blob, recognized] = await Promise.all([saved.done, heard.done]);
 
     if (signal.aborted || (!spoken && !recognized.text)) {
       return { text: "", confidence: 0 };
@@ -104,11 +91,7 @@ const remote = async (options) => {
 
     stopVisual = view.visualize(target, stream);
 
-    const spoken = await audio.silence(
-      stream,
-      signal,
-      stop
-    );
+    const spoken = await audio.silence(stream, signal, stop);
 
     if (saved.recorder.state !== "inactive") {
       saved.recorder.stop();
@@ -123,17 +106,9 @@ const remote = async (options) => {
     view.status(target, "voice.processing");
 
     const pitch = await audio.analyze(blob);
-    const result = await server.upload(blob, {
-      lang,
-      text: "",
-      pitch,
-      signal
-    });
+    const result = await server.upload(blob, { lang, text: "", pitch, signal });
 
-    return {
-      text: result.text,
-      confidence: result.confidence ?? 0
-    };
+    return { text: result.text, confidence: result.confidence ?? 0 };
   } finally {
     stopVisual();
     media.close(stream);
@@ -164,10 +139,7 @@ export const stop = () => {
   return session.done;
 };
 
-export default async function voice(
-  keywords,
-  options = {}
-) {
+export default async function voice(keywords, options = {}) {
   if (options instanceof Element) {
     options = { target: options };
   } else if (typeof options === "string") {
@@ -212,11 +184,7 @@ export default async function voice(
 
   try {
     const { deviceId, target } = options;
-    const allowed = await media.authorize(
-      deviceId,
-      signal,
-      stop
-    );
+    const allowed = await media.authorize(deviceId, signal, stop);
 
     if (!allowed) {
       if (!signal.aborted && !stop.aborted) {
@@ -278,10 +246,7 @@ export default async function voice(
     sound.play("success");
 
     return complete({
-      action:
-        !words.length || result.confidence >= 0.8
-          ? "run"
-          : "ask",
+      action: !words.length || result.confidence >= 0.8 ? "run" : "ask",
       text: result.text
     });
   } catch {

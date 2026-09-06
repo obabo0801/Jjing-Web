@@ -25,8 +25,7 @@ const vectors = {
   "↗": [1, -1]
 };
 const arrows = Object.values(directions);
-const ignored =
-  "input, select, textarea, [contenteditable]";
+const ignored = "input, select, textarea, [contenteditable]";
 const handlers = [];
 
 let point = null;
@@ -87,11 +86,7 @@ function start(event) {
 
   const touch = event.touches[0];
 
-  point = {
-    id: touch.identifier,
-    x: touch.clientX,
-    y: touch.clientY
-  };
+  point = { id: touch.identifier, x: touch.clientX, y: touch.clientY };
 }
 
 function end(event) {
@@ -161,10 +156,7 @@ function size(target, direction) {
     return target.clientHeight;
   }
 
-  return Math.hypot(
-    target.clientWidth,
-    target.clientHeight
-  );
+  return Math.hypot(target.clientWidth, target.clientHeight);
 }
 
 function distance(direction, x, y) {
@@ -197,10 +189,7 @@ function match(direction, x, y) {
 }
 
 function blocked(event, selector) {
-  const custom =
-    typeof selector === "function"
-      ? selector(event)
-      : selector;
+  const custom = typeof selector === "function" ? selector(event) : selector;
 
   const value = custom ? `${ignored}, ${custom}` : ignored;
 
@@ -224,9 +213,7 @@ function progress(direction, options) {
   let value = 0;
 
   const limit = () => {
-    const result = Number(
-      typeof ratio === "function" ? ratio() : ratio
-    );
+    const result = Number(typeof ratio === "function" ? ratio() : ratio);
 
     return Number.isFinite(result) ? result : 0.35;
   };
@@ -249,14 +236,13 @@ function progress(direction, options) {
 
   const finish = (event, cancelled = false) => {
     const active = moving;
-    const complete =
-      !cancelled && active && value >= limit();
+    const complete = !cancelled && active && value >= limit();
     const current = value;
 
     reset();
 
     if (active) {
-      end?.(complete, current, event);
+      end?.(complete, current, event, cancelled);
     }
   };
 
@@ -280,15 +266,11 @@ function progress(direction, options) {
       window.getSelection()?.removeAllRanges();
     }
 
-    const amount =
-      typeof length === "function" ? length() : length;
+    const amount = typeof length === "function" ? length() : length;
     const total = Number(amount) || size(target, direction);
 
     value = total
-      ? Math.min(
-          1,
-          Math.max(0, distance(direction, x, y) / total)
-        )
+      ? Math.min(1, Math.max(0, distance(direction, x, y) / total))
       : 0;
 
     move?.(value, event);
@@ -304,11 +286,12 @@ function progress(direction, options) {
   };
 
   const touchStart = (event) => {
-    if (
-      event.touches.length !== 1 ||
-      hasSelection() ||
-      blocked(event, ignore)
-    ) {
+    if (event.touches.length !== 1) {
+      finish(event, true);
+      return;
+    }
+
+    if (hasSelection() || blocked(event, ignore)) {
       return;
     }
 
@@ -319,9 +302,7 @@ function progress(direction, options) {
   };
 
   const touchMove = (event) => {
-    const touch = [...event.touches].find(
-      (item) => item.identifier === id
-    );
+    const touch = [...event.touches].find((item) => item.identifier === id);
 
     if (!touch) {
       return;
@@ -330,9 +311,11 @@ function progress(direction, options) {
     const x = touch.clientX - startX;
     const y = touch.clientY - startY;
 
-    if (update(x, y, event)) {
+    if (moving || match(direction, x, y)) {
       event.preventDefault();
     }
+
+    update(x, y, event);
   };
 
   const touchEnd = (event) => {
@@ -364,11 +347,7 @@ function progress(direction, options) {
       dragged = false;
     }
 
-    if (
-      !pointer.press(event) ||
-      hasSelection() ||
-      blocked(event, ignore)
-    ) {
+    if (!pointer.press(event) || hasSelection() || blocked(event, ignore)) {
       return;
     }
 
@@ -418,9 +397,7 @@ function progress(direction, options) {
     on(target, "touchstart", touchStart, { passive: true }),
     on(target, "touchmove", touchMove, { passive: false }),
     on(target, "touchend", touchEnd, { passive: true }),
-    on(target, "touchcancel", touchCancel, {
-      passive: true
-    }),
+    on(target, "touchcancel", touchCancel, { passive: true }),
     on(target, "pointerdown", pointerStart),
     on(window, "pointermove", pointerMove),
     on(window, "pointerup", pointerEnd),
@@ -461,10 +438,7 @@ function simple(direction, callback) {
 export function resolve(direction) {
   const name = String(direction).trim().toLowerCase();
 
-  return (
-    directions[name] ??
-    (arrows.includes(name) ? name : null)
-  );
+  return directions[name] ?? (arrows.includes(name) ? name : null);
 }
 
 export default function swipe(direction, callback) {

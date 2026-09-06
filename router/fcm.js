@@ -19,9 +19,7 @@ router.post("/", async (req, res) => {
   }
 
   const fid = string(req.body.fid).trim();
-  const device = string(req.body.device)
-    .trim()
-    .toLowerCase();
+  const device = string(req.body.device).trim().toLowerCase();
 
   if (!fid || fid.length > 4096 || !devices.has(device)) {
     return res.status(400).end();

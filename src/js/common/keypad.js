@@ -1,5 +1,5 @@
-import * as back from "#common/back";
 import * as dom from "#common/dom";
+import * as back from "#common/back";
 import { pause } from "#common/scroll";
 import sound from "#common/sound";
 import vibrate from "#common/vibrate";
@@ -27,20 +27,13 @@ dom.on(document, "visibilitychange", () => {
 
 dom.on(window, "pagehide", dismiss);
 
-const empty = Object.freeze({
-  show() {},
-  hide() {},
-  submit() {},
-  update() {}
-});
+const empty = Object.freeze({ show() {}, hide() {}, submit() {}, update() {} });
 
 const fields = (root) =>
   root.matches?.("input") ? [root] : dom.all("input", root);
 
 const source = (field) =>
-  field?.matches?.("input")
-    ? field
-    : dom.query("input", field);
+  field?.matches?.("input") ? field : dom.query("input", field);
 
 const reveal = (target, keypad) => {
   if (dom.has("wearable")) {
@@ -74,8 +67,7 @@ const write = (input, value) => {
   const start = input.selectionStart ?? input.value.length;
   const end = input.selectionEnd ?? start;
   const length = input.value.length - end + start + 1;
-  const max =
-    input.maxLength > 0 ? input.maxLength : Infinity;
+  const max = input.maxLength > 0 ? input.maxLength : Infinity;
 
   if (length <= max) {
     input.setRangeText(value, start, end, "end");
@@ -85,8 +77,7 @@ const write = (input, value) => {
 const erase = (input) => {
   const start = input.selectionStart ?? input.value.length;
   const end = input.selectionEnd ?? start;
-  const from =
-    start === end ? Math.max(0, start - 1) : start;
+  const from = start === end ? Math.max(0, start - 1) : start;
 
   input.setRangeText("", from, end, "end");
 };
@@ -114,17 +105,7 @@ export default function keypad(root, actions = {}) {
 
   let off;
 
-  const keys = [
-    "1",
-    "2",
-    "3",
-    "4",
-    "5",
-    "6",
-    "7",
-    "8",
-    "9"
-  ];
+  const keys = ["1", "2", "3", "4", "5", "6", "7", "8", "9"];
 
   keys.forEach((value) => {
     const button = dom.create("button");
@@ -197,10 +178,7 @@ export default function keypad(root, actions = {}) {
 
     const height = element.scrollHeight;
 
-    dom.root.style.setProperty(
-      "--keypad-height",
-      `${height}px`
-    );
+    dom.root.style.setProperty("--keypad-height", `${height}px`);
     reveal(state.field, element);
   };
 
@@ -319,10 +297,7 @@ export default function keypad(root, actions = {}) {
       frame = requestAnimationFrame(() => {
         frame = undefined;
 
-        if (
-          state.field &&
-          dom.get(element, "data-open") !== null
-        ) {
+        if (state.field && dom.get(element, "data-open") !== null) {
           fit();
         }
       });
@@ -361,9 +336,7 @@ export default function keypad(root, actions = {}) {
       sound.play("click");
       vibrate.play("click");
       erase(input);
-      input.dispatchEvent(
-        new Event("input", { bubbles: true })
-      );
+      input.dispatchEvent(new Event("input", { bubbles: true }));
       update(field);
       return;
     }
@@ -372,9 +345,7 @@ export default function keypad(root, actions = {}) {
       sound.play("click");
       vibrate.play("click");
       write(input, "-");
-      input.dispatchEvent(
-        new Event("input", { bubbles: true })
-      );
+      input.dispatchEvent(new Event("input", { bubbles: true }));
       update(field);
       return;
     }
@@ -391,9 +362,7 @@ export default function keypad(root, actions = {}) {
     sound.play("click");
     vibrate.play("click");
     write(input, button.value);
-    input.dispatchEvent(
-      new Event("input", { bubbles: true })
-    );
+    input.dispatchEvent(new Event("input", { bubbles: true }));
     update(field);
   });
 
@@ -403,11 +372,7 @@ export default function keypad(root, actions = {}) {
     const field = state.field;
     const target = event.target;
 
-    if (
-      !field ||
-      element.contains(target) ||
-      root.contains(target)
-    ) {
+    if (!field || element.contains(target) || root.contains(target)) {
       return;
     }
 

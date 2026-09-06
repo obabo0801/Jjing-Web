@@ -1,8 +1,8 @@
 import * as dom from "#common/dom";
 import drawer from "#common/drawer";
-import { message, preload } from "#common/i18n";
+import * as i18n from "#common/i18n";
 
-preload("toggle.on", "toggle.off");
+i18n.preload("toggle.on", "toggle.off");
 
 const opened = new WeakSet();
 
@@ -10,26 +10,20 @@ let listening = false;
 
 const input = (element) =>
   dom.query(
-    ":scope > .toggle-head " +
-      '.toggle-switch input[type="checkbox"]',
+    ":scope > .toggle-head " + '.toggle-switch input[type="checkbox"]',
     element
   );
 
-const content = (element) =>
-  dom.query(":scope > .toggle-content", element);
+const content = (element) => dom.query(":scope > .toggle-content", element);
 
 const text = (element, enabled) => {
   const key = enabled ? "toggle.on" : "toggle.off";
 
   dom.set(element, "data-i18n", key);
-  element.textContent = message(key) || key;
+  element.textContent = i18n.message(key) || key;
 };
 
-const update = (
-  element,
-  source,
-  target = content(element)
-) => {
+const update = (element, source, target = content(element)) => {
   const enabled = source.checked;
 
   if (!target) {
@@ -67,9 +61,7 @@ const create = (element, source, target) => {
 
   dom.on(control, "change", () => {
     source.checked = control.checked;
-    source.dispatchEvent(
-      new Event("input", { bubbles: true })
-    );
+    source.dispatchEvent(new Event("input", { bubbles: true }));
 
     text(state, control.checked);
     update(element, source, target);

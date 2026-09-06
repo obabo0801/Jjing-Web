@@ -14,10 +14,7 @@ const errors = new Set([
 let client;
 
 const connect = () => {
-  const app = initializeApp({
-    credential: applicationDefault(),
-    projectId
-  });
+  const app = initializeApp({ credential: applicationDefault(), projectId });
 
   return getMessaging(app);
 };

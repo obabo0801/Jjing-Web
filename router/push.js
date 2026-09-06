@@ -10,12 +10,26 @@ import limit from "#middleware/limit";
 const router = Router();
 const allowed = limit(20);
 
-router.get("/", (_, res) => {
+router.get("/", async (req, res) => {
   if (!enabled) {
     return res.status(503).end();
   }
 
-  res.json({ key });
+  const id = uid(req);
+
+  const saved = id
+    ? await get(
+        `
+        SELECT 1
+        FROM web
+        WHERE uid = ?
+        LIMIT 1
+      `,
+        [id]
+      )
+    : null;
+
+  res.json({ key, subscribed: Boolean(saved) });
 });
 
 router.put("/", async (req, res) => {
@@ -24,9 +38,15 @@ router.put("/", async (req, res) => {
   }
 
   const id = uid(req);
-  const endpoint = req.body?.endpoint;
+  const subscription = req.body?.subscription;
+  const endpoint = subscription?.endpoint;
+  const keys = subscription?.keys;
 
-  if (typeof endpoint !== "string") {
+  if (
+    typeof endpoint !== "string" ||
+    typeof keys?.auth !== "string" ||
+    typeof keys?.p256dh !== "string"
+  ) {
     return res.status(400).end();
   }
 
@@ -34,21 +54,20 @@ router.put("/", async (req, res) => {
     return res.status(401).end();
   }
 
-  const saved = await get(
+  const result = await run(
     `
-      SELECT uid
-      FROM web
-      WHERE endpoint = ?
+      UPDATE web
+      SET
+        data = ?,
+        time = datetime('now', '+9 hours')
+      WHERE uid = ?
+        AND endpoint = ?
     `,
-    [endpoint]
+    [JSON.stringify(subscription), id, endpoint]
   );
 
-  if (!saved) {
+  if (!result.changes) {
     return res.status(404).end();
-  }
-
-  if (saved.uid !== id) {
-    return res.status(409).end();
   }
 
   return res.status(204).end();
@@ -115,7 +134,8 @@ router.post("/", async (req, res) => {
     )
     VALUES (?, ?, ?)
     ON CONFLICT(endpoint) DO UPDATE SET
-      data = excluded.data
+      data = excluded.data,
+      time = datetime('now', '+9 hours')
     WHERE web.uid = excluded.uid
   `,
     [id, endpoint, JSON.stringify(subscription)]

@@ -5,9 +5,7 @@ import string from "#src/string";
 let cloud;
 
 const encode = (value) => {
-  const bytes = new TextEncoder().encode(
-    JSON.stringify(value)
-  );
+  const bytes = new TextEncoder().encode(JSON.stringify(value));
 
   return btoa(String.fromCharCode(...bytes));
 };
@@ -60,10 +58,7 @@ export const upload = async (blob, options) => {
 
     return {
       text: string(data.text, null)?.trim() ?? text,
-      confidence:
-        Number(data.confidence) > 0
-          ? Number(data.confidence)
-          : null
+      confidence: Number(data.confidence) > 0 ? Number(data.confidence) : null
     };
   } catch {
     return { text, confidence: null };

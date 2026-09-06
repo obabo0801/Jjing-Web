@@ -1,14 +1,16 @@
 import * as dom from "#common/dom";
+import limit from "#config/upload";
 import edit from "#common/image";
-import i18n, { message, preload } from "#common/i18n";
+import * as i18n from "#common/i18n";
 import init from "#common/init";
 import * as profile from "#common/profile";
 
-preload(
+i18n.preload(
   "image.phone",
   "image.phoneGuide",
   "image.select",
   "image.sent",
+  "image.sizeError",
   "image.invalid",
   "image.uploadError"
 );
@@ -24,11 +26,11 @@ const input = dom.query("[data-input]", root);
 const status = dom.query("[data-status]", root);
 
 const state = (key) => {
-  status.textContent = message(key) || key;
+  status.textContent = i18n.message(key) || key;
 };
 
 try {
-  await i18n();
+  await i18n.translate();
 
   const query = new URLSearchParams(location.search);
 
@@ -48,6 +50,11 @@ try {
       input.value = "";
 
       if (!file) {
+        return;
+      }
+
+      if (file.size > limit) {
+        state("image.sizeError");
         return;
       }
 
@@ -76,7 +83,9 @@ try {
       state(
         result.status === 404
           ? "image.invalid"
-          : "image.uploadError"
+          : result.status === 413
+            ? "image.sizeError"
+            : "image.uploadError"
       );
     });
   }

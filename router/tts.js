@@ -17,11 +17,7 @@ const allowed = limit(20);
 router.post("/", async (req, res) => {
   const body = req.body;
 
-  if (
-    !body ||
-    typeof body !== "object" ||
-    Array.isArray(body)
-  ) {
+  if (!body || typeof body !== "object" || Array.isArray(body)) {
     return res.status(400).end();
   }
 

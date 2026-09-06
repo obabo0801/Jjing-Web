@@ -1,17 +1,28 @@
-import path from "node:path";
-
 import express from "express";
 
-const dist = path.join(import.meta.dirname, "../dist");
+import * as path from "#config/path";
+
+const dist = path.dist();
+const hashed = path.dist("assets");
+
 const assets = express.static(dist, {
   setHeaders(res, file) {
     const fresh =
-      file.endsWith("service-work.js") ||
-      file.endsWith("manifest.json");
+      file.endsWith("service-work.js") || file.endsWith("manifest.json");
 
     if (fresh) {
       res.setHeader("Cache-Control", "no-store");
+
       res.setHeader("Vary", "Sec-Fetch-Dest, Accept");
+
+      return;
+    }
+
+    if (file.startsWith(hashed)) {
+      res.setHeader(
+        "Cache-Control",
+        "public, max-age=31536000, " + "immutable"
+      );
     }
   }
 });

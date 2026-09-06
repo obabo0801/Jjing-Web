@@ -5,11 +5,7 @@ const rules = new Set();
 const add = (element) => {
   const value = Number(dom.get(element, "data-columns"));
 
-  if (
-    !Number.isInteger(value) ||
-    value < 1 ||
-    rules.has(value)
-  ) {
+  if (!Number.isInteger(value) || value < 1 || rules.has(value)) {
     return;
   }
 
@@ -28,9 +24,7 @@ const add = (element) => {
 };
 
 export default function group(root = document) {
-  const elements = root.matches?.(
-    '.group[data-view="grid"]'
-  )
+  const elements = root.matches?.('.group[data-view="grid"]')
     ? [root]
     : dom.all('.group[data-view="grid"]', root);
 

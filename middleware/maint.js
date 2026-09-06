@@ -1,3 +1,4 @@
+import * as role from "#config/role";
 import { get } from "#config/sqlite";
 import uid from "#config/uid";
 import { page, send } from "#page";
@@ -36,7 +37,7 @@ export default async function maint(req, res, next) {
       )
     : null;
 
-  if (user?.role === 0) {
+  if (user?.role === role.admin) {
     return next();
   }
 

@@ -1,12 +1,13 @@
+import * as css from "#common/css";
 import * as dom from "#common/dom";
-import { message, register } from "#common/i18n";
+import * as i18n from "#common/i18n";
 
 const selector = "[data-tooltip], [title]";
 
 let tip;
 let source;
 
-register("data-tooltip", () => {});
+i18n.register("data-tooltip", () => {});
 
 const convert = (element) => {
   const title = dom.get(element, "title");
@@ -15,10 +16,7 @@ const convert = (element) => {
     return element;
   }
 
-  if (
-    dom.get(element, "data-tooltip") === null &&
-    title.trim()
-  ) {
+  if (dom.get(element, "data-tooltip") === null && title.trim()) {
     dom.set(element, "data-tooltip", title.trim());
   }
 
@@ -30,7 +28,7 @@ const convert = (element) => {
 const content = (element) => {
   const key = dom.get(element, "data-tooltip")?.trim();
 
-  return key ? message(key) || key : "";
+  return key ? i18n.message(key) || key : "";
 };
 
 const hide = (element = source) => {
@@ -50,28 +48,35 @@ const place = () => {
   }
 
   const target = source.getBoundingClientRect();
-  const box = tip.getBoundingClientRect();
+  const width = tip.offsetWidth;
+  const height = tip.offsetHeight;
+  const viewport = dom.root;
   const gap = 8;
   const edge = 8;
-  const below = target.top < box.height + gap + edge;
+  const above = target.top - gap - edge;
+  const under = viewport.clientHeight - target.bottom - gap - edge;
+  const below = above < height && under > above;
   const center = target.left + target.width / 2;
-  const left = Math.min(
-    innerWidth - box.width - edge,
-    Math.max(edge, center - box.width / 2)
+  const left = Math.max(
+    edge,
+    Math.min(viewport.clientWidth - width - edge, center - width / 2)
   );
 
-  const top = below
-    ? target.bottom + gap
-    : target.top - box.height - gap;
-
-  const arrow = Math.min(
-    box.width - 12,
-    Math.max(12, center - left)
+  const top = Math.max(
+    edge,
+    Math.min(
+      viewport.clientHeight - height - edge,
+      below ? target.bottom + gap : target.top - height - gap
+    )
   );
 
-  tip.style.left = `${left}px`;
-  tip.style.top = `${top}px`;
-  tip.style.setProperty("--tooltip-arrow", `${arrow}px`);
+  const arrow = Math.min(width - 12, Math.max(12, center - left));
+
+  css.set(tip, {
+    left: `${left}px`,
+    top: `${top}px`,
+    "--tooltip-arrow": `${arrow}px`
+  });
   dom.set(tip, "data-side", below ? "bottom" : "top");
 };
 

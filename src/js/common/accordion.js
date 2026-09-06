@@ -2,9 +2,7 @@ import * as dom from "#common/dom";
 
 export default function accordion() {
   dom.on(document, "click", (event) => {
-    const button = event.target.closest?.(
-      ".accordion-toggle"
-    );
+    const button = event.target.closest?.(".accordion-toggle");
 
     if (!button) {
       return;

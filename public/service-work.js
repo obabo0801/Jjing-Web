@@ -13,9 +13,7 @@ const prepare = async (locale, content) => {
   const html = await response.clone().text();
   const files = new Set(
     [...html.matchAll(/\b(?:src|href)=["']([^"']+)["']/g)]
-      .map(
-        ([, file]) => new URL(file, self.location.origin)
-      )
+      .map(([, file]) => new URL(file, self.location.origin))
       .filter((url) => url.origin === self.location.origin)
       .map((url) => `${url.pathname}${url.search}`)
   );
@@ -27,9 +25,7 @@ const prepare = async (locale, content) => {
       throw new Error();
     }
 
-    const localeResponse = await fetch(url, {
-      cache: "no-store"
-    });
+    const localeResponse = await fetch(url, { cache: "no-store" });
 
     if (!localeResponse.ok) {
       throw new Error();
@@ -98,9 +94,7 @@ const requests = async () => {
 
   return new Promise((resolve, reject) => {
     const transaction = database.transaction("requests");
-    const request = transaction
-      .objectStore("requests")
-      .getAll();
+    const request = transaction.objectStore("requests").getAll();
 
     transaction.oncomplete = () => {
       database.close();
@@ -123,10 +117,7 @@ const removeRequest = async (id) => {
   const database = await openDatabase();
 
   return new Promise((resolve, reject) => {
-    const transaction = database.transaction(
-      "requests",
-      "readwrite"
-    );
+    const transaction = database.transaction("requests", "readwrite");
 
     transaction.objectStore("requests").delete(id);
     transaction.oncomplete = () => {
@@ -202,18 +193,14 @@ self.addEventListener("fetch", (event) => {
   }
 
   if (url.pathname === "/manifest.json") {
-    event.respondWith(
-      fetch(request, { cache: "no-store" })
-    );
+    event.respondWith(fetch(request, { cache: "no-store" }));
 
     return;
   }
 
   if (url.pathname === page) {
     event.respondWith(
-      caches
-        .match(page)
-        .then((response) => response || fetch(request))
+      caches.match(page).then((response) => response || fetch(request))
     );
 
     return;
@@ -223,9 +210,7 @@ self.addEventListener("fetch", (event) => {
     event.respondWith(
       fetch(request)
         .then(async (response) => {
-          const down = [502, 503, 504].includes(
-            response.status
-          );
+          const down = [502, 503, 504].includes(response.status);
 
           if (!down) {
             return response;
@@ -233,10 +218,7 @@ self.addEventListener("fetch", (event) => {
 
           return (await caches.match(page)) || response;
         })
-        .catch(
-          async () =>
-            (await caches.match(page)) || Response.error()
-        )
+        .catch(async () => (await caches.match(page)) || Response.error())
     );
 
     return;
@@ -268,9 +250,7 @@ self.addEventListener("message", (event) => {
   }
 
   if (event.data?.type === "offline") {
-    event.waitUntil(
-      prepare(event.data.locale, event.data.content)
-    );
+    event.waitUntil(prepare(event.data.locale, event.data.content));
   }
 });
 

@@ -5,7 +5,7 @@ import express from "express";
 
 import block from "#block";
 import maint from "#maint";
-import page, { reject } from "#page";
+import * as page from "#page";
 import assets from "#assets";
 import upload from "#upload";
 import error from "#error";
@@ -22,9 +22,9 @@ server.use(block);
 server.use(maint);
 server.use("/api", router);
 server.use("/upload", upload);
-server.use(page);
+server.use(page.router);
 server.use(assets);
-server.use(reject);
+server.use(page.reject);
 server.use(error);
 server.listen(port, () => {
   console.log(`http://localhost:${port}`);

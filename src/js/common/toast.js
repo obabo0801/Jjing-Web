@@ -1,5 +1,5 @@
 import * as dom from "#common/dom";
-import i18n, { message } from "#common/i18n";
+import * as i18n from "#common/i18n";
 import progress from "#common/progress";
 import sound from "#common/sound";
 import swipe from "#common/swipe";
@@ -21,9 +21,7 @@ const signals = Object.freeze({
   notify: ["bell", "receive"]
 });
 
-const reduce = matchMedia(
-  "(prefers-reduced-motion: reduce)"
-);
+const reduce = matchMedia("(prefers-reduced-motion: reduce)");
 
 let stack;
 
@@ -61,7 +59,7 @@ const createText = (tag, name, value) => {
   const element = dom.create(tag);
 
   element.className = name;
-  element.textContent = message(value) || value;
+  element.textContent = i18n.message(value) || value;
   dom.set(element, "data-i18n", value);
 
   return element;
@@ -115,13 +113,9 @@ const loadImage = (target, options) => {
       resolve();
     };
 
-    dom.on(image, "load", () => finish(true), {
-      once: true
-    });
+    dom.on(image, "load", () => finish(true), { once: true });
 
-    dom.on(image, "error", () => finish(false), {
-      once: true
-    });
+    dom.on(image, "error", () => finish(false), { once: true });
 
     image.src = options.image;
 
@@ -144,13 +138,9 @@ export default function toast(options = {}) {
     options = { text: options };
   }
 
-  const requested = String(
-    options.type ?? "custom"
-  ).toLowerCase();
+  const requested = String(options.type ?? "custom").toLowerCase();
 
-  const type = Object.hasOwn(icons, requested)
-    ? requested
-    : "custom";
+  const type = Object.hasOwn(icons, requested) ? requested : "custom";
   const element = dom.create("section");
 
   element.className = "toast";
@@ -160,17 +150,11 @@ export default function toast(options = {}) {
     dom.set(element, "data-background", "");
 
     if (options.background) {
-      element.style.setProperty(
-        "--toast-color",
-        options.background
-      );
+      element.style.setProperty("--toast-color", options.background);
     }
 
     if (options.color) {
-      element.style.setProperty(
-        "--toast-text",
-        options.color
-      );
+      element.style.setProperty("--toast-text", options.color);
     }
   }
 
@@ -178,21 +162,13 @@ export default function toast(options = {}) {
 
   mark.className = "toast-mark";
   dom.set(mark, "data-background", "");
-  dom.set(
-    mark,
-    "data-icon",
-    options.icon ?? icons[type] ?? "info"
-  );
+  dom.set(mark, "data-icon", options.icon ?? icons[type] ?? "info");
 
   const content = dom.create("div");
 
   content.className = "toast-content";
 
-  const title = createText(
-    "h3",
-    "toast-title",
-    options.title
-  );
+  const title = createText("h3", "toast-title", options.title);
   const text = createText("p", "toast-text", options.text);
 
   if (title) {
@@ -214,19 +190,11 @@ export default function toast(options = {}) {
 
   element.append(mark, content, button);
 
-  const gauge = progress({
-    value: 0,
-    show: false,
-    target: element
-  });
+  const gauge = progress({ value: 0, show: false, target: element });
   const url = String(options.url ?? "").trim();
-  const duration = Math.max(
-    1000,
-    Number(options.duration) || 5000
-  );
+  const duration = Math.max(1000, Number(options.duration) || 5000);
 
-  const [defaultSound, defaultVibration] =
-    signals[type] ?? [];
+  const [defaultSound, defaultVibration] = signals[type] ?? [];
   const effect = options.sound ?? defaultSound;
   const vibration = options.vibration ?? defaultVibration;
 
@@ -243,7 +211,7 @@ export default function toast(options = {}) {
   }
 
   host().append(element);
-  i18n().catch(() => false);
+  i18n.translate().catch(() => false);
 
   if (effect) {
     sound.play(effect);
@@ -310,10 +278,7 @@ export default function toast(options = {}) {
       frame = requestAnimationFrame((start) => {
         const update = (time) => {
           const elapsed = time - start;
-          const value = Math.min(
-            100,
-            (elapsed / duration) * 100
-          );
+          const value = Math.min(100, (elapsed / duration) * 100);
 
           gauge.set(value);
 

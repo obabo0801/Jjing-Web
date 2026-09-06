@@ -66,28 +66,24 @@ export const decode = (value) => {
   return JSON.parse(new TextDecoder().decode(bytes));
 };
 
-export default async function translate(
-  mode = get("lang", "system")
-) {
+export { translate };
+
+export default async function translate(mode = get("lang", "system")) {
   mode = string(mode).trim().toLowerCase() || "system";
   set("lang", mode);
 
-  const targets = [...attributes].flatMap(
-    ([attribute, update]) =>
-      dom
-        .all(`[${attribute}]`)
-        .map((element) => ({
-          element,
-          key: dom.get(element, attribute)?.trim(),
-          update
-        }))
+  const targets = [...attributes].flatMap(([attribute, update]) =>
+    dom
+      .all(`[${attribute}]`)
+      .map((element) => ({
+        element,
+        key: dom.get(element, attribute)?.trim(),
+        update
+      }))
   );
 
   const names = [
-    ...new Set([
-      ...targets.map(({ key }) => key),
-      ...required
-    ])
+    ...new Set([...targets.map(({ key }) => key), ...required])
   ].filter(Boolean);
 
   if (!names.length) {

@@ -1,5 +1,5 @@
 import * as dom from "#common/dom";
-import i18n from "#common/i18n";
+import * as i18n from "#common/i18n";
 import init from "#common/init";
 import sound from "#common/sound";
 import push, * as state from "#common/push";
@@ -17,7 +17,7 @@ try {
 
   if (allowed) {
     const [, registration] = await Promise.all([
-      i18n(),
+      i18n.translate(),
       pwa.load().catch(() => null)
     ]);
 
@@ -26,15 +26,9 @@ try {
 
       const chat = dom.query(".chatting", app);
       const chatForm = dom.query(".chatting-form", chat);
-      const chatInput = dom.query(
-        ".chatting-input",
-        chatForm
-      );
+      const chatInput = dom.query(".chatting-input", chatForm);
 
-      const chatStyle = dom.query(
-        'select[name="chatting-style"]',
-        app
-      );
+      const chatStyle = dom.query('select[name="chatting-style"]', app);
 
       append(chat, {
         text: "스트림과 메신저 스타일을 확인할 수 있습니다.",
@@ -42,6 +36,7 @@ try {
       });
 
       append(chat, {
+        uid: "9cd41a93-4b97-4f33-9509-461c9cfe795b",
         name: "테스트",
         text: "채팅 테스트 메시지입니다."
       });
@@ -65,10 +60,7 @@ try {
       });
 
       const button = dom.query("[data-music]", app);
-      const volume = dom.query(
-        'input[name="music-volume"]',
-        app
-      );
+      const volume = dom.query('input[name="music-volume"]', app);
 
       let player;
 
@@ -107,17 +99,13 @@ try {
       const available = state.supported(registration);
 
       notify.closest(".switch").hidden = !available;
-      notify.checked =
-        available && (await state.enabled(registration));
+      notify.checked = available && (await state.enabled(registration));
 
       dom.on(notify, "change", async () => {
         notify.disabled = true;
 
         try {
-          const received = await push(
-            notify.checked,
-            registration
-          );
+          const received = await push(notify.checked, registration);
 
           notify.checked = received;
         } finally {

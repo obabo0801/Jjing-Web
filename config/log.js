@@ -1,18 +1,13 @@
-import { mkdirSync } from "node:fs";
-import path from "node:path";
+import * as path from "#config/path";
 
 import sqlite3 from "sqlite3";
 
-const root = path.join(import.meta.dirname, "../data/log");
 const offset = 9 * 60 * 60 * 1000;
 
 export const now = () => {
   const value = Date.now() + offset;
 
-  return new Date(value)
-    .toISOString()
-    .slice(0, 19)
-    .replace("T", " ");
+  return new Date(value).toISOString().slice(0, 19).replace("T", " ");
 };
 
 const date = (time) => {
@@ -22,9 +17,9 @@ const date = (time) => {
 };
 
 export default function log(dir, schema) {
-  const folder = path.join(root, dir);
+  const folder = path.log(dir);
 
-  mkdirSync(folder, { recursive: true });
+  path.mkdirSync(folder, { recursive: true });
 
   let day;
   let db;
@@ -38,9 +33,7 @@ export default function log(dir, schema) {
 
     db?.close();
     day = next;
-    db = new sqlite3.Database(
-      path.join(folder, `${day}.db`)
-    );
+    db = new sqlite3.Database(path.log(dir, `${day}.db`));
     db.configure("busyTimeout", 5000);
     db.exec(`
       PRAGMA journal_mode = WAL;

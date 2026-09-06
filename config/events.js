@@ -11,9 +11,7 @@ const current = (item) => {
     return "offline";
   }
 
-  return Date.now() - item.active >= idle
-    ? "away"
-    : "online";
+  return Date.now() - item.active >= idle ? "away" : "online";
 };
 
 const update = (uid, item) => {
@@ -45,16 +43,12 @@ export const touch = (uid) => {
 export const send = (uid, type, data) => {
   clients
     .get(uid)
-    ?.responses.forEach((response) =>
-      write(response, type, data)
-    );
+    ?.responses.forEach((response) => write(response, type, data));
 };
 
 export const broadcast = (type, data) => {
   clients.forEach((item) => {
-    item.responses.forEach((response) =>
-      write(response, type, data)
-    );
+    item.responses.forEach((response) => write(response, type, data));
   });
 };
 

@@ -6,9 +6,7 @@ export const close = (stream) => {
 
 export const microphone = (deviceId) =>
   navigator.mediaDevices.getUserMedia({
-    audio: deviceId
-      ? { deviceId: { exact: deviceId } }
-      : true
+    audio: deviceId ? { deviceId: { exact: deviceId } } : true
   });
 
 export const record = (stream) => {
@@ -25,11 +23,7 @@ export const record = (stream) => {
       recorder,
       "stop",
       () =>
-        resolve(
-          new Blob(chunks, {
-            type: recorder.mimeType || "audio/webm"
-          })
-        ),
+        resolve(new Blob(chunks, { type: recorder.mimeType || "audio/webm" })),
       { once: true }
     );
   });
@@ -41,9 +35,7 @@ export const record = (stream) => {
 
 export const permission = async () => {
   try {
-    return await navigator.permissions?.query({
-      name: "microphone"
-    });
+    return await navigator.permissions?.query({ name: "microphone" });
   } catch {
     return null;
   }
@@ -66,13 +58,9 @@ export const microphones = async () => {
 
   close(stream);
 
-  const devices =
-    await navigator.mediaDevices.enumerateDevices();
+  const devices = await navigator.mediaDevices.enumerateDevices();
 
   return devices
     .filter((device) => device.kind === "audioinput")
-    .map((device) => ({
-      id: device.deviceId,
-      name: device.label
-    }));
+    .map((device) => ({ id: device.deviceId, name: device.label }));
 };

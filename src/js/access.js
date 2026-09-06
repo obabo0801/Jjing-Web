@@ -5,8 +5,7 @@ import device from "#common/device";
 import events from "#common/events";
 
 const showPage = async (name) => {
-  const header =
-    name === "offline" ? "X-PWA-Cache" : `X-${name}`;
+  const header = name === "offline" ? "X-PWA-Cache" : `X-${name}`;
 
   const response = await fetch(`/${name}`, {
     headers: { Accept: "text/html", [header]: "true" }
@@ -30,17 +29,13 @@ const errorPage = (response) => {
   return response.status === 0 ? "offline" : "error";
 };
 
-export default async function access(
-  navigate = true,
-  name
-) {
+export default async function access(navigate = true, name) {
   const path =
     name && location.pathname === "/"
       ? `/${name.replace(/^\/+/, "")}`
       : decodeURI(`${location.pathname}${location.search}`);
 
-  const navigation =
-    performance.getEntriesByType("navigation")[0];
+  const navigation = performance.getEntriesByType("navigation")[0];
   const status = navigation?.responseStatus ?? 0;
   const key = `access:${path}`;
   const now = Date.now();
@@ -90,9 +85,7 @@ export default async function access(
     ...(recent && { recent: "true" })
   });
 
-  const session = await api(`${user}?${query}`, {
-    headers
-  });
+  const session = await api(`${user}?${query}`, { headers });
   const sessionError = errorPage(session);
 
   if (sessionError) {

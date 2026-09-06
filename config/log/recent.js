@@ -1,19 +1,12 @@
-import { readdir } from "node:fs/promises";
-import path from "node:path";
-
 import sqlite3 from "sqlite3";
 
-const dir = path.join(
-  import.meta.dirname,
-  "../../data/log/access"
-);
+import * as path from "#config/path";
+
+const dir = path.access();
 
 const read = (file, uid) =>
   new Promise((resolve) => {
-    const db = new sqlite3.Database(
-      file,
-      sqlite3.OPEN_READONLY
-    );
+    const db = new sqlite3.Database(file, sqlite3.OPEN_READONLY);
 
     db.get(
       `
@@ -34,7 +27,7 @@ export default async function recent(uid) {
   let files;
 
   try {
-    files = (await readdir(dir))
+    files = (await path.readdir(dir))
       .filter((file) => /^\d{8}\.db$/.test(file))
       .sort()
       .reverse();
@@ -43,7 +36,7 @@ export default async function recent(uid) {
   }
 
   for (const file of files) {
-    const value = await read(path.join(dir, file), uid);
+    const value = await read(path.access(file), uid);
 
     if (value) {
       return value;

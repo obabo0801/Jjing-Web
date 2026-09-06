@@ -1,3 +1,4 @@
+import * as role from "#config/role";
 import { events as path } from "#config/route";
 
 import * as dom from "#common/dom";
@@ -6,11 +7,11 @@ import * as registry from "#common/chatting/registry";
 import * as profile from "#common/profile";
 
 let source;
-let role = 1;
+let value = role.user;
 
 const blocks = new Set();
 
-export const isAdmin = () => role === 0;
+export const isAdmin = () => value === role.admin;
 export const isBlocked = (uid) => blocks.has(uid);
 
 const data = (event) => {
@@ -76,7 +77,7 @@ export default function events() {
   watch();
   source = new EventSource(`/api${path}`);
   source.addEventListener("ready", (event) => {
-    role = Number(data(event).role) === 0 ? 0 : 1;
+    value = Number(data(event).role) === role.admin ? role.admin : role.user;
   });
   source.addEventListener("presence", presence);
   source.addEventListener("profile-image", (event) => {

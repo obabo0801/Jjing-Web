@@ -73,9 +73,7 @@ const sendFcm = async (rows, value) => {
       }
 
       if (firebase.invalid(result.error)) {
-        await run("DELETE FROM fcm WHERE fid = ?", [
-          result.fid
-        ]);
+        await run("DELETE FROM fcm WHERE fid = ?", [result.fid]);
 
         return;
       }
@@ -111,10 +109,7 @@ router.post("/image", upload, async (req, res) => {
     return res.status(415).end();
   }
 
-  return res.json({
-    original: image.original,
-    image: image.resizing
-  });
+  return res.json({ original: image.original, image: image.resizing });
 });
 
 router.post("/", async (req, res) => {
@@ -127,9 +122,7 @@ router.post("/", async (req, res) => {
   const link = string(req.body.url).trim();
   const image = string(req.body.image).trim();
   const url =
-    link.startsWith("/") &&
-    !link.startsWith("//") &&
-    !link.includes("\\")
+    link.startsWith("/") && !link.startsWith("//") && !link.includes("\\")
       ? link
       : "/";
 
@@ -168,17 +161,11 @@ router.post("/", async (req, res) => {
 
   const value = { title, body, image, url };
   const source =
-    process.env.APP_URL?.trim() ||
-    `${req.protocol}://${req.get("host")}`;
+    process.env.APP_URL?.trim() || `${req.protocol}://${req.get("host")}`;
 
-  const native = {
-    ...value,
-    image: image ? new URL(image, source).href : ""
-  };
+  const native = { ...value, image: image ? new URL(image, source).href : "" };
 
-  const wear = devices.filter(
-    ({ device }) => device === "wearable"
-  );
+  const wear = devices.filter(({ device }) => device === "wearable");
 
   const [webResult, fcmResult] = await Promise.all([
     sendWeb(web, value),

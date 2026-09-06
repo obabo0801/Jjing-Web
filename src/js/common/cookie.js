@@ -6,9 +6,7 @@ export const get = (key) => {
     .split("; ")
     .find((item) => item.startsWith(prefix));
 
-  return cookie
-    ? decodeURIComponent(cookie.slice(prefix.length))
-    : null;
+  return cookie ? decodeURIComponent(cookie.slice(prefix.length)) : null;
 };
 
 export const set = (key, value, maxAge = ONE_YEAR) => {

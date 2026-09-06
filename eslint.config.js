@@ -8,16 +8,8 @@ export default [
     rules: {
       "@stylistic/padding-line-between-statements": [
         "error",
-        {
-          blankLine: "always",
-          prev: ["const", "let"],
-          next: "*"
-        },
-        {
-          blankLine: "any",
-          prev: ["const", "let"],
-          next: ["const", "let"]
-        },
+        { blankLine: "always", prev: ["const", "let"], next: "*" },
+        { blankLine: "any", prev: ["const", "let"], next: ["const", "let"] },
         { blankLine: "always", prev: "let", next: "const" },
         { blankLine: "always", prev: "const", next: "let" },
         {

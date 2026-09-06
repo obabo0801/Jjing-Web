@@ -1,12 +1,9 @@
-import { resolve } from "node:path";
+import * as path from "#config/path";
 
-const root = import.meta.dirname;
-
-const page = (name) =>
-  resolve(root, "../src", `${name}.html`);
+const page = (name) => path.src(`${name}.html`);
 
 const input = {
-  index: resolve(root, "../index.html"),
+  index: path.root("index.html"),
   admin: page("admin"),
   image: page("image"),
   terms: page("terms"),
@@ -24,6 +21,4 @@ const output = {
   assetFileNames: "assets/[hash][extname]"
 };
 
-export default {
-  build: { rolldownOptions: { input, output } }
-};
+export default { build: { rolldownOptions: { input, output } } };

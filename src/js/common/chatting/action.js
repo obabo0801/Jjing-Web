@@ -28,14 +28,7 @@ const save = async (source) => {
   setTimeout(() => URL.revokeObjectURL(url));
 };
 
-const item = ({
-  value,
-  text,
-  icon,
-  run,
-  danger = false,
-  disabled = false
-}) => {
+const item = ({ value, text, icon, run, danger = false, disabled = false }) => {
   const row = dom.create("div");
   const button = dom.create("button");
 
@@ -115,10 +108,7 @@ const content = (message, options) => {
     danger: true,
     run: () => {
       message.dispatchEvent(
-        new CustomEvent("chatting-report", {
-          bubbles: true,
-          detail: options
-        })
+        new CustomEvent("chatting-report", { bubbles: true, detail: options })
       );
     }
   });
@@ -149,10 +139,7 @@ const reveal = (message, sheet) => {
 
   list.style.paddingBlockEnd = `${panel.height + 16}px`;
 
-  list.scrollBy({
-    top: item.bottom - bottom,
-    behavior: "smooth"
-  });
+  list.scrollBy({ top: item.bottom - bottom, behavior: "smooth" });
 
   return () => {
     list.style.paddingBlockEnd = padding;
@@ -204,11 +191,7 @@ export default function action(message, options) {
       return;
     }
 
-    pointer = {
-      id: event.pointerId,
-      x: event.clientX,
-      y: event.clientY
-    };
+    pointer = { id: event.pointerId, x: event.clientX, y: event.clientY };
 
     timer = setTimeout(() => {
       held = true;

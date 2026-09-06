@@ -1,11 +1,9 @@
-import { readFileSync } from "node:fs";
-import path from "node:path";
-
 import { map } from "#config/html";
+import * as path from "#config/path";
 
-const dir = path.join(import.meta.dirname, "../dist");
+let pages;
 
 const load = () =>
-  JSON.parse(readFileSync(path.join(dir, map), "utf8"));
+  (pages ??= JSON.parse(path.readFileSync(path.dist(map), "utf8")));
 
-export default (name) => path.join(dir, load()[name]);
+export default (name) => path.dist(load()[name]);

@@ -72,15 +72,11 @@
 }
 
 .picker-column[data-move] .picker-list button,
-.picker-column:has(button:focus-visible)
-  .picker-list
-  button {
+.picker-column:has(button:focus-visible) .picker-list button {
   color: var(--focus);
 }
 
-.picker-column:has(button:focus-visible)
-  .picker-list
-  button[data-selected] {
+.picker-column:has(button:focus-visible) .picker-list button[data-selected] {
   background-image: var(--overlay);
   color: var(--thumb);
 }
@@ -135,9 +131,7 @@
 }
 
 :root:not(.wearable) .picker {
-  scroll-margin-block-end: calc(
-    var(--keypad-height, 0px) + 16px
-  );
+  scroll-margin-block-end: calc(var(--keypad-height, 0px) + 16px);
 }
 
 .picker-text {

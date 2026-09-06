@@ -1,9 +1,7 @@
 export default (req) => {
-  const ip =
-    req.get("x-vercel-forwarded-for") ||
-    req.get("x-real-ip") ||
-    req.ip ||
-    "";
+  const value = process.env.VERCEL ? req.get("x-vercel-forwarded-for") : req.ip;
 
-  return ip.replace(/^::ffff:|,.*/g, "").trim();
+  return String(value || "")
+    .replace(/^::ffff:|,.*/g, "")
+    .trim();
 };

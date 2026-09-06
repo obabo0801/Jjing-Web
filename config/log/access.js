@@ -13,6 +13,9 @@ const run = log(
     time TEXT NOT NULL
       DEFAULT (datetime('now', '+9 hours'))
   );
+
+  CREATE INDEX IF NOT EXISTS access_uid
+    ON access (uid, time);
 `
 );
 

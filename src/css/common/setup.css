@@ -1,9 +1,11 @@
 .setup-form,
 .setup-profile,
-.setup-field,
-.setup-field > label {
+.setup-field {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 8px;
+
+  min-width: 0;
 }
 
 .setup-form {
@@ -57,64 +59,8 @@ dialog[data-drawer] .layer-content:has(> .setup-profile) {
   margin-block-start: 16px;
 }
 
-.setup-avatar {
-  position: relative;
-  justify-self: center;
-
-  width: 128px;
-  margin-block-end: 8px;
-}
-
-.setup-avatar-media {
-  width: 100%;
-  min-height: 0;
-  height: 100%;
-  padding: 0;
-  border: 0;
-
-  transition:
-    background-color 160ms ease,
-    color 160ms ease,
-    opacity 160ms ease;
-}
-
-.setup-avatar-media > svg.icon {
-  width: 9rem;
-  height: 9rem;
-
-  transform: translateY(12px);
-}
-
-.setup-avatar-edit {
-  position: absolute;
-  z-index: 2;
-  inset-inline-end: 8px;
-  inset-block-end: 8px;
-
-  display: grid;
-  place-items: center;
-
-  width: 20px;
-  height: 20px;
-  border: 2px solid var(--canvas);
-  border-radius: 999px;
-
-  background: var(--background);
-  color: var(--text);
-  pointer-events: none;
-}
-
-.setup-avatar-edit > .icon {
-  width: 0.75rem;
-  height: 0.75rem;
-}
-
-.setup-avatar[data-loading] .setup-avatar-media {
-  opacity: 0.5;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .setup-avatar-media {
-    transition: none;
-  }
+:is(.small, .wearable) .setup-profile {
+  justify-items: center;
+  padding-inline: 0;
+  text-align: center;
 }

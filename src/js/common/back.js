@@ -61,11 +61,7 @@ export function add(run) {
 }
 
 export function remove(run) {
-  for (
-    let index = stack.length - 1;
-    index >= 0;
-    index -= 1
-  ) {
+  for (let index = stack.length - 1; index >= 0; index -= 1) {
     if (stack[index].run === run) {
       return drop(stack[index]);
     }

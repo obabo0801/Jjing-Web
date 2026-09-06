@@ -1,30 +1,40 @@
 import { raw, Router } from "express";
 
+import * as role from "#config/role";
 import * as events from "#config/events";
-import store from "#config/image";
+import store, { transform } from "#config/image";
 import * as profile from "#config/profile";
 import recent from "#config/log/recent";
 import { get, run } from "#config/sqlite";
 import identity from "#config/uid";
-
-import string from "#src/string";
+import max from "#config/upload";
 
 import admin from "#middleware/admin";
+import rate from "#middleware/limit";
+
+import string from "#src/string";
 
 const router = Router();
 
 const upload = raw({
-  type: ["image/jpeg", "image/png", "image/webp"],
-  limit: "5mb"
+  type: ["image/jpeg", "image/png", "image/webp", "image/gif"],
+  limit: max
 });
 
-const validName = (value) =>
-  /^[\p{L}\p{N} _-]{2,20}$/u.test(value);
+const links = rate(10);
+
+const edit = (req) => {
+  try {
+    return JSON.parse(req.get("x-image-edit") || "null");
+  } catch {
+    return null;
+  }
+};
+
+const validName = (value) => /^[\p{L}\p{N} _-]{2,20}$/u.test(value);
 
 const validEmail = (value) =>
-  !value ||
-  (value.length <= 254 &&
-    /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value));
+  !value || (value.length <= 254 && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value));
 
 const clear = () =>
   run(`
@@ -52,12 +62,13 @@ const find = (uid) =>
     [uid]
   );
 
-const saveImage = async (uid, body) => {
+const saveImage = async (uid, body, edit = null) => {
   const image = await store(body, "users", {
     width: 256,
     height: 256,
     fit: "cover",
-    quality: 85
+    quality: 85,
+    edit
   });
 
   if (!image) {
@@ -171,12 +182,7 @@ router.patch("/", async (req, res) => {
 
   const user = await find(uid);
 
-  res.json({
-    name,
-    email,
-    number: user.number,
-    avatar: user.avatar || ""
-  });
+  res.json({ name, email, number: user.number, avatar: user.avatar || "" });
 });
 
 router.post("/complete", async (req, res) => {
@@ -258,16 +264,13 @@ router.post("/image", upload, async (req, res) => {
     return res.status(400).end();
   }
 
-  const image = await saveImage(uid, req.body);
+  const image = await saveImage(uid, req.body, edit(req));
 
   if (!image) {
     return res.status(415).end();
   }
 
-  res.json({
-    image: image.original,
-    avatar: image.resizing
-  });
+  res.json({ image: image.original, avatar: image.resizing });
 });
 
 router.post("/image/link/:token/use", async (req, res) => {
@@ -284,10 +287,7 @@ router.post("/image/link/:token/use", async (req, res) => {
     return res.status(409).end();
   }
 
-  const draft = await get(
-    "SELECT 1 FROM draft WHERE uid = ?",
-    [uid]
-  );
+  const draft = await get("SELECT 1 FROM draft WHERE uid = ?", [uid]);
 
   if (!draft) {
     return res.status(409).end();
@@ -312,10 +312,7 @@ router.get("/image/link/:token", (req, res) => {
     return res.status(404).end();
   }
 
-  res.set({
-    "Content-Type": item.type,
-    "Cache-Control": "no-store"
-  });
+  res.set({ "Content-Type": item.type, "Cache-Control": "no-store" });
 
   res.send(item.file);
 });
@@ -327,39 +324,53 @@ router.post("/image/link", async (req, res) => {
     return res.status(403).end();
   }
 
+  if (!links(uid)) {
+    res.set("Retry-After", "60");
+
+    return res.status(429).end();
+  }
+
   const value = profile.create(uid);
 
   res.json({ token: value });
 });
 
-router.post(
-  "/image/link/:token",
-  upload,
-  async (req, res) => {
-    const value = string(req.params.token).trim();
+router.post("/image/link/:token", upload, async (req, res) => {
+  const value = string(req.params.token).trim();
 
-    const item = profile.get(value);
+  const item = profile.get(value);
 
-    if (!item) {
-      return res.status(404).end();
-    }
-
-    if (!Buffer.isBuffer(req.body) || !req.body.length) {
-      return res.status(400).end();
-    }
-
-    item.file = Buffer.from(req.body);
-    item.type = req.get("content-type");
-
-    profile.refresh(item);
-
-    events.send(item.uid, "profile-image", {
-      token: value
-    });
-
-    res.status(204).end();
+  if (!item) {
+    return res.status(404).end();
   }
-);
+
+  if (!Buffer.isBuffer(req.body) || !req.body.length) {
+    return res.status(400).end();
+  }
+
+  const edit = edit(req);
+
+  let file;
+
+  try {
+    file = edit ? await transform(req.body, edit, 85) : Buffer.from(req.body);
+  } catch {
+    file = null;
+  }
+
+  if (!file) {
+    return res.status(415).end();
+  }
+
+  item.file = file;
+  item.type = edit ? "image/webp" : req.get("content-type");
+
+  profile.refresh(item);
+
+  events.send(item.uid, "profile-image", { token: value });
+
+  res.status(204).end();
+});
 
 router.get("/:uid", async (req, res) => {
   const viewer = await find(identity(req));
@@ -369,9 +380,7 @@ router.get("/:uid", async (req, res) => {
   }
 
   const uid =
-    req.params.uid === "me"
-      ? viewer.uid
-      : string(req.params.uid).trim();
+    req.params.uid === "me" ? viewer.uid : string(req.params.uid).trim();
   const user = uid ? await find(uid) : null;
 
   if (!user) {
@@ -381,12 +390,13 @@ router.get("/:uid", async (req, res) => {
   const access = await recent(user.uid);
   const self = viewer.uid === user.uid;
   const manage =
-    viewer.role === 0 && user.role !== 0 && !self;
+    viewer.role === role.admin && user.role !== role.admin && !self;
 
   const result = {
     uid: user.uid,
     short: user.uid.slice(0, 8),
     name: user.name || "",
+    image: user.image || "",
     avatar: user.avatar || "",
     number: user.number,
     setup: Boolean(user.setup),
@@ -423,7 +433,7 @@ router.post("/:uid/block", admin, async (req, res) => {
     return res.status(404).end();
   }
 
-  if (user.uid === req.user.uid || user.role === 0) {
+  if (user.uid === req.user.uid || user.role === role.admin) {
     return res.status(403).end();
   }
 

@@ -1,18 +1,8 @@
-dialog[data-overlay] {
-  width: 0;
-  height: 0;
-  margin: auto;
-  padding: 0;
-  border: 0;
-
-  background: transparent;
-  color: var(--text);
-
-  outline: 0;
-
-  user-select: none;
-}
-
-dialog[data-overlay]::backdrop {
+dialog:is(
+    [data-dialog],
+    [data-popover],
+    [data-drawer],
+    [data-sheet]
+  )::backdrop {
   background: transparent;
 }

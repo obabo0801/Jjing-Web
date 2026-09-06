@@ -23,15 +23,11 @@ dom.on(window.visualViewport, "resize", resize);
 const fields = (root) =>
   dom
     .all(".picker-column", root)
-    .filter(
-      (column) => dom.get(column, "data-min") !== null
-    );
+    .filter((column) => dom.get(column, "data-min") !== null);
 
-const source = (column) =>
-  dom.query(".picker-input", column);
+const source = (column) => dom.query(".picker-input", column);
 
-const selected = (column) =>
-  dom.query("button[data-selected]", column);
+const selected = (column) => dom.query("button[data-selected]", column);
 
 const values = (column) => {
   const list = dom.get(column, "data-values");
@@ -39,9 +35,7 @@ const values = (column) => {
   if (list) {
     const items = list.split(",");
 
-    return items
-      .map((value) => value.trim())
-      .filter(Boolean);
+    return items.map((value) => value.trim()).filter(Boolean);
   }
 
   const min = Number(dom.get(column, "data-min"));
@@ -56,8 +50,7 @@ const values = (column) => {
   );
 };
 
-const size = (list) =>
-  dom.query("button", list)?.offsetHeight || 60;
+const size = (list) => dom.query("button", list)?.offsetHeight || 60;
 const buttons = (list) => dom.all("button", list);
 const nearest = (list, value) => {
   const items = buttons(list);
@@ -148,10 +141,7 @@ const place = (list, button) => {
 
 const togglePeriod = (column) => {
   const picker = column.closest(".picker");
-  const period = dom.query(
-    ".picker-column[data-period]",
-    picker
-  );
+  const period = dom.query(".picker-column[data-period]", picker);
 
   if (!period) {
     return;
@@ -164,10 +154,7 @@ const togglePeriod = (column) => {
   }
 
   const items = buttons(list);
-  const selected = dom.query(
-    "button[data-selected]",
-    period
-  );
+  const selected = dom.query("button[data-selected]", period);
   const index = items.indexOf(selected);
   const next = items[(index + 1) % items.length];
 
@@ -182,13 +169,9 @@ const select = (column, button, sync = true) => {
 
   const previous = dom.get(column, "data-value");
   const value = dom.get(button, "data-value");
-  const selected = dom.query(
-    "button[data-selected]",
-    column
-  );
+  const selected = dom.query("button[data-selected]", column);
 
-  const focused =
-    selected?.matches(":focus-visible") === true;
+  const focused = selected?.matches(":focus-visible") === true;
 
   if (selected !== button) {
     if (selected) {
@@ -228,10 +211,7 @@ const valid = (input) => {
   const max = Number(input.max);
 
   return (
-    input.value !== "" &&
-    Number.isFinite(value) &&
-    value >= min &&
-    value <= max
+    input.value !== "" && Number.isFinite(value) && value >= min && value <= max
   );
 };
 
@@ -241,10 +221,7 @@ const edit = (column, button) => {
   }
 
   const picker = column.closest(".picker");
-  const current = dom.query(
-    ".picker-column[data-edit]",
-    picker
-  );
+  const current = dom.query(".picker-column[data-edit]", picker);
 
   if (current && current !== column) {
     commit(current, true);
@@ -309,15 +286,7 @@ const commit = (column, keep = false) => {
 };
 
 const keyboard = (root) =>
-  keypad(root, {
-    close,
-    commit,
-    edit,
-    fields,
-    input: source,
-    selected,
-    valid
-  });
+  keypad(root, { close, commit, edit, fields, input: source, selected, valid });
 
 const append = (list, items, count) => {
   for (let cycle = 0; cycle < count; cycle += 1) {
@@ -477,10 +446,7 @@ const build = (column) => {
     dom.remove(column, "data-y");
     dom.remove(column, "data-pressed");
 
-    if (
-      pointer.is(event, "touch") &&
-      list.contains(active)
-    ) {
+    if (pointer.is(event, "touch") && list.contains(active)) {
       active.blur();
     }
 
@@ -548,8 +514,7 @@ const build = (column) => {
       return;
     }
 
-    const selected =
-      dom.get(button, "data-selected") !== null;
+    const selected = dom.get(button, "data-selected") !== null;
 
     if (!selected) {
       active();
@@ -581,9 +546,7 @@ const build = (column) => {
     });
 
     dom.on(input, "input", () => {
-      const value = input.value
-        .replace(/\D/g, "")
-        .slice(0, 2);
+      const value = input.value.replace(/\D/g, "").slice(0, 2);
 
       if (input.value !== value) {
         input.value = value;

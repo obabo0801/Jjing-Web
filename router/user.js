@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 
 import { Router } from "express";
 
+import * as role from "#config/role";
 import client from "#config/client";
 import address from "#config/ip";
 import access from "#config/log/access";
@@ -39,18 +40,11 @@ const remember = (res, uid) => {
 const status = (value) => {
   const code = Number(value);
 
-  return Number.isInteger(code) &&
-    code >= 100 &&
-    code <= 599
-    ? code
-    : 0;
+  return Number.isInteger(code) && code >= 100 && code <= 599 ? code : 0;
 };
 
 router.get(usage, (req, res) => {
-  const size = Buffer.byteLength(
-    req.get("cookie") || "",
-    "utf8"
-  );
+  const size = Buffer.byteLength(req.get("cookie") || "", "utf8");
 
   res.json({ size });
 });
@@ -124,12 +118,10 @@ router.post("/", async (req, res) => {
       SELECT uid, role, ip
       FROM user
       WHERE ip = ?
-        AND role = 1
         AND (
           SELECT COUNT(*)
           FROM user
           WHERE ip = ?
-            AND role = 1
         ) = 1
       LIMIT 1
     `,
@@ -139,6 +131,19 @@ router.post("/", async (req, res) => {
     if (found) {
       uid = found.uid;
       user = found;
+
+      if (user.role === role.admin) {
+        await run(
+          `
+          UPDATE user
+          SET role = ?
+          WHERE uid = ?
+        `,
+          [role.user, uid]
+        );
+
+        user.role = role.user;
+      }
     }
   }
 
@@ -171,20 +176,10 @@ router.post("/", async (req, res) => {
     );
 
     if (first.changes) {
-      await access(
-        uid || null,
-        ip,
-        os,
-        browser,
-        path,
-        result
-      );
+      await access(uid || null, ip, os, browser, path, result);
     }
 
-    const data = {
-      reason: blocked.reason,
-      time: blocked.time
-    };
+    const data = { reason: blocked.reason, time: blocked.time };
 
     return res.status(403).json(data);
   }
@@ -194,9 +189,9 @@ router.post("/", async (req, res) => {
     await run(
       `
       INSERT INTO user (uid, role, ip)
-      VALUES (?, 1, ?)
+      VALUES (?, ?, ?)
     `,
-      [uid, ip]
+      [uid, role.user, ip]
     );
   } else if (user.ip !== ip) {
     await run(

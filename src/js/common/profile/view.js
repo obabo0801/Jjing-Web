@@ -1,10 +1,14 @@
 import * as dom from "#common/dom";
 import dialog from "#common/dialog";
 import drawer from "#common/drawer";
-import { message, preload } from "#common/i18n";
+import viewer from "#common/image/view";
+import * as i18n from "#common/i18n";
 import popover from "#common/popover";
 import * as profile from "#common/profile";
 import avatar from "#common/avatar";
+import once from "#common/once";
+
+const opening = once();
 
 const keys = [
   "profile.uid",
@@ -30,12 +34,10 @@ const keys = [
   "profile.away"
 ];
 
-preload(...keys);
+i18n.preload(...keys);
 
 const emit = (target, type, detail) => {
-  target?.dispatchEvent(
-    new CustomEvent(type, { bubbles: true, detail })
-  );
+  target?.dispatchEvent(new CustomEvent(type, { bubbles: true, detail }));
 };
 
 const relative = (value) => {
@@ -44,9 +46,7 @@ const relative = (value) => {
   }
 
   const date = new Date(
-    value.includes("T")
-      ? value
-      : `${value.replace(" ", "T")}+09:00`
+    value.includes("T") ? value : `${value.replace(" ", "T")}+09:00`
   );
   const seconds = (date.getTime() - Date.now()) / 1000;
 
@@ -63,19 +63,17 @@ const relative = (value) => {
   ];
 
   const [unit, size] =
-    units.find(([, size]) => Math.abs(seconds) >= size) ??
-    units.at(-1);
+    units.find(([, size]) => Math.abs(seconds) >= size) ?? units.at(-1);
   const lang = dom.root.lang || navigator.language;
 
-  return new Intl.RelativeTimeFormat(lang, {
-    numeric: "always"
-  }).format(Math.round(seconds / size), unit);
+  return new Intl.RelativeTimeFormat(lang, { numeric: "always" }).format(
+    Math.round(seconds / size),
+    unit
+  );
 };
 
 const setState = (status, last, value, time) => {
-  const state = ["online", "away"].includes(value)
-    ? value
-    : "offline";
+  const state = ["online", "away"].includes(value) ? value : "offline";
 
   dom.set(status, "data-state", state);
   dom.remove(last, "data-i18n");
@@ -85,11 +83,10 @@ const setState = (status, last, value, time) => {
     return;
   }
 
-  const key =
-    state === "online" ? "profile.active" : "profile.away";
+  const key = state === "online" ? "profile.active" : "profile.away";
 
   dom.set(last, "data-i18n", key);
-  last.textContent = message(key) || key;
+  last.textContent = i18n.message(key) || key;
 };
 
 const copy = async (value) => {
@@ -107,7 +104,6 @@ const item = (handlers, data) => {
 
   row.className = "group-item";
   button.type = "button";
-  label.className = "profile-item-label";
   label.textContent = text;
 
   dom.set(row, "data-icon", icon);
@@ -157,7 +153,7 @@ const hidden = (target, options) => {
 
   row.className = "group-item";
   dom.set(row, "data-icon", "eye-off");
-  field.className = "switch profile-switch";
+  field.className = "switch";
   text.textContent = "profile.hide";
   input.type = "checkbox";
   input.name = "chatting-hide";
@@ -165,10 +161,7 @@ const hidden = (target, options) => {
 
   dom.set(text, "data-i18n", "profile.hide");
   dom.on(input, "change", () => {
-    emit(target, "chatting-hide", {
-      ...options,
-      hidden: input.checked
-    });
+    emit(target, "chatting-hide", { ...options, hidden: input.checked });
   });
 
   label.append(text, input);
@@ -187,9 +180,9 @@ const label = (key, value) => {
   const button = dom.create("button");
 
   row.className = "group-item";
-  element.className = "label profile-label";
+  element.className = "label";
   name.className = "label-key";
-  result.className = "profile-label-value";
+  result.className = "profile-value";
   text.className = "label-value";
   button.className = "profile-copy";
   button.type = "button";
@@ -236,22 +229,14 @@ const block = async (user) => {
   input.autocomplete = "off";
 
   dom.set(input, "data-control", "");
-  dom.set(
-    input,
-    "data-i18n-placeholder",
-    "profile.blockReason"
-  );
+  dom.set(input, "data-i18n-placeholder", "profile.blockReason");
   field.append(input);
 
   const confirmed = await dialog({
     title: "profile.blockTitle",
     content: field,
     actions: [
-      {
-        text: "profile.cancel",
-        value: false,
-        data: ["data-neutral"]
-      },
+      { text: "profile.cancel", value: false, data: ["data-neutral"] },
       {
         text: "profile.confirm",
         value: true,
@@ -277,7 +262,7 @@ const manage = (user, target, options, handlers) => {
   const details = user.details;
   const element = dom.create("section");
 
-  element.className = "profile-manage";
+  element.className = "profile-section";
   element.append(
     group(
       label("profile.uid", details.uid),
@@ -321,6 +306,7 @@ const context = (user, target, options, handlers) => {
     close: false,
     run: () =>
       drawer({
+        back: true,
         content: dom.create("div"),
         side: "right",
         direction: "→"
@@ -328,7 +314,7 @@ const context = (user, target, options, handlers) => {
   });
   const element = dom.create("section");
 
-  element.className = "profile-context";
+  element.className = "profile-section";
   element.append(group(gift));
 
   if (!user.self) {
@@ -338,7 +324,7 @@ const context = (user, target, options, handlers) => {
       run: () => emit(target, "chatting-whisper", options)
     });
 
-    whisper.classList.add("profile-whisper");
+    dom.set(whisper, "data-whisper", "");
     whisper.hidden = user.state === "offline";
 
     const items = [
@@ -366,16 +352,13 @@ const context = (user, target, options, handlers) => {
 };
 
 const tabs = (options) => {
-  if (
-    !Array.isArray(options.tabs) ||
-    !options.tabs.length
-  ) {
+  if (!Array.isArray(options.tabs) || !options.tabs.length) {
     return null;
   }
 
   const element = dom.create("div");
 
-  element.className = "segment profile-segment";
+  element.className = "segment";
   options.tabs.forEach((tab, index) => {
     const button = dom.create("button");
 
@@ -398,36 +381,31 @@ const content = (user, target, options, handlers) => {
   const root = dom.create("div");
   const head = dom.create("header");
   const picture = dom.create("div");
-  const media = avatar();
+  const media = avatar("", "button");
   const status = dom.create("span");
   const name = dom.create("strong");
   const uid = dom.create("span");
   const last = dom.create("time");
 
-  root.className = "profile-view";
+  root.className = "profile";
   head.className = "profile-head";
   picture.className = "profile-avatar";
-  media.root.classList.add("profile-media");
   status.className = "profile-status";
   name.className = "profile-name";
   uid.className = "profile-uid";
   last.className = "profile-last";
 
+  dom.set(media.root, "data-response", "");
+
   const render = (value) => {
     Object.assign(user, value);
     media.set(user.avatar || options.avatar || "");
     name.textContent = user.name || options.name || "";
-    uid.textContent =
-      user.short || user.uid?.slice(0, 8) || "";
+    uid.textContent = user.short || user.uid?.slice(0, 8) || "";
 
-    setState(
-      status,
-      last,
-      user.state,
-      user.last || options.last
-    );
+    setState(status, last, user.state, user.last || options.last);
 
-    const whisper = dom.query(".profile-whisper", root);
+    const whisper = dom.query("[data-whisper]", root);
 
     if (whisper) {
       whisper.hidden = user.state === "offline";
@@ -435,6 +413,14 @@ const content = (user, target, options, handlers) => {
   };
 
   render(user);
+  dom.on(media.root, "click", () => {
+    const source =
+      user.image || user.avatar || options.image || options.avatar || "";
+
+    if (source) {
+      viewer(source, media.root).catch(() => {});
+    }
+  });
   picture.append(media.root, status);
   head.append(picture, name, uid, last);
   root.append(head);
@@ -445,11 +431,6 @@ const content = (user, target, options, handlers) => {
   if (segment) {
     root.append(segment);
   }
-
-  const body = dom.create("div");
-
-  body.className = "profile-body";
-  root.append(body);
 
   if (admin) {
     root.append(admin);
@@ -466,32 +447,34 @@ const content = (user, target, options, handlers) => {
   return root;
 };
 
-export default async function view(
-  anchor,
-  target,
-  options
-) {
+async function open(anchor, target, options) {
   const result = await request(options);
   const handlers = new Map();
   const user = result ?? {
     uid: options.uid || "",
     short: options.uid?.slice(0, 8) || "",
     name: options.name || "",
+    image: options.image || "",
     avatar: options.avatar || "",
     self: Boolean(options.own),
-    state:
-      options.state ||
-      (options.online ? "online" : "offline"),
+    state: options.state || (options.online ? "online" : "offline"),
     last: options.last || "",
     manage: false
   };
 
   const value = await popover({
     anchor,
+    back: true,
     content: content(user, target, options, handlers),
     direction: "↑",
     scroll: 0
   });
 
   return handlers.get(value)?.();
+}
+
+export default function view(anchor, target, options) {
+  const key = options.own ? "me" : options.uid || anchor || target;
+
+  return opening(key, () => open(anchor, target, options));
 }

@@ -5,10 +5,7 @@ const frequency = (buffer) => {
   const data = buffer.getChannelData(0);
   const rate = buffer.sampleRate;
   const size = Math.min(data.length, rate);
-  const start = Math.max(
-    0,
-    Math.floor((data.length - size) / 2)
-  );
+  const start = Math.max(0, Math.floor((data.length - size) / 2));
 
   let power = 0;
   let count = 0;
@@ -68,9 +65,7 @@ export const analyze = async (blob) => {
   }
 
   try {
-    const buffer = await audio.decodeAudioData(
-      await blob.arrayBuffer()
-    );
+    const buffer = await audio.decodeAudioData(await blob.arrayBuffer());
 
     return pitch(frequency(buffer));
   } catch {
@@ -145,16 +140,9 @@ export const silence = (stream, signal, stop) =>
       };
 
       timer = setTimeout(() => done(true), 5000);
-      offSignal = dom.on(
-        signal,
-        "abort",
-        () => done(false),
-        { once: true }
-      );
+      offSignal = dom.on(signal, "abort", () => done(false), { once: true });
 
-      offStop = dom.on(stop, "abort", () => done(false), {
-        once: true
-      });
+      offStop = dom.on(stop, "abort", () => done(false), { once: true });
 
       if (stop?.aborted) {
         done();
@@ -192,9 +180,7 @@ export const silence = (stream, signal, stop) =>
       resolve(spoken);
     };
 
-    offSignal = dom.on(signal, "abort", done, {
-      once: true
-    });
+    offSignal = dom.on(signal, "abort", done, { once: true });
     offStop = dom.on(stop, "abort", done, { once: true });
 
     if (stop?.aborted) {

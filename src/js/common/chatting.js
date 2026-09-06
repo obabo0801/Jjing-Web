@@ -12,8 +12,7 @@ const observers = new WeakMap();
 const duration = 30 * 60 * 1000;
 
 const atBottom = (list) =>
-  list.scrollHeight - list.scrollTop - list.clientHeight <
-  24;
+  list.scrollHeight - list.scrollTop - list.clientHeight < 24;
 
 const updateBottom = (list) => {
   const root = list.closest(".chatting");
@@ -34,15 +33,9 @@ const follow = (list, options, current) => {
 
   const previous = groups.get(list);
   const passed = current - (previous?.start ?? current);
-  const result =
-    previous?.uid === uid &&
-    passed >= 0 &&
-    passed < duration;
+  const result = previous?.uid === uid && passed >= 0 && passed < duration;
 
-  groups.set(list, {
-    uid,
-    start: result ? previous.start : current
-  });
+  groups.set(list, { uid, start: result ? previous.start : current });
 
   return result;
 };
@@ -60,18 +53,12 @@ const bottom = (root, list, form) => {
   dom.set(button, "data-shadow", "");
 
   dom.on(button, "click", () => {
-    list.scrollTo({
-      top: list.scrollHeight,
-      behavior: "smooth"
-    });
+    list.scrollTo({ top: list.scrollHeight, behavior: "smooth" });
   });
   dom.on(list, "scroll", () => updateBottom(list));
 
   const place = () => {
-    root.style.setProperty(
-      "--chatting-form",
-      `${form.offsetHeight}px`
-    );
+    root.style.setProperty("--chatting-form", `${form.offsetHeight}px`);
   };
 
   place();
@@ -100,13 +87,9 @@ const listen = async (input) => {
 
   const value = input.value.trim();
 
-  input.value = value
-    ? `${value} ${result.text}`
-    : result.text;
+  input.value = value ? `${value} ${result.text}` : result.text;
 
-  input.dispatchEvent(
-    new Event("input", { bubbles: true })
-  );
+  input.dispatchEvent(new Event("input", { bubbles: true }));
   input.focus({ preventScroll: true });
 };
 
@@ -130,11 +113,7 @@ const bind = (element) => {
 
   dom.on(input, "input", () => update(input, send));
   dom.on(input, "keydown", (event) => {
-    if (
-      event.key !== "Enter" ||
-      event.shiftKey ||
-      event.isComposing
-    ) {
+    if (event.key !== "Enter" || event.shiftKey || event.isComposing) {
       return;
     }
 
@@ -146,9 +125,7 @@ const bind = (element) => {
   });
   dom.on(action, "click", () => listen(input));
 
-  dom.on(form, "reset", () =>
-    queueMicrotask(() => update(input, send))
-  );
+  dom.on(form, "reset", () => queueMicrotask(() => update(input, send)));
 
   bound.add(element);
 };

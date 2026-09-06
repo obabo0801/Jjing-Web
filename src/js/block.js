@@ -1,5 +1,5 @@
 import * as dom from "#common/dom";
-import i18n from "#common/i18n";
+import * as i18n from "#common/i18n";
 import init from "#common/init";
 import sound from "#common/sound";
 import vibrate from "#common/vibrate";
@@ -44,7 +44,7 @@ dom.on(action, "click", async () => {
 try {
   await Promise.all([
     access(false, "block"),
-    i18n(),
+    i18n.translate(),
     pwa.load().catch(() => null)
   ]);
 } finally {

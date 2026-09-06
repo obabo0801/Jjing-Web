@@ -1,27 +1,24 @@
-import { mkdirSync } from "node:fs";
-import { readFile, rm, writeFile } from "node:fs/promises";
-import path from "node:path";
-
 import { TextToSpeechClient } from "@google-cloud/text-to-speech";
 
-import string from "#src/string";
-
+import * as path from "#config/path";
 import hash from "#config/hash";
 import { run } from "#config/sqlite";
 
+import string from "#src/string";
+
 const host = "https://translate.google.com";
-const dir = path.join(import.meta.dirname, "../data/tts");
+const dir = path.tts();
 const timeout = 5000;
 const regions = { en: "en-US", ja: "ja-JP", ko: "ko-KR" };
 const mode = (process.env.TTS || "").trim().toLowerCase();
-const auth = process.env.GOOGLE_APPLICATION_CREDENTIALS;
+const key = process.env.GOOGLE_APPLICATION_CREDENTIALS;
 const enabled = ["login", "json"].includes(mode);
 const pending = new Map();
 
 let client;
 let retry = 0;
 
-mkdirSync(dir, { recursive: true });
+path.mkdirSync(dir, { recursive: true });
 
 const query = `INSERT INTO tts (
   file, uid, text, time
@@ -29,11 +26,9 @@ const query = `INSERT INTO tts (
   VALUES (?, ?, ?, ?)
   `;
 
-const record = (file, uid, text, time) =>
-  run(query, [file, uid, text, time]);
+const record = (file, uid, text, time) => run(query, [file, uid, text, time]);
 
-const clamp = (value, min, max) =>
-  Math.min(max, Math.max(min, value));
+const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
 
 const within = async (promise) => {
   let timer;
@@ -71,17 +66,13 @@ const language = (value) => {
 const prepare = (value) => {
   const rate = Number(value.rate);
   const pitch = Number(value.pitch);
-  const voice = string(value.voice).match(
-    /^[a-z0-9-]{1,100}$/i
-  )?.[0];
+  const voice = string(value.voice).match(/^[a-z0-9-]{1,100}$/i)?.[0];
 
   return {
     text: value.text,
     lang: language(value.lang),
     rate: Number.isFinite(rate) ? clamp(rate, 0.25, 2) : 1,
-    pitch: Number.isFinite(pitch)
-      ? clamp(pitch, -20, 20)
-      : 0,
+    pitch: Number.isFinite(pitch) ? clamp(pitch, -20, 20) : 0,
     voice
   };
 };
@@ -97,7 +88,7 @@ const parts = (text) => {
   return result;
 };
 
-const key = (provider, value) => {
+const signature = (provider, value) => {
   if (provider !== "google") {
     return value;
   }
@@ -110,23 +101,18 @@ const key = (provider, value) => {
 };
 
 const voice = (provider, value) =>
-  provider === "cloud"
-    ? value.voice || "default"
-    : "default";
+  provider === "cloud" ? value.voice || "default" : "default";
 
 const name = (provider, value) => {
-  const data = key(provider, value);
-  const id = hash(
-    32,
-    JSON.stringify({ provider, ...data })
-  );
+  const data = signature(provider, value);
+  const id = hash(32, JSON.stringify({ provider, ...data }));
 
   return `${id}.mp3`;
 };
 
 const read = async (file) => {
   try {
-    return await readFile(path.join(dir, file));
+    return await path.readFile(path.tts(file));
   } catch (error) {
     if (error.code !== "ENOENT") {
       throw error;
@@ -144,13 +130,7 @@ const find = async (provider, value) => {
     return null;
   }
 
-  return {
-    audio,
-    file,
-    provider,
-    voice: voice(provider, value),
-    cached: true
-  };
+  return { audio, file, provider, voice: voice(provider, value), cached: true };
 };
 
 const cache = async (provider, value, options) => {
@@ -169,15 +149,15 @@ const cache = async (provider, value, options) => {
   if (!task) {
     task = create()
       .then(async (audio) => {
-        const target = path.join(dir, file);
+        const target = path.tts(file);
 
-        await writeFile(target, audio);
+        await path.writeFile(target, audio);
 
         try {
           await record(file, uid, value.text, time);
         } catch (error) {
           try {
-            await rm(target, { force: true });
+            await path.rm(target, { force: true });
           } catch {}
 
           throw error;
@@ -202,11 +182,11 @@ const cache = async (provider, value, options) => {
 
 const connect = () => {
   if (mode === "json") {
-    if (!auth) {
+    if (!key) {
       throw new Error();
     }
 
-    return new TextToSpeechClient({ authname: auth });
+    return new TextToSpeechClient({ keyFilename: key });
   }
 
   return new TextToSpeechClient();
@@ -226,10 +206,7 @@ const cloud = async (value) => {
       },
       audioConfig: {
         audioEncoding: "MP3",
-        ...(!chirp && {
-          speakingRate: value.rate,
-          pitch: value.pitch
-        })
+        ...(!chirp && { speakingRate: value.rate, pitch: value.pitch })
       }
     },
     { timeout }
@@ -277,11 +254,7 @@ const google = async (value) => {
 };
 
 const fromGoogle = (request, uid, time) =>
-  cache("google", request, {
-    create: () => google(request),
-    uid,
-    time
-  });
+  cache("google", request, { create: () => google(request), uid, time });
 
 export default async function synthesize(value, options) {
   const { uid, time, type } = options;
@@ -326,7 +299,5 @@ export default async function synthesize(value, options) {
     }
   }
 
-  return type === "cloud"
-    ? null
-    : fromGoogle(request, uid, time);
+  return type === "cloud" ? null : fromGoogle(request, uid, time);
 }

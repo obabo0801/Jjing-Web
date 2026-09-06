@@ -1,16 +1,9 @@
-import { mkdirSync } from "node:fs";
-import { rm, writeFile } from "node:fs/promises";
-import path from "node:path";
-
+import * as path from "#config/path";
 import hash from "#config/hash";
 import { run } from "#config/sqlite";
 
-const dir = path.join(import.meta.dirname, "../data/stt");
-const types = {
-  "audio/webm": "webm",
-  "audio/ogg": "ogg",
-  "audio/mp4": "m4a"
-};
+const dir = path.stt();
+const types = { "audio/webm": "webm", "audio/ogg": "ogg", "audio/mp4": "m4a" };
 
 const query = `
   INSERT INTO stt (
@@ -19,10 +12,9 @@ const query = `
   VALUES (?, ?, ?, ?)
   `;
 
-export const supported = (type) =>
-  Object.hasOwn(types, type);
+export const supported = (type) => Object.hasOwn(types, type);
 
-mkdirSync(dir, { recursive: true });
+path.mkdirSync(dir, { recursive: true });
 
 export default async function save(audio, options) {
   const { type, uid, text, time } = options;
@@ -34,10 +26,10 @@ export default async function save(audio, options) {
 
   const id = hash(32, audio);
   const file = `${id}.${ext}`;
-  const target = path.join(dir, file);
+  const target = path.stt(file);
 
   try {
-    await writeFile(target, audio, { flag: "wx" });
+    await path.writeFile(target, audio, { flag: "wx" });
   } catch (error) {
     if (error.code === "EEXIST") {
       return file;
@@ -50,7 +42,7 @@ export default async function save(audio, options) {
     await run(query, [file, uid, text, time]);
   } catch (error) {
     try {
-      await rm(target, { force: true });
+      await path.rm(target, { force: true });
     } catch {}
 
     throw error;

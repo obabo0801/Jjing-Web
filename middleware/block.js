@@ -4,13 +4,10 @@ import uid from "#config/uid";
 
 import { page, send } from "#page";
 
-export default async function block(req, res, next) {
-  if (!page(req)) {
-    return next();
-  }
-
+export const denied = async (req) => {
   const ip = address(req);
-  const denied = await get(
+
+  return get(
     `
     SELECT 1
     FROM block
@@ -20,15 +17,26 @@ export default async function block(req, res, next) {
   `,
     [uid(req) || null, ip]
   );
+};
 
-  if (!denied) {
+export const guard = async (req, res, next) => {
+  if (!(await denied(req))) {
     return next();
   }
 
-  res.set({
-    "Cache-Control": "private, no-store",
-    Vary: "Cookie"
-  });
+  return res.status(403).end();
+};
+
+export default async function block(req, res, next) {
+  if (!page(req)) {
+    return next();
+  }
+
+  if (!(await denied(req))) {
+    return next();
+  }
+
+  res.set({ "Cache-Control": "private, no-store", Vary: "Cookie" });
 
   return send(res, "block", 403);
 }

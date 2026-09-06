@@ -1,15 +1,14 @@
+import * as css from "#common/css";
 import * as dom from "#common/dom";
 
-const clamp = (value) =>
-  Math.min(Math.max(Number(value) || 0, 0), 100);
+const clamp = (value) => Math.min(Math.max(Number(value) || 0, 0), 100);
 
 export default function progress(options = {}) {
   if (typeof options === "number") {
     options = { value: options };
   }
 
-  const type =
-    options.type === "circular" ? "circular" : "linear";
+  const type = options.type === "circular" ? "circular" : "linear";
   const root = dom.create("div");
   const track = dom.create("div");
   const fill = dom.create("div");
@@ -29,14 +28,7 @@ export default function progress(options = {}) {
   const set = (next) => {
     value = clamp(next);
 
-    if (type === "circular") {
-      root.style.background = `conic-gradient(
-        var(--focus) ${value}%,
-        var(--bar) 0
-      )`;
-    } else {
-      fill.style.width = `${value}%`;
-    }
+    css.set(root, { "--progress": `${value}%` });
 
     output.value = `${Math.round(value)}%`;
 
@@ -50,6 +42,9 @@ export default function progress(options = {}) {
     element: root,
     get: () => value,
     set,
-    destroy: () => root.remove()
+    destroy: () => {
+      css.remove(root);
+      root.remove();
+    }
   };
 }

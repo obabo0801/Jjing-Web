@@ -21,30 +21,26 @@ dialog[data-sheet] {
     color 160ms ease;
 }
 
-dialog[data-popover]::backdrop,
-dialog[data-drawer]::backdrop,
-dialog[data-sheet]::backdrop {
-  background: transparent;
-}
-
-dialog:is(
-    [data-dialog],
-    [data-popover],
-    [data-drawer],
-    [data-sheet]
-  )[open] {
-  display: block;
+dialog:is([data-dialog], [data-popover], [data-drawer], [data-sheet])[open] {
+  display: flex;
+  flex-direction: column;
   overflow-y: auto;
   overflow-x: hidden;
 }
 
+dialog[open]
+  > :is(
+    .dialog-head,
+    .dialog-content,
+    .layer-head,
+    .layer-content,
+    .layer-actions
+  ) {
+  flex: 0 0 auto;
+}
+
 :root:has(
-  dialog:is(
-      [data-dialog],
-      [data-popover],
-      [data-drawer],
-      [data-sheet]
-    )[open]
+  dialog:is([data-dialog], [data-popover], [data-drawer], [data-sheet])[open]
 ) {
   overflow: hidden;
 }
@@ -88,6 +84,7 @@ dialog:is(
 .layer-actions {
   display: flex;
   gap: 8px;
+  margin-block-start: auto;
   padding-block-end: 16px;
 }
 
@@ -111,12 +108,7 @@ dialog:is(
 }
 
 .wearable
-  dialog:is(
-    [data-dialog],
-    [data-popover],
-    [data-drawer],
-    [data-sheet]
-  ) {
+  dialog:is([data-dialog], [data-popover], [data-drawer], [data-sheet]) {
   inset: 0;
 
   width: 100%;
@@ -135,10 +127,8 @@ dialog:is(
 }
 
 .wearable :is(.dialog-content, .layer-content) {
-  padding: 16px;
-
   text-align: center;
-  font-size: 1.75rem;
+  font-size: 2rem;
   line-height: 1.4;
 }
 
@@ -171,11 +161,7 @@ dialog:is(
 }
 
 .small:not(.wearable)
-  dialog:is(
-    [data-dialog],
-    [data-popover],
-    [data-drawer]
-  )[open] {
+  dialog:is([data-dialog], [data-popover], [data-drawer])[open] {
   inset: 0;
 
   width: 100%;
@@ -200,7 +186,7 @@ dialog:is(
   display: none;
 }
 
-.small:not(.wearable)
+:is(.small, .wearable)
   :is(
     .dialog-head,
     .layer-head,
@@ -209,6 +195,18 @@ dialog:is(
     .layer-actions
   ) {
   padding-inline: 0;
+  min-width: 0;
+}
+
+:is(.small, .wearable) :is(.dialog-title, .layer-title) {
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+  text-wrap: balance;
+}
+
+:is(.small, .wearable) :is(.dialog-content, .layer-content) {
+  grid-template-columns: minmax(0, 1fr);
+  word-break: keep-all;
 }
 
 .small:not(.wearable) :is(.dialog-content, .layer-content) {
@@ -216,24 +214,8 @@ dialog:is(
   text-align: center;
 }
 
-.small:not(.wearable)
-  :is(.dialog-content, .layer-content)
-  > span {
+.small:not(.wearable) :is(.dialog-content, .layer-content) > span {
   justify-self: center;
-}
-
-.small:not(.wearable)
-  :is(.dialog-content, .layer-content)
-  > .input {
-  padding-inline: 0;
-}
-
-.small:not(.wearable)
-  :is(.dialog-content, .layer-content)
-  > .input
-  [data-control] {
-  padding-inline: 0;
-  text-align: center;
 }
 
 .small:not(.wearable) .layer-actions {
@@ -243,6 +225,43 @@ dialog:is(
 .small:not(.wearable) .layer-actions button {
   flex: 0 0 auto;
   width: 100%;
+}
+
+:root:not(.small):not(.wearable)
+  dialog[data-back]
+  > :is(.dialog-head, .layer-head) {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  min-height: 92px;
+  padding-block: 16px;
+  padding-inline: 68px;
+}
+
+.layer-back {
+  position: sticky;
+  z-index: 2;
+  inset-block-start: 16px;
+  align-self: flex-start;
+  flex: 0 0 60px;
+
+  margin-block-start: 16px;
+  margin-inline-start: 16px;
+  margin-block-end: -76px;
+
+  border: 0;
+}
+
+.layer-back[data-background] {
+  background: color-mix(in srgb, var(--background) 20%, transparent);
+
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+}
+
+:is(.small, .wearable) .layer-back {
+  display: none;
 }
 
 dialog[data-popover][data-swipe],

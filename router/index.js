@@ -2,6 +2,8 @@ import { Router } from "express";
 
 import * as route from "#config/route";
 
+import { guard } from "#block";
+
 import admin from "#router/admin";
 import events from "#router/events";
 import fcm from "#router/fcm";
@@ -14,14 +16,17 @@ import user from "#router/user";
 
 const router = Router();
 
+router.use(route.i18n, i18n);
+router.use(route.user, user);
+
+router.use(guard);
+
 router.use(route.admin, admin);
 router.use(route.events, events);
 router.use(route.fcm, fcm);
-router.use(route.i18n, i18n);
 router.use(route.profile, profile);
 router.use(route.push, push);
 router.use(route.stt, stt);
 router.use(route.tts, tts);
-router.use(route.user, user);
 
 export default router;

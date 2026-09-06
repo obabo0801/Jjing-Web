@@ -1,10 +1,9 @@
 import * as dom from "#common/dom";
-import { message } from "#common/i18n";
+import * as i18n from "#common/i18n";
 
 const views = new WeakMap();
 const isControl = (target) =>
-  target instanceof HTMLInputElement ||
-  target instanceof HTMLTextAreaElement;
+  target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement;
 
 const surface = (target) => {
   if (!(target instanceof Element)) {
@@ -12,15 +11,13 @@ const surface = (target) => {
   }
 
   return isControl(target)
-    ? target.closest(".search") ||
-        target.closest(".input") ||
-        target
+    ? target.closest(".search") || target.closest(".input") || target
     : target;
 };
 
 export const status = (target, name) => {
   if (isControl(target)) {
-    target.placeholder = message(name);
+    target.placeholder = i18n.message(name);
   }
 };
 
@@ -65,9 +62,7 @@ const display = (target) => {
       target.value = original.value;
       target.placeholder = original.placeholder;
       target.readOnly = original.readOnly;
-      target.dispatchEvent(
-        new Event("input", { bubbles: true })
-      );
+      target.dispatchEvent(new Event("input", { bubbles: true }));
     }
   };
 };

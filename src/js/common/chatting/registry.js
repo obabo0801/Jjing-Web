@@ -24,7 +24,6 @@ const find = (items, uid) => {
   return result;
 };
 
-export const message = (element, uid) =>
-  bind(messages, element, uid);
+export const message = (element, uid) => bind(messages, element, uid);
 
 export const messageAll = (uid) => find(messages, uid);

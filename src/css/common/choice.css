@@ -119,24 +119,19 @@
   opacity: 0.5;
 }
 
-:is(.radio, .checkbox)[data-background]:has(
-    input:enabled
-  ):active {
+:is(.radio, .checkbox)[data-background]:has(input:enabled):active {
   background-image: var(--overlay);
 }
 
 @media (hover: hover) and (pointer: fine) {
-  :is(.radio, .checkbox)[data-background]:has(
-      input:enabled
-    ):hover {
+  :is(.radio, .checkbox)[data-background]:has(input:enabled):hover {
     background-image: var(--overlay);
   }
 }
 
 @keyframes radio-ping {
   0% {
-    box-shadow: 0 0 0 0
-      color-mix(in srgb, var(--focus) 45%, transparent);
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--focus) 45%, transparent);
   }
 
   75%,

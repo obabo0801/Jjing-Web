@@ -1,5 +1,5 @@
 import * as dom from "#common/dom";
-import i18n from "#common/i18n";
+import * as i18n from "#common/i18n";
 import init from "#common/init";
 import available from "#common/page";
 import sound from "#common/sound";
@@ -28,9 +28,7 @@ dom.on(action, "click", async () => {
     }
 
     if (!tts.busy()) {
-      const source = await tts
-        .speak(heading.textContent)
-        .catch(() => null);
+      const source = await tts.speak(heading.textContent).catch(() => null);
 
       await tts.wait(source);
     }
@@ -40,7 +38,7 @@ dom.on(action, "click", async () => {
 });
 
 try {
-  await Promise.all([access(false, "maint"), i18n()]);
+  await Promise.all([access(false, "maint"), i18n.translate()]);
 } finally {
   page.hidden = false;
   loading.remove();

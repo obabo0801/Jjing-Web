@@ -8,17 +8,12 @@ import string from "#src/string";
 
 import * as admin from "#middleware/admin";
 
-const hidden = new Set([
-  "/service-work.js",
-  "/manifest.json"
-]);
+const hidden = new Set(["/service-work.js", "/manifest.json"]);
 
 const html = (req) => req.path.endsWith(".html");
 
 const denied = (req) =>
-  hidden.has(req.path) ||
-  html(req) ||
-  req.path.startsWith("/assets/");
+  hidden.has(req.path) || html(req) || req.path.startsWith("/assets/");
 
 export const page = (req) =>
   req.method === "GET" &&
@@ -29,10 +24,7 @@ export const send = (res, name, status = 200) =>
   res.status(status).sendFile(file(name));
 
 export const error = (res) => {
-  res.set({
-    "Cache-Control": "no-store",
-    Vary: "Sec-Fetch-Dest, Accept"
-  });
+  res.set({ "Cache-Control": "no-store", Vary: "Sec-Fetch-Dest, Accept" });
 
   return send(res, "error", 404);
 };
@@ -42,7 +34,8 @@ const normal = (res, name) => {
 
   return send(res, name);
 };
-const router = Router();
+
+export const router = Router();
 
 router.get("/", (_, res) => normal(res, "index"));
 
@@ -125,5 +118,3 @@ export const reject = (req, res) => {
 
   return error(res);
 };
-
-export default router;

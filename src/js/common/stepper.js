@@ -10,11 +10,9 @@ let press;
 let listening = false;
 
 const limit = (input, value) => {
-  const min =
-    input.min === "" ? -Infinity : Number(input.min);
+  const min = input.min === "" ? -Infinity : Number(input.min);
 
-  const max =
-    input.max === "" ? Infinity : Number(input.max);
+  const max = input.max === "" ? Infinity : Number(input.max);
 
   return Math.min(max, Math.max(min, value));
 };
@@ -46,11 +44,7 @@ const paint = (input) => {
 };
 
 const keyboard = (input) =>
-  keypad(input.closest(".stepper"), {
-    close,
-    commit,
-    valid
-  });
+  keypad(input.closest(".stepper"), { close, commit, valid });
 
 const hide = (input) => {
   const display = input.closest(".stepper-value");
@@ -104,19 +98,14 @@ const move = (input, direction) => {
   }
 
   input.value = String(next);
-  input.dispatchEvent(
-    new Event("input", { bubbles: true })
-  );
+  input.dispatchEvent(new Event("input", { bubbles: true }));
   sound.play("snap");
   vibrate.play("stepper");
 };
 
 const change = (button) => {
   const container = button.closest(".stepper");
-  const input = dom.query(
-    ".stepper-value input",
-    container
-  );
+  const input = dom.query(".stepper-value input", container);
   const direction = Number(dom.get(button, "data-step"));
 
   if (!input || !Number.isFinite(direction)) {
@@ -159,9 +148,7 @@ export default function stepper(root = document) {
 
   listening = true;
   dom.on(document, "click", (event) => {
-    const number = event.target.closest?.(
-      ".stepper-number"
-    );
+    const number = event.target.closest?.(".stepper-number");
 
     if (!number) {
       return;
@@ -257,8 +244,7 @@ export default function stepper(root = document) {
       return;
     }
 
-    const signed =
-      Number(input.min) < 0 && input.value.startsWith("-");
+    const signed = Number(input.min) < 0 && input.value.startsWith("-");
     const digits = input.value.replace(/\D/g, "");
     const value = `${signed ? "-" : ""}${digits}`;
 
