@@ -21,5 +21,8 @@ export const remove = (key) => {
 export const clear = () => {
   try {
     localStorage.clear();
-  } catch {}
+    return true;
+  } catch {
+    return false;
+  }
 };

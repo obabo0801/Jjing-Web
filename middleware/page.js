@@ -1,10 +1,10 @@
 import { Router } from "express";
 
 import file from "#config/pages";
-import * as profile from "#config/profile";
+import * as profile from "#service/profile";
 import identity from "#config/uid";
 
-import string from "#src/string";
+import string from "#shared/string";
 
 import * as admin from "#middleware/admin";
 

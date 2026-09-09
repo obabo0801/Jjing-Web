@@ -1,4 +1,5 @@
 import * as dom from "#common/dom";
+import * as css from "#common/css";
 import sheet from "#common/sheet";
 
 const opened = new WeakSet();
@@ -63,6 +64,37 @@ const group = (...items) => {
   return element;
 };
 
+const preview = (message) => {
+  const element = dom.create("div");
+  const clone = message.cloneNode(true);
+  const source = [message, ...dom.all("*", message)];
+  const targets = [clone, ...dom.all("*", clone)];
+  const mode = dom.get(message.closest(".chatting"), "data-chatting");
+
+  element.className = "chatting chatting-preview";
+  dom.set(element, "data-chatting", mode || "stream");
+  clone.inert = true;
+  dom.remove(clone, "data-follow");
+
+  targets.forEach((target, index) => {
+    css.copy(source[index], target);
+
+    for (const name of [
+      "id",
+      "autofocus",
+      "tabindex",
+      "data-response",
+      "data-action",
+      "data-layer-action"
+    ]) {
+      dom.remove(target, name);
+    }
+  });
+
+  element.append(clone);
+  return element;
+};
+
 const content = (message, options) => {
   const element = dom.create("div");
   const items = [
@@ -114,36 +146,9 @@ const content = (message, options) => {
   });
 
   element.className = "chatting-actions";
-  element.append(group(...items), group(report));
+  element.append(preview(message), group(...items), group(report));
 
   return element;
-};
-
-const reveal = (message, sheet) => {
-  const list = message.closest(".chatting-list");
-
-  if (!list) {
-    return () => {};
-  }
-
-  const item = message.getBoundingClientRect();
-  const area = list.getBoundingClientRect();
-  const panel = sheet.getBoundingClientRect();
-  const bottom = Math.min(area.bottom, panel.top) - 16;
-
-  if (item.bottom <= bottom) {
-    return () => {};
-  }
-
-  const padding = list.style.paddingBlockEnd;
-
-  list.style.paddingBlockEnd = `${panel.height + 16}px`;
-
-  list.scrollBy({ top: item.bottom - bottom, behavior: "smooth" });
-
-  return () => {
-    list.style.paddingBlockEnd = padding;
-  };
 };
 
 const open = async (message, options) => {
@@ -154,18 +159,9 @@ const open = async (message, options) => {
   opened.add(message);
   dom.set(message, "data-action", "");
 
-  let reset = () => {};
-
   try {
-    await sheet({
-      content: content(message, options),
-      direction: "↓",
-      ready: (element) => {
-        reset = reveal(message, element);
-      }
-    });
+    await sheet({ content: content(message, options), direction: "↓" });
   } finally {
-    reset();
     dom.remove(message, "data-action");
     opened.delete(message);
   }

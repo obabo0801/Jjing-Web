@@ -89,8 +89,10 @@ export const meter = (stream, callback) => {
   const data = new Uint8Array(analyser.fftSize);
 
   let frame;
+  let stopped = false;
 
   const check = () => {
+    if (stopped) return;
     analyser.getByteTimeDomainData(data);
 
     let power = 0;
@@ -106,12 +108,14 @@ export const meter = (stream, callback) => {
     const level = count ? Math.sqrt(power / count) : 0;
 
     callback(level);
-    frame = requestAnimationFrame(check);
+    if (!stopped) frame = requestAnimationFrame(check);
   };
 
   frame = requestAnimationFrame(check);
 
   return () => {
+    if (stopped) return;
+    stopped = true;
     cancelAnimationFrame(frame);
     source.disconnect();
   };

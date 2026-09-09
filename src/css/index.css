@@ -11,22 +11,35 @@
   padding: 8dvw;
 }
 
-.music-volume {
-  display: grid;
-  gap: 8px;
-
-  padding: 16px;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-
-  background: var(--background);
-}
-
 .communication-test {
   display: grid;
   gap: 8px;
 
   width: min(calc(100vw - 32px), 40rem);
+}
+
+.setup-intro {
+  display: grid;
+  gap: 16px;
+
+  min-width: 0;
+  width: min(100%, 36rem);
+  margin-inline: auto;
+}
+
+.setup-intro p {
+  margin: 0;
+
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+  text-wrap: pretty;
+}
+
+.setup-intro-detail {
+  display: grid;
+  gap: 4px;
+
+  color: var(--mute);
 }
 
 :is(.small, .wearable) .app {

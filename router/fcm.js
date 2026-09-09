@@ -1,11 +1,11 @@
 import { Router } from "express";
 
-import { enabled } from "#config/fcm";
+import { enabled } from "#service/fcm";
 import address from "#config/ip";
-import { get, run } from "#config/sqlite";
+import { get, run } from "#db";
 import uid from "#config/uid";
 
-import string from "#src/string";
+import string from "#shared/string";
 
 import limit from "#middleware/limit";
 

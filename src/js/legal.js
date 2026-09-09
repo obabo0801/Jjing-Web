@@ -1,15 +1,35 @@
-import init from "#common/init";
+import init from "#src/init";
 import * as i18n from "#common/i18n";
-import access from "#src/access";
+import * as dom from "#common/dom";
 
 const loading = init();
 
-try {
-  const allowed = await access();
+const anchor = () => {
+  let id;
 
-  if (allowed) {
-    await i18n.translate();
+  try {
+    id = decodeURIComponent(location.hash.slice(1));
+  } catch {
+    return;
   }
+
+  const target = document.getElementById(id);
+
+  if (!target?.closest(".legal")) return;
+
+  target.scrollIntoView({ block: "start" });
+};
+
+dom.on(window, "hashchange", anchor);
+dom.on(dom.query(".legal"), "click", (event) => {
+  const link = event.target.closest('a[href^="#"]');
+
+  if (link?.hash === location.hash) anchor();
+});
+
+try {
+  await i18n.translate();
+  anchor();
 } finally {
   loading.remove();
 }

@@ -1,26 +1,9 @@
 :root {
-  color-scheme: light dark;
-
   --white: #ffffff;
   --black: #000000;
 
-  --background: light-dark(var(--white), #181818);
-  --canvas: light-dark(#f2f1f6, #262626);
-  --panel: light-dark(var(--white), #262626);
-  --surface: light-dark(var(--white), #3a3a3c);
-  --neutral: light-dark(#c9c8cd, #161616);
-
-  --text: light-dark(#181818, #eeeeee);
-  --mute: light-dark(#6e6e6e, #a0a0a0);
-  --border: light-dark(#0000001f, #ffffff24);
-
   --shadow: 0 4px 16px #00000033;
-  --shade: light-dark(#00000066, #00000099);
-
   --thumb: var(--white);
-  --track: light-dark(#a4a3a8, #646368);
-  --hover: light-dark(#181818, var(--white));
-  --select: light-dark(var(--white), #292929);
 
   --error: #ff453a;
   --warning: #ff9500;
@@ -34,35 +17,68 @@
   --overlay: linear-gradient(var(--pointer), var(--pointer));
 }
 
+:root,
 :root[data-theme="light"] {
   color-scheme: light;
+
+  --background: var(--white);
+  --canvas: #f2f1f6;
+  --panel: var(--white);
+  --surface: var(--white);
+  --neutral: #c9c8cd;
+
+  --text: #181818;
+  --mute: #6e6e6e;
+  --border: #0000001f;
+  --shade: #00000066;
+
+  --track: #a4a3a8;
+  --hover: #181818;
+  --select: #e5e5ea;
 }
 
 :root[data-theme="dark"] {
   color-scheme: dark;
-}
 
-.theme-color {
-  background-color: var(--background);
-  transition: none;
-}
-
-html.wearable[data-theme="dark"] {
-  --background: #000000;
-  --canvas: #000000;
+  --background: #181818;
+  --canvas: #262626;
   --panel: #262626;
-  --surface: #000000;
+  --surface: #3a3a3c;
   --neutral: #161616;
 
-  --text: #ffffff;
-  --mute: #ffffff;
+  --text: #eeeeee;
+  --mute: #a0a0a0;
+  --border: #ffffff24;
+  --shade: #00000099;
+
+  --track: #646368;
+  --hover: var(--white);
+  --select: #292929;
+}
+
+:root[data-theme="black"] {
+  color-scheme: dark;
+
+  --background: var(--black);
+  --canvas: var(--black);
+  --panel: #262626;
+  --surface: var(--black);
+  --neutral: #161616;
+
+  --text: var(--white);
+  --mute: var(--white);
   --border: #ffffff24;
 
   --shade: #000000a3;
 
   --track: #646368;
-  --hover: #ffffff;
+  --hover: var(--white);
   --select: #292929;
+}
+
+.theme-color {
+  background-color: var(--background);
+  transition: none;
 }
 
 html,

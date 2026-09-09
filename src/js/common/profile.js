@@ -1,4 +1,4 @@
-import { profile as path } from "#config/route";
+import { profile as path } from "#shared/route";
 
 import api from "#common/api";
 import upload from "#common/upload";
@@ -151,8 +151,39 @@ export const block = (uid, reason) =>
     data: { reason }
   });
 
-export const complete = async () => {
-  const result = await api(`${path}/complete`, { method: "POST" });
+export const unblock = (uid, reason) =>
+  api(`${path}/${encodeURIComponent(uid)}/block`, {
+    method: "DELETE",
+    data: { reason }
+  });
+
+export const authority = (uid, data) =>
+  api(`${path}/${encodeURIComponent(uid)}/authority`, {
+    method: "PATCH",
+    data
+  });
+
+export const refresh = (uid) => {
+  records.delete(key(uid));
+  return read(uid, { fresh: true });
+};
+
+export const reset = () => {
+  records.clear();
+  const ids = new Set(
+    [...bindings]
+      .filter(({ element }) => element.isConnected)
+      .map(({ uid }) => uid)
+  );
+
+  ids.forEach((uid) => read(uid, { fresh: true }));
+};
+
+export const complete = async (consent) => {
+  const result = await api(`${path}/complete`, {
+    method: "POST",
+    data: { consent }
+  });
 
   if (result.ok) {
     await read("me", { fresh: true });

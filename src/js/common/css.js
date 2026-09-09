@@ -75,6 +75,16 @@ export const remove = (element) => {
   }
 };
 
+export const copy = (source, target) => {
+  const value = values.get(dom.get(source, "data-css"));
+
+  dom.remove(target, "data-css");
+
+  if (value) {
+    set(target, value);
+  }
+};
+
 const clean = (node) => {
   if (!(node instanceof Element)) {
     return;

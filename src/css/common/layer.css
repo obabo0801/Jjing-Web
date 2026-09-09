@@ -93,7 +93,14 @@ dialog[open]
   min-width: 0;
 }
 
-:root:not(.wearable) .layer-actions > button > .icon {
+:root:not(.wearable)
+  .layer-actions
+  > button:not([data-icon~="throbber"])
+  > .icon {
+  display: none;
+}
+
+.layer-actions > button[data-icon~="throbber"] > .layer-label {
   display: none;
 }
 
@@ -256,8 +263,8 @@ dialog:is(
 .layer-back[data-background] {
   background: color-mix(in srgb, var(--background) 20%, transparent);
 
-  -webkit-backdrop-filter: blur(12px);
-  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(2px);
+  backdrop-filter: blur(2px);
 }
 
 :is(.small, .wearable) .layer-back {

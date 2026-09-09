@@ -1,7 +1,7 @@
 import * as dom from "#common/dom";
 import * as cookie from "#common/cookie";
 import * as i18n from "#common/i18n";
-import init from "#common/init";
+import init from "#src/init";
 import sound from "#common/sound";
 import vibrate from "#common/vibrate";
 import * as tts from "#common/tts";

@@ -2,15 +2,15 @@ import { randomUUID } from "node:crypto";
 
 import { Router } from "express";
 
-import * as role from "#config/role";
+import * as role from "#shared/role";
 import client from "#config/client";
 import address from "#config/ip";
-import access from "#config/log/access";
-import { usage } from "#config/route";
-import { get, run } from "#config/sqlite";
+import access from "#service/log/access";
+import { usage } from "#shared/route";
+import { get, run } from "#db";
 import identity, { key } from "#config/uid";
 
-import string from "#src/string";
+import string from "#shared/string";
 
 import limit from "#middleware/limit";
 
@@ -20,7 +20,7 @@ const cookie = {
   httpOnly: true,
   sameSite: "lax",
   secure: process.env.NODE_ENV === "production",
-  signed: Boolean(process.env.COOKIE_SECRET),
+  signed: true,
   maxAge: 365 * 24 * 60 * 60 * 1000
 };
 
@@ -85,9 +85,7 @@ router.get("/", async (req, res) => {
 });
 
 router.post("/", async (req, res) => {
-  const saved = identity(req);
-
-  let uid = saved;
+  let uid = identity(req);
 
   const path = string(req.body?.path, "/").slice(0, 2048);
   const result = status(req.body?.result);
@@ -99,53 +97,18 @@ router.post("/", async (req, res) => {
     return res.status(429).end();
   }
 
-  const { os, browser } = client(req);
+  const { os, browser, lang } = client(req);
 
-  let user = uid
+  const user = uid
     ? await get(
         `
-        SELECT uid, role, ip
+        SELECT uid, role, ip, lang
         FROM user
         WHERE uid = ?
       `,
         [uid]
       )
     : null;
-
-  if (!saved && !user) {
-    const found = await get(
-      `
-      SELECT uid, role, ip
-      FROM user
-      WHERE ip = ?
-        AND (
-          SELECT COUNT(*)
-          FROM user
-          WHERE ip = ?
-        ) = 1
-      LIMIT 1
-    `,
-      [ip, ip]
-    );
-
-    if (found) {
-      uid = found.uid;
-      user = found;
-
-      if (user.role === role.admin) {
-        await run(
-          `
-          UPDATE user
-          SET role = ?
-          WHERE uid = ?
-        `,
-          [role.user, uid]
-        );
-
-        user.role = role.user;
-      }
-    }
-  }
 
   const blocked = await get(
     `
@@ -188,19 +151,21 @@ router.post("/", async (req, res) => {
     uid = randomUUID();
     await run(
       `
-      INSERT INTO user (uid, role, ip)
-      VALUES (?, ?, ?)
+      INSERT INTO user (uid, role, ip, initial, lang)
+      VALUES (?, ?, ?, ?, ?)
     `,
-      [uid, role.user, ip]
+      [uid, role.user, ip, ip, lang]
     );
-  } else if (user.ip !== ip) {
+  } else if (user.ip !== ip || user.lang !== lang) {
     await run(
       `
-      UPDATE user
-      SET ip = ?
-      WHERE uid = ?
+    UPDATE user
+    SET
+      ip = ?,
+      lang = ?
+    WHERE uid = ?
     `,
-      [ip, uid]
+      [ip, lang, uid]
     );
   }
 

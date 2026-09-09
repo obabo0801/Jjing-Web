@@ -1,5 +1,5 @@
-import * as role from "#config/role";
-import { get } from "#config/sqlite";
+import * as role from "#shared/role";
+import { get } from "#db";
 import uid from "#config/uid";
 import { page, send } from "#page";
 
@@ -37,7 +37,7 @@ export default async function maint(req, res, next) {
       )
     : null;
 
-  if (user?.role === role.admin) {
+  if (role.staff(user?.role)) {
     return next();
   }
 

@@ -1,12 +1,14 @@
 import * as dom from "#common/dom";
 import * as back from "#common/back";
+import * as css from "#common/css";
+import popover from "#common/popover";
 import sound from "#common/sound";
 import vibrate from "#common/vibrate";
 
 const bound = new WeakSet();
+const pending = new WeakSet();
 
 let current;
-let off = () => {};
 let listening = false;
 
 const source = (element) => dom.query(":scope > select", element);
@@ -49,17 +51,18 @@ const close = (focus = false) => {
     return;
   }
 
-  const element = current;
-  const list = menu(element);
+  const session = current;
+  const { element, list } = session;
 
   current = undefined;
-  off();
-  off = () => {};
+  session.closed = true;
+  session.off.forEach((remove) => remove());
+  cancelAnimationFrame(session.frame);
+  session.dismiss?.(false);
+  if (list.matches(":popover-open")) list.hidePopover();
+  dom.remove(list, "popover");
+  css.remove(list);
   dom.remove(element, "data-open");
-
-  if (list?.matches(":popover-open")) {
-    list.hidePopover();
-  }
 
   if (focus) {
     dom
@@ -68,36 +71,152 @@ const close = (focus = false) => {
   }
 };
 
+const focusOption = (list) => {
+  const option =
+    dom.query(".select-option[data-selected]:enabled", list) ??
+    dom.query(".select-option:enabled", list);
+
+  option?.focus({ preventScroll: true });
+};
+
+const place = (session) => {
+  const { element, list } = session;
+
+  if (!element.isConnected) {
+    close();
+    return;
+  }
+
+  const rect = dom
+    .query(":scope > .select-toggle", element)
+    .getBoundingClientRect();
+  const view = window.visualViewport;
+  const left = (view?.offsetLeft ?? 0) + 8;
+  const top = (view?.offsetTop ?? 0) + 8;
+  const right = left + (view?.width ?? dom.root.clientWidth) - 16;
+  const bottom = top + (view?.height ?? dom.root.clientHeight) - 16;
+  const below = Math.max(0, bottom - rect.bottom - 4);
+  const above = Math.max(0, rect.top - top - 4);
+  const down = below >= Math.min(list.scrollHeight, 320) || below >= above;
+  const width = Math.min(rect.width, Math.max(0, right - left));
+
+  css.set(list, {
+    width: `${width}px`,
+    "--select-left": `${Math.max(left, Math.min(rect.left, right - width))}px`,
+    "max-height": `${Math.min(320, down ? below : above)}px`
+  });
+
+  css.set(list, {
+    "--select-top": `${Math.max(top, down ? rect.bottom + 4 : rect.top - list.offsetHeight - 4)}px`
+  });
+};
+
+const fullscreen = async (session) => {
+  const { element, list } = session;
+  const content = list.cloneNode(true);
+
+  dom.set(content, "data-fullscreen", "");
+  dom.set(content, "data-pan", "");
+  dom.all(".select-option", content).forEach((item) => {
+    dom.set(item, "data-layer-action", item.dataset.index);
+    dom.set(item, "data-pan", "");
+  });
+  pending.add(element);
+  try {
+    const result = await popover({
+      content,
+      fullscreen: true,
+      direction: "left",
+      // 이미 화면에 표시된 선택지의 복사본이므로 다시 번역하지 않습니다.
+      translate: false,
+      ready: (_, dismiss) => {
+        session.dismiss = dismiss;
+        if (session.closed || !element.isConnected) dismiss(false, false);
+        else focusOption(content);
+      }
+    });
+
+    if (!session.closed && typeof result === "string") {
+      choose(element, Number(result));
+    }
+  } catch (error) {
+    console.error(error);
+  } finally {
+    pending.delete(element);
+    if (current === session) close();
+  }
+};
+
 const open = (element) => {
   const input = source(element);
   const list = menu(element);
 
-  if (!input || input.disabled || !list) {
+  if (!input || input.disabled || !list || pending.has(element)) {
     return;
   }
 
   close();
-  current = element;
+  const mode = dom.has("wearable")
+    ? "fullscreen"
+    : dom.get(element, "data-expand") !== null
+      ? "expand"
+      : "float";
+
+  const session = { element, list, mode, off: [], closed: false };
+
+  current = session;
   dom.set(element, "data-open", "");
-  list.showPopover();
-  off = back.add(() => close(true));
+
+  const observer = new MutationObserver(() => {
+    if (!element.isConnected && current === session) close();
+  });
+
+  observer.observe(document.body, { childList: true, subtree: true });
+  session.off.push(() => observer.disconnect());
+
+  if (mode === "fullscreen") {
+    fullscreen(session);
+    return;
+  }
+
+  session.off.push(back.add(() => close(true)));
+
+  if (mode === "float") {
+    dom.set(list, "popover", "manual");
+    list.showPopover();
+    place(session);
+    const update = () => {
+      cancelAnimationFrame(session.frame);
+      session.frame = requestAnimationFrame(() => {
+        if (current === session) place(session);
+      });
+    };
+
+    session.off.push(
+      dom.on(
+        document,
+        "scroll",
+        (event) => {
+          if (!list.contains(event.target)) update();
+        },
+        true
+      ),
+      dom.on(window, "resize", update),
+      dom.on(window.visualViewport, "resize", update),
+      dom.on(window.visualViewport, "scroll", update)
+    );
+  }
 
   requestAnimationFrame(() => {
-    const option =
-      dom.query(".select-option[data-selected]:enabled", list) ??
-      dom.query(".select-option:enabled", list);
-
-    option?.focus({ preventScroll: true });
+    if (current === session) focusOption(list);
   });
 };
 
-const choose = (button) => {
-  const element = button.closest(".select");
+function choose(element, index) {
   const input = source(element);
-  const index = Number(button.dataset.index);
   const option = input?.options[index];
 
-  if (!input || !option || option.disabled) {
+  if (!input || input.disabled || !option || option.disabled) {
     return;
   }
 
@@ -112,7 +231,7 @@ const choose = (button) => {
 
     input.dispatchEvent(new Event("change", { bubbles: true }));
   }
-};
+}
 
 const bind = (element) => {
   const input = source(element);
@@ -147,7 +266,6 @@ const bind = (element) => {
 
   value.className = "select-value";
   list.className = "select-menu";
-  dom.set(list, "popover", "manual");
   list.append(...options);
 
   input.hidden = true;
@@ -157,21 +275,13 @@ const bind = (element) => {
 
   bound.add(input);
   sync(element);
-
-  dom.on(list, "toggle", (event) => {
-    if (event.newState === "closed" && current === element) {
-      close();
-    }
-  });
 };
 
 export default function select(root = document) {
-  const elements = root.matches?.(".select")
-    ? [root]
-    : dom.all(".select", root);
+  dom.find(".select", root).forEach(bind);
+}
 
-  elements.forEach(bind);
-
+export function listen() {
   if (listening) {
     return;
   }
@@ -187,7 +297,7 @@ export default function select(root = document) {
       sound.play("click");
       vibrate.play("click");
 
-      if (current === element) {
+      if (current?.element === element) {
         close(true);
       } else {
         open(element);
@@ -198,8 +308,8 @@ export default function select(root = document) {
 
     const option = event.target.closest?.(".select-option:enabled");
 
-    if (option) {
-      choose(option);
+    if (option && current?.list.contains(option)) {
+      choose(current.element, Number(option.dataset.index));
     }
   });
 
@@ -219,10 +329,39 @@ export default function select(root = document) {
     document,
     "pointerdown",
     (event) => {
-      if (current && !current.contains(event.target)) {
+      if (
+        current &&
+        current.mode !== "fullscreen" &&
+        !current.element.contains(event.target)
+      ) {
         close();
       }
     },
     true
   );
+
+  dom.on(document, "keydown", (event) => {
+    if (!current || current.mode === "fullscreen") return;
+    const { element, list } = current;
+
+    if (!element.contains(event.target)) return;
+    if (event.key === "Tab") {
+      close();
+      return;
+    }
+    if (!["ArrowDown", "ArrowUp", "Home", "End"].includes(event.key)) return;
+    event.preventDefault();
+    const options = dom.all(".select-option:enabled", list);
+    const index = options.indexOf(document.activeElement);
+    const next =
+      event.key === "Home"
+        ? 0
+        : event.key === "End"
+          ? options.length - 1
+          : (index + (event.key === "ArrowDown" ? 1 : -1) + options.length) %
+            options.length;
+
+    options[next]?.focus({ preventScroll: true });
+    options[next]?.scrollIntoView({ block: "nearest" });
+  });
 }

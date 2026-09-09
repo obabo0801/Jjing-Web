@@ -7,6 +7,7 @@ import vibrate from "#common/vibrate";
 const states = new WeakMap();
 
 let active = null;
+let listening = false;
 
 const dismiss = () => {
   const field = active?.field;
@@ -19,13 +20,17 @@ const dismiss = () => {
   active = null;
 };
 
-dom.on(document, "visibilitychange", () => {
-  if (document.hidden) {
-    dismiss();
-  }
-});
+export function listen() {
+  if (listening) return;
 
-dom.on(window, "pagehide", dismiss);
+  listening = true;
+  dom.on(document, "visibilitychange", () => {
+    if (document.hidden) {
+      dismiss();
+    }
+  });
+  dom.on(window, "pagehide", dismiss);
+}
 
 const empty = Object.freeze({ show() {}, hide() {}, submit() {}, update() {} });
 

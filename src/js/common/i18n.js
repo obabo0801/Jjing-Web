@@ -1,6 +1,6 @@
-import { i18n, content } from "#config/route";
+import { i18n, content } from "#shared/route";
 
-import string from "#src/string";
+import string from "#shared/string";
 
 import * as dom from "#common/dom";
 import api from "#common/api";
@@ -9,6 +9,7 @@ import { get, set } from "#common/storage";
 const required = new Set();
 
 let messages = {};
+let pending;
 
 const updateText = (element, value) => {
   const icon = dom.query(":scope > .icon", element);
@@ -86,46 +87,88 @@ export default async function translate(mode = get("lang", "system")) {
     ...new Set([...targets.map(({ key }) => key), ...required])
   ].filter(Boolean);
 
-  if (!names.length) {
-    return true;
-  }
+  const task = {};
 
-  const entries = await Promise.all(
-    names.map(async (name) => [name, await hash(name)])
-  );
-  const keys = entries.map(([, key]) => key);
-
-  try {
-    const result = await api(i18n, {
-      method: "POST",
-      data: { [content]: encode({ lang: mode, keys }) }
-    });
-    const value = result.data?.[content];
-
-    if (!result.ok || typeof value !== "string") {
-      return false;
+  pending = task;
+  task.result = (async () => {
+    if (!names.length) {
+      return true;
     }
 
-    const { lang, text } = decode(value);
+    try {
+      const entries = await Promise.all(
+        names.map(async (name) => [name, await hash(name)])
+      );
+      const keys = [...new Set(entries.map(([, key]) => key))];
+      const text = Object.create(null);
 
-    dom.root.lang = lang;
+      let lang;
 
-    messages = Object.fromEntries(
-      entries
-        .map(([name, key]) => [name, text[key]])
-        .filter(([, value]) => typeof value === "string")
-    );
+      for (let index = 0; index < keys.length; index += 256) {
+        if (pending !== task) {
+          return pending.result;
+        }
 
-    targets.forEach(({ element, key, update }) => {
-      const value = messages[key];
+        const result = await api(i18n, {
+          method: "POST",
+          data: {
+            [content]: encode({
+              lang: mode,
+              keys: keys.slice(index, index + 256)
+            })
+          }
+        });
 
-      if (typeof value === "string") {
-        update(element, value);
+        // A superseded caller waits for the current translation, including layers.
+        if (pending !== task) {
+          return pending.result;
+        }
+
+        const value = result.data?.[content];
+
+        if (!result.ok || typeof value !== "string") {
+          return false;
+        }
+
+        const batch = decode(value);
+
+        if (
+          !batch ||
+          typeof batch.lang !== "string" ||
+          !batch.lang.trim() ||
+          (lang && lang !== batch.lang) ||
+          !batch.text ||
+          typeof batch.text !== "object" ||
+          Array.isArray(batch.text) ||
+          Object.values(batch.text).some((value) => typeof value !== "string")
+        ) {
+          return false;
+        }
+
+        lang = batch.lang;
+        Object.assign(text, batch.text);
       }
-    });
 
-    return true;
-  } catch {
-    return false;
-  }
+      messages = Object.fromEntries(
+        entries
+          .map(([name, key]) => [name, text[key]])
+          .filter(([, value]) => typeof value === "string")
+      );
+      dom.root.lang = lang;
+
+      targets.forEach(({ element, key, update }) => {
+        const value = messages[key];
+
+        if (typeof value === "string") {
+          update(element, value);
+        }
+      });
+
+      return true;
+    } catch {
+      return pending !== task ? pending.result : false;
+    }
+  })();
+
+  return task.result;
 }

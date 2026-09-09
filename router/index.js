@@ -1,6 +1,6 @@
 import { Router } from "express";
 
-import * as route from "#config/route";
+import * as route from "#shared/route";
 
 import { guard } from "#block";
 

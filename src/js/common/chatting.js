@@ -195,9 +195,5 @@ export const append = (target, options = {}) => {
 };
 
 export default function chatting(root = document) {
-  const elements = root.matches?.(".chatting")
-    ? [root]
-    : dom.all(".chatting", root);
-
-  elements.forEach(bind);
+  dom.find(".chatting", root).forEach(bind);
 }

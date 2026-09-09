@@ -1,12 +1,13 @@
 import * as dom from "#common/dom";
 import { get, set } from "#common/storage";
 
-const modes = ["system", "light", "dark"];
+export const modes = ["system", "light", "dark", "black"];
 const scheme = matchMedia("(prefers-color-scheme: dark)");
 const colors = new Map();
 
 let listening = false;
 let background;
+let selected;
 
 const sync = () => {
   let meta = dom.query('meta[name="theme-color"]');
@@ -38,6 +39,17 @@ const sync = () => {
   dom.set(meta, "content", color);
 };
 
+const apply = () => {
+  const value =
+    selected === "system" ? (scheme.matches ? "dark" : "light") : selected;
+
+  if (dom.get(dom.root, "data-theme") !== value) {
+    dom.set(dom.root, "data-theme", value);
+  }
+
+  sync();
+};
+
 export const color = (value) => {
   const key = {};
 
@@ -51,23 +63,23 @@ export const color = (value) => {
 };
 
 export default function theme(mode) {
-  const wearable = dom.has("wearable");
+  const fallback = dom.has("wearable") ? "black" : "system";
 
-  mode ||= get("theme", wearable ? "dark" : "system");
+  mode ||= get("theme", fallback);
 
   if (!modes.includes(mode)) {
-    mode = "system";
+    mode = fallback;
   }
 
-  set("theme", mode);
-  dom.set(dom.root, "data-theme", mode);
+  selected = mode;
+  set("theme", selected);
 
   if (!listening) {
-    dom.on(scheme, "change", sync);
-    dom.on(window, "pageshow", sync);
+    dom.on(scheme, "change", apply);
+    dom.on(window, "pageshow", apply);
     dom.on(document, "visibilitychange", () => {
       if (!document.hidden) {
-        sync();
+        apply();
       }
     });
     const observer = new MutationObserver(sync);
@@ -79,7 +91,7 @@ export default function theme(mode) {
     listening = true;
   }
 
-  sync();
+  apply();
 
   return mode;
 }

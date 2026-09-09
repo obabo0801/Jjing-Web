@@ -1,8 +1,8 @@
 import { Router } from "express";
 
 import address from "#config/ip";
-import { enabled, key } from "#config/push";
-import { get, run } from "#config/sqlite";
+import { enabled, key } from "#service/push";
+import { get, run } from "#db";
 import uid from "#config/uid";
 
 import limit from "#middleware/limit";

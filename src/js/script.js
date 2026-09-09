@@ -1,7 +1,6 @@
 import * as dom from "#common/dom";
 import * as i18n from "#common/i18n";
-import init from "#common/init";
-import sound from "#common/sound";
+import init from "#src/init";
 import push, * as state from "#common/push";
 import { append } from "#common/chatting";
 
@@ -36,8 +35,17 @@ try {
       });
 
       append(chat, {
-        uid: "9cd41a93-4b97-4f33-9509-461c9cfe795b",
-        name: "테스트",
+        uid: "d4a5ac84-2e5b-42c2-918e-e86aa0e2999a",
+        text: "채팅 테스트 메시지입니다."
+      });
+
+      append(chat, {
+        uid: "40be1243-3400-49de-8ba3-242c76054c38",
+        text: "채팅 테스트 메시지입니다."
+      });
+
+      append(chat, {
+        uid: "08242c46-ae73-437f-9e8a-e6a8994cd8e0",
         text: "채팅 테스트 메시지입니다."
       });
 
@@ -57,41 +65,6 @@ try {
         append(chat, { text, own: true });
 
         chatForm.reset();
-      });
-
-      const button = dom.query("[data-music]", app);
-      const volume = dom.query('input[name="music-volume"]', app);
-
-      let player;
-
-      dom.on(button, "click", () => {
-        if (player && !player.paused) {
-          player.pause();
-          player.currentTime = 0;
-          button.textContent = "음악 재생";
-
-          return;
-        }
-
-        player = sound.music("semenota", {
-          volume: Number(volume.value) / 100,
-          loop: true
-        });
-
-        if (player) {
-          button.textContent = "음악 중단";
-        }
-      });
-
-      dom.on(volume, "input", () => {
-        if (!player || player.paused) {
-          return;
-        }
-
-        player = sound.music("semenota", {
-          volume: Number(volume.value) / 100,
-          loop: true
-        });
       });
 
       const notify = dom.query("[data-notify]", app);

@@ -1,8 +1,8 @@
 import * as dom from "#common/dom";
-import limit from "#config/upload";
+import limit from "#shared/upload";
 import edit from "#common/image";
 import * as i18n from "#common/i18n";
-import init from "#common/init";
+import init from "#src/init";
 import * as profile from "#common/profile";
 
 i18n.preload(

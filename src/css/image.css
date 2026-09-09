@@ -1,0 +1,22 @@
+.image-link {
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 16px;
+
+  width: min(calc(100% - 32px), 28rem);
+
+  min-height: 100dvh;
+  margin-inline: auto;
+
+  text-align: center;
+}
+
+.image-link > h1,
+.image-link > p {
+  margin: 0;
+}
+
+.image-link > p {
+  color: var(--text);
+}

@@ -1,9 +1,9 @@
-import { content, i18n as path } from "#config/route";
+import { content, i18n as path } from "#shared/route";
 
 import * as dom from "#common/dom";
 import api from "#common/api";
 import * as i18n from "#common/i18n";
-import init from "#common/init";
+import init from "#src/init";
 import available from "#common/page";
 import * as storage from "#common/storage";
 import sound from "#common/sound";

@@ -1,12 +1,12 @@
 import { raw, Router } from "express";
 
-import fcm, * as firebase from "#config/fcm";
-import store from "#config/image";
-import record from "#config/log/notify";
-import webpush, * as push from "#config/push";
-import { all, run } from "#config/sqlite";
+import fcm, * as firebase from "#service/fcm";
+import store from "#service/image";
+import record from "#service/log/notify";
+import webpush, * as push from "#service/push";
+import { all, run } from "#db";
 
-import string from "#src/string";
+import string from "#shared/string";
 
 import admin from "#middleware/admin";
 

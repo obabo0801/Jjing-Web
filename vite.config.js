@@ -1,9 +1,9 @@
 import { defineConfig, loadEnv } from "vite";
 
-import data, { css } from "#config/data";
-import html from "#config/html";
-import output from "#config/output";
-import proxy from "#config/proxy";
+import data, { css } from "#build/data";
+import html from "#build/html";
+import output from "#build/output";
+import proxy from "#build/proxy";
 
 export default defineConfig(({ command, mode }) => {
   const env = loadEnv(mode, ".", "");

@@ -1,0 +1,76 @@
+.legal {
+  display: grid;
+  gap: 24px;
+  width: min(100%, 52rem);
+  margin-inline: auto;
+  padding: 32px 20px;
+  color: var(--text);
+  line-height: 1.8;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+  text-wrap: pretty;
+}
+
+.legal :is(h1, h2, p) {
+  margin: 0;
+}
+
+.legal p {
+  white-space: pre-wrap;
+}
+
+.legal h1 {
+  font-size: 1.75rem;
+}
+
+.legal h2 {
+  font-size: 1.15rem;
+}
+
+.legal section {
+  display: grid;
+  min-width: 0;
+  gap: 12px;
+}
+
+.legal-contact {
+  display: grid;
+  gap: 0;
+}
+
+.legal-contact p {
+  white-space: normal;
+}
+
+.legal nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+}
+
+.legal a {
+  color: var(--focus);
+  text-underline-offset: 0.2em;
+}
+
+.legal h2 > a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.legal h2 > a:is(:hover, :focus-visible) {
+  text-decoration: underline;
+}
+
+.legal [id] {
+  scroll-margin-block-start: 16px;
+}
+
+.legal section:target > h2 {
+  color: var(--focus);
+}
+
+:is(.small, .wearable) .legal {
+  gap: 16px;
+  padding: 16px 8px;
+}

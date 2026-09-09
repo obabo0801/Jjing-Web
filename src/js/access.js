@@ -1,4 +1,4 @@
-import { user } from "#config/route";
+import { user } from "#shared/route";
 
 import api from "#common/api";
 import device from "#common/device";

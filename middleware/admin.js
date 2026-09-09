@@ -1,5 +1,5 @@
-import * as role from "#config/role";
-import { get } from "#config/sqlite";
+import * as role from "#shared/role";
+import { get } from "#db";
 import uid from "#config/uid";
 
 const find = async (req) => {
@@ -19,12 +19,12 @@ const find = async (req) => {
   );
 };
 
-export const allowed = async (req) => (await find(req))?.role === role.admin;
+export const allowed = async (req) => role.staff((await find(req))?.role);
 
 export default async function admin(req, res, next) {
   const user = await find(req);
 
-  if (user?.role !== role.admin) {
+  if (!role.staff(user?.role)) {
     return res.status(403).end();
   }
 

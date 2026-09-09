@@ -13,6 +13,68 @@
   margin-inline: auto;
 }
 
+.setup-consent {
+  display: grid;
+  gap: 8px;
+
+  min-width: 0;
+}
+
+.setup-consent > .checkbox {
+  border: 0;
+}
+
+.setup-consent-row {
+  display: flex;
+  align-items: center;
+
+  background: var(--background);
+  transition:
+    background-color 160ms ease,
+    color 160ms ease;
+}
+
+.setup-consent-row:has(input:focus-visible),
+.setup-consent-row:has(input:enabled):active {
+  background-image: var(--overlay);
+}
+
+.setup-consent-row > .checkbox {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  border-radius: 0;
+}
+
+.setup-consent .checkbox > label {
+  justify-content: flex-start;
+}
+
+.setup-consent .checkbox span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  word-break: keep-all;
+}
+
+.setup-consent-row > a {
+  flex: none;
+  padding: 16px;
+  color: var(--focus);
+}
+
+:is(.small, .wearable) .setup-consent-row,
+:is(.small, .wearable) .setup-consent .checkbox > label {
+  flex-direction: column;
+  justify-content: center;
+  text-align: center;
+}
+
+:is(.small, .wearable) .setup-consent .checkbox {
+  width: 100%;
+  min-width: 0;
+  padding: 8px 0;
+}
+
 .setup-status {
   min-height: 1.5em;
 
@@ -27,26 +89,30 @@
   color: var(--success);
 }
 
+.setup-hint {
+  color: var(--mute);
+}
+
 .setup-profile {
   box-sizing: border-box;
   align-content: start;
-  justify-items: start;
-  gap: 0;
+  justify-items: center;
+  gap: 16px;
 
-  width: 100%;
-  padding-inline: 16px;
+  width: min(100%, 36rem);
+  margin-inline: auto;
 
-  text-align: left;
+  text-align: center;
 }
 
-dialog[data-drawer] .layer-content:has(> .setup-profile) {
-  padding-inline: 0;
-}
-
-.setup-profile > strong,
 .setup-profile > p {
   word-break: keep-all;
+  overflow-wrap: anywhere;
   text-wrap: pretty;
+}
+
+.setup-profile > .profile-avatar {
+  max-width: 100%;
 }
 
 .setup-profile > p {
@@ -55,12 +121,27 @@ dialog[data-drawer] .layer-content:has(> .setup-profile) {
   white-space: pre-line;
 }
 
-.setup-profile > p:last-child {
-  margin-block-start: 16px;
+.setup-profile > .group {
+  width: 100%;
 }
 
-:is(.small, .wearable) .setup-profile {
-  justify-items: center;
-  padding-inline: 0;
-  text-align: center;
+.setup-profile .label-value {
+  flex: 1;
+  min-width: 0;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+:is(.small, .wearable) .setup-profile .label {
+  flex-wrap: wrap;
+}
+
+:is(.small, .wearable) .setup-profile :is(.label-key, .label-value) {
+  flex-basis: 100%;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .setup-consent-row:has(input:enabled):hover {
+    background-image: var(--overlay);
+  }
 }

@@ -73,13 +73,7 @@ button:focus-visible {
   color: var(--thumb);
 }
 
-button:is(
-    [data-background],
-    [data-danger],
-    [data-success],
-    [data-neutral],
-    [data-confirm]
-  ):enabled:active {
+button:enabled:active {
   background-image: var(--overlay);
 }
 
@@ -88,13 +82,7 @@ button[data-opacity]:enabled:active {
 }
 
 @media (hover: hover) and (pointer: fine) {
-  button:is(
-      [data-background],
-      [data-danger],
-      [data-success],
-      [data-neutral],
-      [data-confirm]
-    ):enabled:hover {
+  button:enabled:hover {
     background-image: var(--overlay);
   }
 

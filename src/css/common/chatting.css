@@ -10,7 +10,7 @@
   border: 1px solid var(--border);
   border-radius: 8px;
 
-  background: var(--panel);
+  background: var(--background);
   color: var(--text);
 
   overflow: hidden;
@@ -89,6 +89,12 @@
   white-space: pre-wrap;
 }
 
+.chatting-time,
+.chatting-text {
+  -webkit-user-select: none;
+  user-select: none;
+}
+
 .chatting-time {
   color: var(--mute);
   font-size: 1rem;
@@ -103,7 +109,16 @@
   inset-inline-start: 50%;
   inset-block-end: calc(var(--chatting-form, 77px) + 16px);
 
+  border: 0;
+
   transform: translateX(-50%);
+}
+
+.chatting-bottom[data-background] {
+  background: color-mix(in srgb, var(--background) 20%, transparent);
+
+  -webkit-backdrop-filter: blur(2px);
+  backdrop-filter: blur(2px);
 }
 
 .chatting-bottom[hidden] {
@@ -294,10 +309,6 @@
   border-radius: 0 8px 8px;
 
   background: var(--canvas);
-
-  transition:
-    background-color 160ms ease,
-    color 160ms ease;
 }
 
 .chatting[data-chatting="messenger"]
@@ -385,10 +396,6 @@
     "time";
 }
 
-:is(.small, .wearable) .chatting[data-chatting] .chatting-message[data-own] {
-  align-self: flex-end;
-}
-
 :is(.small, .wearable)
   .chatting[data-chatting]
   .chatting-message
@@ -412,10 +419,9 @@
 }
 
 :is(.small, .wearable)
-  .chatting[data-chatting]
-  .chatting-message[data-own]
-  .chatting-time {
-  justify-self: end;
+  .chatting[data-chatting="messenger"]
+  .chatting-message[data-own] {
+  align-self: flex-end;
 }
 
 .wearable .chatting-text {
@@ -490,6 +496,60 @@
     .chatting-time {
     opacity: 1;
   }
+}
+
+.chatting.chatting-preview {
+  display: flex;
+  flex-direction: column;
+
+  min-height: 0;
+  max-height: none;
+  padding: 12px;
+
+  font-size: 1rem;
+  overflow: visible;
+}
+
+.chatting.chatting-preview[data-chatting]
+  :is(.chatting-message, .chatting-message[data-own]) {
+  grid-template-columns: auto auto minmax(0, 1fr);
+  grid-template-areas:
+    "profile time ."
+    "text text text";
+  align-self: stretch;
+  gap: 8px;
+
+  width: 100%;
+  max-width: 100%;
+  margin: 0;
+  padding: 0;
+
+  pointer-events: none;
+}
+
+.chatting.chatting-preview[data-chatting] .chatting-message .chatting-profile {
+  display: inline-flex;
+  flex-wrap: wrap;
+  max-width: 100%;
+}
+
+.chatting.chatting-preview[data-chatting] .chatting-message .chatting-text {
+  margin-inline-start: 0;
+}
+
+.chatting.chatting-preview[data-chatting] .chatting-message .chatting-time {
+  align-self: center;
+  opacity: 1;
+}
+
+:is(.small, .wearable)
+  .chatting.chatting-preview[data-chatting]
+  :is(.chatting-message, .chatting-message[data-own]) {
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-areas:
+    "profile"
+    "time"
+    "text";
 }
 
 @media (prefers-reduced-motion: reduce) {

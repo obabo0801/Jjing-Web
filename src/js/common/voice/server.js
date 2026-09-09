@@ -1,6 +1,6 @@
-import { stt as route } from "#config/route";
+import { stt as route } from "#shared/route";
 
-import string from "#src/string";
+import string from "#shared/string";
 
 let cloud;
 

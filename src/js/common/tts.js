@@ -1,8 +1,8 @@
-import { tts as route } from "#config/route";
+import { tts as route } from "#shared/route";
 
 import * as dom from "#common/dom";
 import { context, level } from "#common/audio";
-import string from "#src/string";
+import string from "#shared/string";
 
 const buffers = new Map();
 const logged = new Set();

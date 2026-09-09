@@ -1,16 +1,13 @@
-import { createHash } from "node:crypto";
-
 import { Router } from "express";
 
-import { langs, locale } from "#config/locale";
+import hash from "#config/hash";
+import { langs, locale } from "#service/locale";
+import { content } from "#shared/route";
 
-import { content } from "#config/route";
-
-import string from "#src/string";
+import string from "#shared/string";
 
 const router = Router();
-const hash = (value) =>
-  createHash("sha256").update(value.toLowerCase()).digest("hex").slice(0, 8);
+const key = (value) => hash(8, value.toLowerCase());
 
 const encode = (value) =>
   Buffer.from(JSON.stringify(value), "utf8").toString("base64");
@@ -18,9 +15,9 @@ const encode = (value) =>
 const decode = (value) =>
   JSON.parse(Buffer.from(value, "base64").toString("utf8"));
 
-const files = Object.fromEntries(langs.map((lang) => [hash(lang), lang]));
+const files = Object.fromEntries(langs.map((lang) => [key(lang), lang]));
 
-const languages = Object.fromEntries(langs.map((lang) => [lang, hash(lang)]));
+const languages = Object.fromEntries(langs.map((lang) => [lang, key(lang)]));
 const defaultLang = langs.includes("ko") ? "ko" : langs[0];
 
 router.get("/", (_, res) => {
@@ -44,7 +41,7 @@ router.get("/:file", (req, res) => {
   res.json({ [content]: encode({ lang, text }) });
 });
 
-router.post("/", (req, res) => {
+router.post("/", async (req, res) => {
   let body;
 
   try {
@@ -64,13 +61,13 @@ router.post("/", (req, res) => {
   const lang = langs.includes(selected) ? selected : defaultLang;
 
   const source = Object.fromEntries(
-    Object.entries(locale(lang)).map(([key, value]) => [hash(key), value])
+    Object.entries(locale(lang)).map(([name, value]) => [key(name), value])
   );
 
   const keys = Array.isArray(body.keys)
     ? [...new Set(body.keys.filter((key) => typeof key === "string"))].slice(
         0,
-        100
+        256
       )
     : [];
 

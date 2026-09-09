@@ -14,24 +14,42 @@ const midpoint = ([first, second]) => ({
   y: (first.y + second.y) / 2
 });
 
-export default async function view(source, anchor) {
-  if (!source) {
+export default async function view(source, anchor, icon = "") {
+  if (!source && !icon) {
     return false;
   }
 
   const root = dom.create("div");
   const stage = dom.create("div");
+  const empty = dom.create("span");
   const image = dom.create("img");
+  const full = dom.create("button");
 
   root.className = "image-view";
   stage.className = "image-view-stage";
+  empty.className = "image-view-empty";
   image.className = "image-view-media";
+  full.type = "button";
+  full.className = "image-view-full";
+
+  empty.classList.add("image-view-media");
+
+  if (icon) {
+    dom.set(empty, "data-icon", icon);
+  }
+
   image.alt = "";
   image.draggable = false;
+
   dom.set(root, "data-drag", "none");
 
-  stage.append(image);
-  root.append(stage);
+  dom.set(full, "data-icon", "full");
+  dom.set(full, "data-circle", "");
+  dom.set(full, "data-background", "");
+  dom.set(full, "data-response", "");
+
+  stage.append(empty, image);
+  root.append(stage, full);
 
   const state = {
     scale: 1,
@@ -155,9 +173,34 @@ export default async function view(source, anchor) {
     }
   };
 
+  const screen = async () => {
+    if (!root.requestFullscreen) {
+      return;
+    }
+
+    if (document.fullscreenElement) {
+      await document.exitFullscreen();
+      return;
+    }
+
+    await root.requestFullscreen();
+  };
+
+  const screenState = () => {
+    const active = document.fullscreenElement === root;
+
+    dom.set(full, "data-icon", active ? "full-exit" : "full");
+
+    measure();
+  };
+
   const off = [
     dom.on(image, "load", render),
     dom.on(window, "resize", measure),
+    dom.on(full, "click", () => {
+      screen().catch(() => {});
+    }),
+    dom.on(document, "fullscreenchange", screenState),
     dom.on(
       root,
       "wheel",
@@ -183,6 +226,10 @@ export default async function view(source, anchor) {
       { passive: false }
     ),
     dom.on(root, "pointerdown", (event) => {
+      if (event.target.closest?.("button")) {
+        return;
+      }
+
       if (event.pointerType === "mouse" && event.button !== 0) {
         return;
       }
@@ -241,7 +288,12 @@ export default async function view(source, anchor) {
     dom.on(root, "lostpointercapture", release)
   ];
 
-  image.src = source;
+  if (source) {
+    empty.hidden = true;
+    image.src = source;
+  } else {
+    image.hidden = true;
+  }
 
   let restore;
 
@@ -252,6 +304,11 @@ export default async function view(source, anchor) {
       content: root,
       fullscreen: true,
       ready: () => {
+        const enabled = document.fullscreenEnabled;
+        const supported = Boolean(root.requestFullscreen);
+
+        full.hidden = !enabled || !supported;
+
         restore = theme.color(root);
         measure();
       }

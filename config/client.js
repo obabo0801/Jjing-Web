@@ -80,6 +80,24 @@ const browser = (req) => {
   return "Unknown";
 };
 
+const lang = (req) => {
+  const [value] = req.acceptsLanguages();
+
+  if (!value || value === "*") {
+    return "";
+  }
+
+  try {
+    const item = new Intl.Locale(value);
+
+    const region = item.region || item.maximize().region;
+
+    return region ? `${item.language}-${region}` : item.language;
+  } catch {
+    return "";
+  }
+};
+
 export default function client(req) {
-  return { os: os(req), browser: browser(req) };
+  return { os: os(req), browser: browser(req), lang: lang(req) };
 }

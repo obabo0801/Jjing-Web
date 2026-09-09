@@ -8,6 +8,7 @@ const bound = new WeakSet();
 
 let resizing = false;
 let resizeId;
+let listening = false;
 
 const resize = () => {
   resizing = true;
@@ -17,8 +18,13 @@ const resize = () => {
   }, 160);
 };
 
-dom.on(window, "resize", resize);
-dom.on(window.visualViewport, "resize", resize);
+export function listen() {
+  if (listening) return;
+
+  listening = true;
+  dom.on(window, "resize", resize);
+  dom.on(window.visualViewport, "resize", resize);
+}
 
 const fields = (root) =>
   dom
@@ -162,7 +168,7 @@ const togglePeriod = (column) => {
   move(list, next, true);
 };
 
-const select = (column, button, sync = true) => {
+function select(column, button, sync = true) {
   if (!button) {
     return false;
   }
@@ -203,7 +209,7 @@ const select = (column, button, sync = true) => {
   }
 
   return true;
-};
+}
 
 const valid = (input) => {
   const value = Number(input.value);
@@ -256,7 +262,7 @@ const close = (column, keep = false) => {
   }
 };
 
-const commit = (column, keep = false) => {
+function commit(column, keep = false) {
   const input = dom.query(".picker-input", column);
   const list = dom.query(".picker-list", column);
 
@@ -283,10 +289,19 @@ const commit = (column, keep = false) => {
   }
 
   move(list, button);
-};
+}
 
-const keyboard = (root) =>
-  keypad(root, { close, commit, edit, fields, input: source, selected, valid });
+function keyboard(root) {
+  return keypad(root, {
+    close,
+    commit,
+    edit,
+    fields,
+    input: source,
+    selected,
+    valid
+  });
+}
 
 const append = (list, items, count) => {
   for (let cycle = 0; cycle < count; cycle += 1) {
@@ -568,11 +583,9 @@ const build = (column) => {
 };
 
 export default function picker(root = document) {
-  dom.all(".picker-column", root).forEach(build);
+  dom.find(".picker-column", root).forEach(build);
 
-  const elements = root.matches?.(".picker")
-    ? [root]
-    : dom.all(".picker", root);
+  const elements = dom.find(".picker", root);
 
   elements.forEach((element) => {
     const inputs = dom.all(".picker-input", element);

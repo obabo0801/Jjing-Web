@@ -1,12 +1,12 @@
 import * as dom from "#common/dom";
-import dialog from "#common/dialog";
-import drawer from "#common/drawer";
 import viewer from "#common/image/view";
 import * as i18n from "#common/i18n";
 import popover from "#common/popover";
 import * as profile from "#common/profile";
 import avatar from "#common/avatar";
 import once from "#common/once";
+import mount from "#common/mount";
+import * as actions from "#common/profile/actions";
 
 const opening = once();
 
@@ -16,8 +16,27 @@ const keys = [
   "profile.userIp",
   "profile.accessIp",
   "profile.date",
+  "profile.last",
   "profile.os",
-  "profile.copy",
+  "profile.browser",
+  "profile.lang",
+  "profile.access",
+  "profile.environment",
+  "profile.blocked",
+  "profile.unblock",
+  "profile.unblockReason",
+  "profile.blockTime",
+  "profile.handler",
+  "profile.authority",
+  "profile.memo",
+  "profile.editMemo",
+  "profile.granted",
+  "profile.activity",
+  "profile.none",
+  "profile.counts",
+  "profile.saveError",
+  "toggle.on",
+  "toggle.off",
   "profile.chatMute",
   "profile.kick",
   "profile.block",
@@ -35,10 +54,6 @@ const keys = [
 ];
 
 i18n.preload(...keys);
-
-const emit = (target, type, detail) => {
-  target?.dispatchEvent(new CustomEvent(type, { bubbles: true, detail }));
-};
 
 const relative = (value) => {
   if (!value) {
@@ -72,11 +87,18 @@ const relative = (value) => {
   );
 };
 
-const setState = (status, last, value, time) => {
+const setState = (status, last, value, time, blocked) => {
   const state = ["online", "away"].includes(value) ? value : "offline";
 
   dom.set(status, "data-state", state);
   dom.remove(last, "data-i18n");
+  if (blocked) {
+    dom.set(last, "data-blocked", "");
+    dom.set(last, "data-i18n", "profile.blocked");
+    last.textContent = i18n.message("profile.blocked") || "";
+    return;
+  }
+  dom.remove(last, "data-blocked");
 
   if (state === "offline") {
     last.textContent = relative(time);
@@ -86,126 +108,7 @@ const setState = (status, last, value, time) => {
   const key = state === "online" ? "profile.active" : "profile.away";
 
   dom.set(last, "data-i18n", key);
-  last.textContent = i18n.message(key) || key;
-};
-
-const copy = async (value) => {
-  if (value) {
-    await navigator.clipboard.writeText(value);
-  }
-};
-
-const item = (handlers, data) => {
-  const { text, icon, run } = data;
-  const { danger, next, close = true } = data;
-  const row = dom.create("div");
-  const button = dom.create("button");
-  const label = dom.create("span");
-
-  row.className = "group-item";
-  button.type = "button";
-  label.textContent = text;
-
-  dom.set(row, "data-icon", icon);
-  dom.set(label, "data-i18n", text);
-  dom.set(button, "data-response", "");
-  button.append(label);
-
-  if (close) {
-    dom.set(button, "data-layer-action", text);
-    handlers.set(text, run);
-  } else {
-    dom.on(button, "click", run);
-  }
-
-  if (danger) {
-    dom.set(row, "data-danger", "");
-  }
-
-  if (next) {
-    const arrow = dom.create("span");
-
-    arrow.className = "profile-next";
-    dom.set(arrow, "data-icon", "arrow");
-    button.append(arrow);
-  }
-
-  row.append(button);
-
-  return row;
-};
-
-const group = (...items) => {
-  const element = dom.create("div");
-
-  element.className = "group";
-  element.append(...items);
-
-  return element;
-};
-
-const hidden = (target, options) => {
-  const row = dom.create("div");
-  const field = dom.create("div");
-  const label = dom.create("label");
-  const text = dom.create("span");
-  const input = dom.create("input");
-
-  row.className = "group-item";
-  dom.set(row, "data-icon", "eye-off");
-  field.className = "switch";
-  text.textContent = "profile.hide";
-  input.type = "checkbox";
-  input.name = "chatting-hide";
-  input.checked = Boolean(options.hidden);
-
-  dom.set(text, "data-i18n", "profile.hide");
-  dom.on(input, "change", () => {
-    emit(target, "chatting-hide", { ...options, hidden: input.checked });
-  });
-
-  label.append(text, input);
-  field.append(label);
-  row.append(field);
-
-  return row;
-};
-
-const label = (key, value) => {
-  const row = dom.create("div");
-  const element = dom.create("div");
-  const name = dom.create("span");
-  const result = dom.create("div");
-  const text = dom.create("span");
-  const button = dom.create("button");
-
-  row.className = "group-item";
-  element.className = "label";
-  name.className = "label-key";
-  result.className = "profile-value";
-  text.className = "label-value";
-  button.className = "profile-copy";
-  button.type = "button";
-  button.disabled = !value;
-
-  name.textContent = key;
-  text.textContent = value || "-";
-
-  dom.set(name, "data-i18n", key);
-  dom.set(button, "data-icon", "copy");
-  dom.set(button, "data-tooltip", "profile.copy");
-  dom.set(button, "data-response", "");
-  dom.set(button, "data-opacity", "");
-
-  dom.on(button, "click", () => {
-    copy(value).catch(() => {});
-  });
-
-  result.append(text, button);
-  element.append(name, result);
-  row.append(element);
-
-  return row;
+  last.textContent = i18n.message(key);
 };
 
 const request = async (options) => {
@@ -220,137 +123,6 @@ const request = async (options) => {
   return result.ok ? result.data : null;
 };
 
-const block = async (user) => {
-  const field = dom.create("div");
-  const input = dom.create("input");
-
-  field.className = "input";
-  input.name = "block-reason";
-  input.autocomplete = "off";
-
-  dom.set(input, "data-control", "");
-  dom.set(input, "data-i18n-placeholder", "profile.blockReason");
-  field.append(input);
-
-  const confirmed = await dialog({
-    title: "profile.blockTitle",
-    content: field,
-    actions: [
-      { text: "profile.cancel", value: false, data: ["data-neutral"] },
-      {
-        text: "profile.confirm",
-        value: true,
-        data: ["data-danger"],
-        disabled: () => !input.value.trim()
-      }
-    ],
-    locked: true
-  });
-
-  if (!confirmed) {
-    return;
-  }
-
-  await profile.block(user.uid, input.value.trim());
-};
-
-const manage = (user, target, options, handlers) => {
-  if (!user.manage || !user.details) {
-    return null;
-  }
-
-  const details = user.details;
-  const element = dom.create("section");
-
-  element.className = "profile-section";
-  element.append(
-    group(
-      label("profile.uid", details.uid),
-      label("profile.email", details.email),
-      label("profile.userIp", details.userIp),
-      label("profile.accessIp", details.accessIp),
-      label("profile.date", details.date),
-      label("profile.os", details.os),
-      item(handlers, {
-        text: "profile.chatMute",
-        icon: "tts-mute",
-        danger: true,
-        close: false,
-        run: () => emit(target, "chatting-mute", options)
-      }),
-      item(handlers, {
-        text: "profile.kick",
-        icon: "arrow",
-        danger: true,
-        close: false,
-        run: () => emit(target, "chatting-kick", options)
-      }),
-      item(handlers, {
-        text: "profile.block",
-        icon: "error",
-        danger: true,
-        close: false,
-        run: () => block(user)
-      })
-    )
-  );
-
-  return element;
-};
-
-const context = (user, target, options, handlers) => {
-  const gift = item(handlers, {
-    text: "profile.gift",
-    icon: "gift",
-    next: true,
-    close: false,
-    run: () =>
-      drawer({
-        back: true,
-        content: dom.create("div"),
-        side: "right",
-        direction: "→"
-      })
-  });
-  const element = dom.create("section");
-
-  element.className = "profile-section";
-  element.append(group(gift));
-
-  if (!user.self) {
-    const whisper = item(handlers, {
-      text: "profile.whisper",
-      icon: "whisper",
-      run: () => emit(target, "chatting-whisper", options)
-    });
-
-    dom.set(whisper, "data-whisper", "");
-    whisper.hidden = user.state === "offline";
-
-    const items = [
-      item(handlers, {
-        text: "profile.message",
-        icon: "mail",
-        run: () => emit(target, "chatting-message", options)
-      }),
-      whisper
-    ];
-
-    items.push(
-      hidden(target, options),
-      item(handlers, {
-        text: "profile.report",
-        icon: "flag",
-        danger: true,
-        run: () => emit(target, "chatting-report", options)
-      })
-    );
-    element.append(group(...items));
-  }
-
-  return element;
-};
-
 const tabs = (options) => {
   if (!Array.isArray(options.tabs) || !options.tabs.length) {
     return null;
@@ -363,7 +135,7 @@ const tabs = (options) => {
     const button = dom.create("button");
 
     button.type = "button";
-    button.textContent = tab;
+    button.textContent = i18n.message(tab);
     dom.set(button, "data-i18n", tab);
     dom.set(button, "data-background", "");
 
@@ -394,6 +166,8 @@ const content = (user, target, options, handlers) => {
   name.className = "profile-name";
   uid.className = "profile-uid";
   last.className = "profile-last";
+  let admin;
+  let signature;
 
   dom.set(media.root, "data-response", "");
 
@@ -403,7 +177,28 @@ const content = (user, target, options, handlers) => {
     name.textContent = user.name || options.name || "";
     uid.textContent = user.short || user.uid?.slice(0, 8) || "";
 
-    setState(status, last, user.state, user.last || options.last);
+    setState(status, last, user.state, user.last || options.last, user.blocked);
+
+    const next = JSON.stringify([
+      user.manage,
+      user.details,
+      user.blocked,
+      user.block,
+      user.authority
+    ]);
+
+    if (signature !== undefined && signature !== next) {
+      const content = actions.manage(user, target, options, handlers, opening);
+
+      if (admin) {
+        if (content) admin.replaceWith(content);
+        else admin.remove();
+      } else if (content) head.after(content);
+      admin = content;
+      if (content) mount(content);
+      i18n.translate();
+    }
+    signature = next;
 
     const whisper = dom.query("[data-whisper]", root);
 
@@ -417,16 +212,15 @@ const content = (user, target, options, handlers) => {
     const source =
       user.image || user.avatar || options.image || options.avatar || "";
 
-    if (source) {
-      viewer(source, media.root).catch(() => {});
-    }
+    viewer(source, media.root, "user").catch(() => {});
   });
   picture.append(media.root, status);
   head.append(picture, name, uid, last);
   root.append(head);
 
   const segment = tabs(options);
-  const admin = manage(user, target, options, handlers);
+
+  admin = actions.manage(user, target, options, handlers, opening);
 
   if (segment) {
     root.append(segment);
@@ -437,7 +231,7 @@ const content = (user, target, options, handlers) => {
   }
 
   if (options.context === "chatting") {
-    root.append(context(user, target, options, handlers));
+    root.append(actions.context(user, target, options, handlers));
   }
 
   if (user.uid) {
@@ -466,7 +260,7 @@ async function open(anchor, target, options) {
     anchor,
     back: true,
     content: content(user, target, options, handlers),
-    direction: "↑",
+    direction: "←",
     scroll: 0
   });
 

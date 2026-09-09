@@ -1,6 +1,6 @@
 import * as dom from "#common/dom";
 import * as i18n from "#common/i18n";
-import init from "#common/init";
+import init from "#src/init";
 import available from "#common/page";
 import sound from "#common/sound";
 import vibrate from "#common/vibrate";

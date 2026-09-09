@@ -121,6 +121,38 @@
   color: var(--mute);
 }
 
+.profile-last[data-blocked],
+.profile-error {
+  color: var(--error);
+}
+
+.profile .group.profile-block > .group-item > .label .label-value {
+  color: var(--text);
+}
+
+.label-memo {
+  flex: none;
+  width: 32px;
+  min-height: 32px;
+  height: 32px;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+}
+
+.profile-memo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-width: 0;
+}
+
+.profile-memo > .input {
+  flex: 1;
+  min-width: 0;
+}
+
 .profile-last:empty,
 .profile-uid:empty {
   display: none;
@@ -139,48 +171,27 @@
   user-select: none;
 }
 
-.profile .label > .label-key {
-  flex: none;
-
-  white-space: nowrap;
+.profile .line {
+  -webkit-user-select: none;
+  user-select: none;
 }
 
-.profile-value {
-  display: flex;
-  flex: 1;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 8px;
-
-  min-width: 0;
-}
-
-.profile-value > .label-value {
-  flex: 1;
-
-  min-width: 0;
-  overflow: hidden;
-
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.profile-copy {
-  flex: none;
-
-  width: 32px;
-  min-height: 32px;
-  height: 32px;
+.profile .label-value[data-expand] {
+  display: block;
+  min-height: 0;
+  height: auto;
   padding: 0;
   border: 0;
-  border-radius: 999px;
-
-  color: var(--mute);
+  border-radius: 0;
+  background: transparent;
+  line-height: inherit;
 }
 
-.profile-copy > .icon {
-  width: 1rem;
-  height: 1rem;
+.profile .label-value[data-expand="true"] {
+  white-space: normal;
+  overflow-wrap: anywhere;
+  -webkit-user-select: text;
+  user-select: text;
 }
 
 .profile-next {
@@ -189,6 +200,11 @@
 
 .profile .group-item > button > span:not(.profile-next) {
   min-width: 0;
+}
+
+.profile .toggle-head {
+  border: 0;
+  border-radius: 0;
 }
 
 .profile .switch {
@@ -217,12 +233,6 @@
   height: auto;
   aspect-ratio: 1;
   transform: translateY(8.333%);
-}
-
-:is(.small, .wearable) .profile-value {
-  flex-direction: column;
-  justify-content: center;
-  max-width: 100%;
 }
 
 .chatting-message[data-blocked] {

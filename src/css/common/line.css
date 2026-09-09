@@ -1,0 +1,51 @@
+.line {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  width: 100%;
+  min-width: 0;
+
+  color: var(--mute);
+  white-space: normal;
+
+  transition: color 160ms ease;
+}
+
+.line::after {
+  content: "";
+
+  flex: 1;
+  min-width: 16px;
+  border-block-start: 0.5px solid var(--border);
+
+  pointer-events: none;
+
+  transition: border-color 160ms ease;
+}
+
+.line[data-line="dotted"]::after {
+  border-block-start-width: 1px;
+  border-block-start-style: dotted;
+}
+
+.line[data-line="double"]::after {
+  border-block-start-width: 3px;
+  border-block-start-style: double;
+}
+
+.line > .icon {
+  flex: none;
+}
+
+.line > :not(.icon) {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .line,
+  .line::after {
+    transition: none;
+  }
+}

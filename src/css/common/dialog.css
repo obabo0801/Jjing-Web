@@ -90,6 +90,15 @@ dialog[data-dialog][data-swipe] * {
   width: calc(100% - 2rem);
 }
 
+.mobile dialog[data-dialog][data-keyboard] {
+  inset-block-start: var(--dialog-top);
+  inset-block-end: max(
+    0px,
+    calc(100% - var(--dialog-top) - var(--dialog-height))
+  );
+  max-height: min(calc(var(--dialog-height) - 2rem), 64rem);
+}
+
 @media (prefers-reduced-motion: reduce) {
   dialog[data-dialog],
   .dialog-content {

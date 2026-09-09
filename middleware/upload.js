@@ -1,10 +1,11 @@
 import express from "express";
 
 import * as path from "#config/path";
+import { routes } from "#config/media";
 
-const directory = path.upload();
+const router = express.Router();
 
-export default express.static(directory, {
+const options = {
   dotfiles: "deny",
   fallthrough: false,
   index: false,
@@ -12,4 +13,12 @@ export default express.static(directory, {
   setHeaders(response) {
     response.setHeader("X-Content-Type-Options", "nosniff");
   }
-});
+};
+
+for (const { directory, prefix } of routes) {
+  router.use(prefix, express.static(path.upload(directory), options));
+}
+
+router.use("/upload", express.static(path.upload(), options));
+
+export default router;

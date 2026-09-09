@@ -105,6 +105,14 @@
   transform: translateY(-2px) rotate(-45deg) scale(1);
 }
 
+.checkbox input:indeterminate::before {
+  height: 0;
+  border-inline-start: 0;
+
+  opacity: 1;
+  transform: none;
+}
+
 :is(.radio, .checkbox):has(input:focus-visible) {
   background-image: var(--overlay);
   color: var(--thumb);

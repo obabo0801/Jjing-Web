@@ -1,9 +1,9 @@
-import { admin } from "#config/route";
+import { admin } from "#shared/route";
 
 import * as dom from "#common/dom";
 import api from "#common/api";
 import * as i18n from "#common/i18n";
-import init from "#common/init";
+import init from "#src/init";
 import upload from "#common/upload";
 
 const send = async (form) => {

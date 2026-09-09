@@ -37,6 +37,10 @@
   cursor: inherit;
 }
 
+.switch > label > [data-icon] {
+  gap: 8px;
+}
+
 .switch input {
   display: flex;
   flex: none;
@@ -89,6 +93,16 @@
 .switch:has(input:disabled) {
   cursor: default;
   opacity: 0.5;
+}
+
+.switch:has(input:enabled):active {
+  background-image: var(--overlay);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .switch:has(input:enabled):hover {
+    background-image: var(--overlay);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

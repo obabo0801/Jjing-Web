@@ -1,4 +1,4 @@
-import { get } from "#config/sqlite";
+import { get } from "#db";
 import address from "#config/ip";
 import uid from "#config/uid";
 

@@ -67,7 +67,7 @@ const edit = (input) => {
   input.select();
 };
 
-const commit = (input) => {
+function commit(input) {
   const value = Number(input.value);
 
   if (Number.isFinite(value)) {
@@ -79,14 +79,14 @@ const commit = (input) => {
   values.delete(input);
   paint(input);
   hide(input);
-};
+}
 
-const close = (input) => {
+function close(input) {
   input.value = values.get(input) ?? input.value;
   values.delete(input);
   paint(input);
   hide(input);
-};
+}
 
 const move = (input, direction) => {
   const value = Number(input.value) || 0;
@@ -135,13 +135,15 @@ const stop = () => {
 };
 
 export default function stepper(root = document) {
-  dom.all(".stepper-value input", root).forEach((input) => {
+  dom.find(".stepper-value input", root).forEach((input) => {
     input.type = "text";
     input.inputMode = "none";
     paint(input);
     keyboard(input);
   });
+}
 
+export function listen() {
   if (listening) {
     return;
   }

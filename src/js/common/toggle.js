@@ -5,6 +5,7 @@ import * as i18n from "#common/i18n";
 i18n.preload("toggle.on", "toggle.off");
 
 const opened = new WeakSet();
+const panels = new WeakMap();
 
 let listening = false;
 
@@ -20,7 +21,7 @@ const text = (element, enabled) => {
   const key = enabled ? "toggle.on" : "toggle.off";
 
   dom.set(element, "data-i18n", key);
-  element.textContent = i18n.message(key) || key;
+  element.textContent = i18n.message(key);
 };
 
 const update = (element, source, target = content(element)) => {
@@ -30,8 +31,8 @@ const update = (element, source, target = content(element)) => {
     return;
   }
 
-  target.disabled = !enabled;
-  target.inert = !enabled;
+  target.disabled = source.disabled || !enabled;
+  target.inert = source.disabled || !enabled;
 
   if (enabled) {
     dom.remove(element, "data-off");
@@ -40,13 +41,29 @@ const update = (element, source, target = content(element)) => {
   }
 };
 
+export const sync = (element) => {
+  const source = input(element);
+  const panel = panels.get(element);
+
+  if (!source) return;
+  if (panel) {
+    panel.control.checked = source.checked;
+    panel.control.disabled = source.disabled;
+    text(panel.state, source.checked);
+  }
+  update(element, source, panel?.target || content(element));
+};
+
 const create = (element, source, target) => {
   const panel = dom.create("div");
+  const group = dom.create("div");
+  const row = dom.create("div");
   const field = dom.create("div");
 
   panel.className = "toggle-panel";
+  group.className = "group";
+  row.className = "group-item";
   field.className = "switch";
-  dom.set(field, "data-background", "");
 
   const label = dom.create("label");
   const state = dom.create("span");
@@ -54,20 +71,27 @@ const create = (element, source, target) => {
 
   control.type = "checkbox";
   control.checked = source.checked;
+  control.disabled = source.disabled;
+  panels.set(element, { control, state, target });
 
   text(state, control.checked);
   label.append(state, control);
   field.append(label);
 
   dom.on(control, "change", () => {
+    if (source.disabled) {
+      sync(element);
+      return;
+    }
     source.checked = control.checked;
     source.dispatchEvent(new Event("input", { bubbles: true }));
 
-    text(state, control.checked);
-    update(element, source, target);
+    sync(element);
   });
 
-  panel.append(field);
+  row.append(field);
+  group.append(row);
+  panel.append(group);
 
   if (target) {
     panel.append(target);
@@ -77,7 +101,7 @@ const create = (element, source, target) => {
 };
 
 const open = async (element, source) => {
-  if (opened.has(element)) {
+  if (source.disabled || opened.has(element)) {
     return;
   }
 
@@ -87,6 +111,8 @@ const open = async (element, source) => {
   try {
     await drawer({
       content: create(element, source, target),
+      back: true,
+      title: "profile.authority",
       side: "right",
       direction: "→"
     });
@@ -96,22 +122,15 @@ const open = async (element, source) => {
     }
 
     opened.delete(element);
+    panels.delete(element);
   }
 };
 
 export default function toggle(root = document) {
-  const elements = root.matches?.(".toggle")
-    ? [root]
-    : dom.all(".toggle", root);
+  dom.find(".toggle", root).forEach(sync);
+}
 
-  elements.forEach((element) => {
-    const source = input(element);
-
-    if (source) {
-      update(element, source);
-    }
-  });
-
+export function listen() {
   if (listening) {
     return;
   }
@@ -128,14 +147,14 @@ export default function toggle(root = document) {
     const element = source.closest(".toggle");
 
     if (element) {
-      update(element, source);
+      sync(element);
     }
   });
 
   dom.on(document, "click", (event) => {
     const button = event.target.closest?.(".toggle-button");
 
-    if (!button) {
+    if (!button || button.disabled) {
       return;
     }
 

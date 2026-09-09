@@ -1,4 +1,4 @@
-import { usage, user } from "#config/route";
+import { usage, user } from "#shared/route";
 
 import format from "#common/format";
 import api from "#common/api";
@@ -6,7 +6,7 @@ import * as storage from "#common/storage";
 
 const clearRequests = () => {
   if (!("indexedDB" in window)) {
-    return Promise.resolve();
+    return Promise.resolve(true);
   }
 
   return new Promise((resolve) => {
@@ -25,19 +25,28 @@ const clearRequests = () => {
 
     request.onsuccess = () => {
       const database = request.result;
-      const transaction = database.transaction("requests", "readwrite");
 
-      const finish = () => {
+      let finished = false;
+
+      const finish = (success) => {
+        if (finished) return;
+        finished = true;
         database.close();
-        resolve();
+        resolve(success);
       };
 
-      transaction.objectStore("requests").clear();
-      transaction.oncomplete = finish;
-      transaction.onerror = finish;
-      transaction.onabort = finish;
+      try {
+        const transaction = database.transaction("requests", "readwrite");
+
+        transaction.oncomplete = () => finish(true);
+        transaction.onerror = () => finish(false);
+        transaction.onabort = () => finish(false);
+        transaction.objectStore("requests").clear();
+      } catch {
+        finish(false);
+      }
     };
-    request.onerror = () => resolve();
+    request.onerror = () => resolve(false);
   });
 };
 
@@ -70,13 +79,21 @@ export const clearCookie = async () => {
 };
 
 export const clearData = async () => {
-  storage.clear();
-  await Promise.all([
-    "caches" in window ? caches.delete("offline") : false,
+  const cache = async () => {
+    if ("caches" in window) await caches.delete("offline");
+    // 캐시가 이미 없는 경우도 삭제 완료입니다.
+    return true;
+  };
+
+  const results = await Promise.allSettled([
+    storage.clear(),
+    cache(),
     clearRequests()
   ]);
 
-  return true;
+  return results.every(
+    (result) => result.status === "fulfilled" && result.value === true
+  );
 };
 
 export default Object.freeze({

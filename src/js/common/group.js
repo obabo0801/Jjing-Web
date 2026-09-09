@@ -24,9 +24,5 @@ const add = (element) => {
 };
 
 export default function group(root = document) {
-  const elements = root.matches?.('.group[data-view="grid"]')
-    ? [root]
-    : dom.all('.group[data-view="grid"]', root);
-
-  elements.forEach(add);
+  dom.find('.group[data-view="grid"]', root).forEach(add);
 }

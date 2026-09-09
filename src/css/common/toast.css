@@ -44,8 +44,8 @@
   box-shadow: var(--shadow);
   color: var(--toast-text);
 
-  -webkit-backdrop-filter: blur(12px);
-  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(2px);
+  backdrop-filter: blur(2px);
 
   opacity: 0;
   pointer-events: auto;

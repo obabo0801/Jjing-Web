@@ -1,8 +1,8 @@
 import { Router } from "express";
 
-import * as events from "#config/events";
+import * as events from "#service/events";
 import address from "#config/ip";
-import { get } from "#config/sqlite";
+import { get } from "#db";
 import identity from "#config/uid";
 
 const router = Router();

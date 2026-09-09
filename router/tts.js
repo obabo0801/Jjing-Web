@@ -1,13 +1,13 @@
 import { Router } from "express";
 
 import address from "#config/ip";
-import { now } from "#config/log";
-import record from "#config/log/tts";
-import { get } from "#config/sqlite";
-import synthesize from "#config/tts";
+import { now } from "#service/log";
+import record from "#service/log/tts";
+import { get } from "#db";
+import synthesize from "#service/tts";
 import uid from "#config/uid";
 
-import string from "#src/string";
+import string from "#shared/string";
 
 import limit from "#middleware/limit";
 

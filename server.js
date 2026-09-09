@@ -1,4 +1,4 @@
-import "dotenv/config";
+import secret from "#config/env";
 
 import cookie from "cookie-parser";
 import express from "express";
@@ -13,7 +13,6 @@ import router from "#router";
 
 const server = express();
 const port = process.env.PORT;
-const secret = process.env.COOKIE_SECRET;
 
 server.set("trust proxy", "loopback");
 server.use(cookie(secret));
@@ -21,7 +20,7 @@ server.use(express.json());
 server.use(block);
 server.use(maint);
 server.use("/api", router);
-server.use("/upload", upload);
+server.use(upload);
 server.use(page.router);
 server.use(assets);
 server.use(page.reject);

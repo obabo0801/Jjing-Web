@@ -8,6 +8,7 @@ import snap from "#common/sheet/snap";
 import swipe, { resolve } from "#common/swipe";
 import vibrate from "#common/vibrate";
 import viewport from "#common/viewport";
+import fit from "#common/dialog/fit";
 import once from "#common/once";
 import * as button from "#common/button";
 
@@ -33,6 +34,15 @@ const types = {
   sheet: "data-sheet"
 };
 const opening = once();
+const inputTypes = [
+  "text",
+  "email",
+  "password",
+  "search",
+  "tel",
+  "url",
+  "number"
+];
 
 const text = (tag, name, key) => {
   const element = dom.create(tag);
@@ -76,7 +86,8 @@ const action = (item, wearable) => {
 const build = (type, options) => {
   const { title, content, actions = [] } = options;
   const dialog = type === "dialog";
-  const hasBack = options.back === true && !options.locked;
+  const enabled = options.back && !options.locked;
+  const back = enabled ? dom.create("button") : null;
   const name = dialog ? "dialog" : "layer";
   const wearable = dom.has("wearable");
   const wrap = dom.create("div");
@@ -85,7 +96,7 @@ const build = (type, options) => {
   dom.set(element, types[type], "");
   dom.set(element, "closedby", "none");
 
-  if (hasBack) {
+  if (back) {
     dom.set(element, "data-back", "");
   }
 
@@ -102,7 +113,6 @@ const build = (type, options) => {
   }
 
   const head = dom.create("header");
-  const back = hasBack ? dom.create("button") : null;
 
   head.className = `${name}-head`;
 
@@ -122,7 +132,14 @@ const build = (type, options) => {
     head.append(heading);
   }
 
-  const body = dom.create("div");
+  const submit = actions.findIndex((item) => item.submit === true);
+  const body = dom.create(submit < 0 ? "div" : "form");
+
+  if (submit >= 0) {
+    body.id = crypto.randomUUID();
+    // 기존 disabled/run 검증을 클릭과 키보드 제출에 동일하게 사용합니다.
+    body.noValidate = true;
+  }
 
   body.className = `${name}-content`;
   insert(body, content, dialog ? "" : "layer-text");
@@ -131,6 +148,11 @@ const build = (type, options) => {
 
   footer.className = "layer-actions";
   const buttons = actions.map((item) => action(item, wearable));
+
+  if (submit >= 0) {
+    buttons[submit].type = "submit";
+    dom.set(buttons[submit], "form", body.id);
+  }
 
   const validate = () => {
     actions.forEach((item, index) => {
@@ -161,7 +183,7 @@ const build = (type, options) => {
   }
 
   wrap.append(element);
-  return { wrap, element, buttons, back };
+  return { wrap, element, body, buttons, back, submit };
 };
 
 const fade = (element, out = false) => {
@@ -263,7 +285,7 @@ const strength = (element) => {
   return total ? Math.min(1, Math.max(0, area / total)) : 0;
 };
 
-const dismiss = (element, type, options) => {
+const dismiss = (element, options) => {
   const { dir, close, finish, shade } = options;
   const arrow = resolve(dir);
 
@@ -271,7 +293,6 @@ const dismiss = (element, type, options) => {
     return () => {};
   }
 
-  const dialog = type === "dialog";
   const [axis, exit] = motions[arrow];
 
   dom.set(element, attrs[axis], "");
@@ -346,7 +367,8 @@ const dismiss = (element, type, options) => {
   };
 
   const content =
-    ":is(.dialog-content, .layer-content) > " + ":not([data-pan]), a, button";
+    ":is(.dialog-content, .layer-content) > " +
+    ":not([data-pan]), a, button:not([data-pan])";
 
   const select = ":is(.dialog-title, .layer-title), " + "[data-pan] > *";
 
@@ -395,14 +417,16 @@ async function open(type, options) {
 
   const keyboard = trigger?.matches(":focus-visible") === true;
 
-  const { wrap, element, buttons, back } = build(type, options);
+  const { wrap, element, body, buttons, back, submit } = build(type, options);
 
   const release = overlay(element);
 
   dom.body.append(wrap);
   mount(element);
 
-  const translated = await i18n.translate().catch(() => false);
+  // 번역이 끝난 DOM을 재사용하는 호출만 대기를 생략합니다.
+  const translated =
+    options.translate === false || (await i18n.translate().catch(() => false));
 
   if (!translated) {
     css.remove(element);
@@ -475,8 +499,17 @@ async function open(type, options) {
       let running = false;
 
       off.push(
-        dom.on(buttons[index], "click", async () => {
-          if (running) {
+        dom.on(buttons[index], "click", async (event) => {
+          event.preventDefault();
+
+          const disabled = item.disabled;
+
+          if (
+            closed ||
+            running ||
+            buttons[index].disabled ||
+            (typeof disabled === "function" ? disabled() : disabled)
+          ) {
             return;
           }
 
@@ -500,6 +533,77 @@ async function open(type, options) {
         })
       );
     });
+
+    if (submit >= 0) {
+      let composing = false;
+
+      off.push(
+        dom.on(body, "compositionstart", () => {
+          composing = true;
+        }),
+        dom.on(body, "compositionend", () => {
+          composing = false;
+        }),
+        dom.on(body, "keydown", (event) => {
+          const input = event.target;
+
+          if (
+            event.defaultPrevented ||
+            event.key !== "Enter" ||
+            !input.matches("input") ||
+            input.form !== body ||
+            !inputTypes.includes(input.type) ||
+            input.readOnly ||
+            input.matches(":disabled")
+          ) {
+            return;
+          }
+
+          event.preventDefault();
+
+          if (
+            composing ||
+            event.isComposing ||
+            event.keyCode === 229 ||
+            event.repeat ||
+            event.shiftKey ||
+            event.ctrlKey ||
+            event.altKey ||
+            event.metaKey
+          ) {
+            return;
+          }
+
+          if (input.enterKeyHint === "next") {
+            const fields = dom
+              .all("input", body)
+              .filter(
+                (field) =>
+                  field.form === body &&
+                  !field.matches(":disabled") &&
+                  !field.readOnly &&
+                  field.getClientRects().length &&
+                  inputTypes.includes(field.type)
+              );
+            const next = fields[fields.indexOf(input) + 1];
+
+            if (next) {
+              next.focus();
+              return;
+            }
+          }
+
+          buttons[submit].click();
+        }),
+        dom.on(body, "submit", (event) => {
+          event.preventDefault();
+
+          if (event.target === body && !composing) {
+            buttons[submit].click();
+          }
+        })
+      );
+    }
 
     off.push(
       dom.on(element, "click", (event) => {
@@ -580,6 +684,7 @@ async function open(type, options) {
     options.ready?.(element, close);
 
     if (dialog) {
+      off.push(fit(element));
       fade(element);
     } else {
       opening = enter(element, type, options.anchor);
@@ -620,7 +725,7 @@ async function open(type, options) {
       );
     } else if (!locked && options.direction) {
       off.push(
-        dismiss(element, type, {
+        dismiss(element, {
           dir: options.direction,
           close,
           finish: () => opening?.finish(),

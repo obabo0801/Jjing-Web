@@ -65,6 +65,14 @@ const createText = (tag, name, value) => {
   return element;
 };
 
+const wait = (element) => {
+  const animations = element
+    .getAnimations()
+    .map((animation) => animation.finished);
+
+  return Promise.allSettled(animations);
+};
+
 const loadImage = (target, options) => {
   if (!options.image) {
     return Promise.resolve();
@@ -123,14 +131,6 @@ const loadImage = (target, options) => {
       queueMicrotask(() => finish(image.naturalWidth > 0));
     }
   });
-};
-
-const wait = (element) => {
-  const animations = element
-    .getAnimations()
-    .map((animation) => animation.finished);
-
-  return Promise.allSettled(animations);
 };
 
 export default function toast(options = {}) {

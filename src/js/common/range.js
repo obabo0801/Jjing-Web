@@ -114,7 +114,7 @@ const drag = (input) => {
 };
 
 export default function range(root = document) {
-  dom.all('.range input[type="range"]', root).forEach((input) => {
+  dom.find('.range input[type="range"]', root).forEach((input) => {
     paint(input);
 
     if (bound.has(input)) {

@@ -6,7 +6,7 @@
   border-radius: 8px;
 
   background: var(--canvas);
-  color: var(--text);
+  color: inherit;
   overflow: hidden;
 
   transition:

@@ -1,14 +1,12 @@
 .select {
-  anchor-scope: --select;
-
   position: relative;
 
   min-width: 0;
   border: 1px solid var(--border);
   border-radius: 8px;
 
-  background: var(--panel);
-  color: var(--text);
+  background: transparent;
+  color: inherit;
 
   transition:
     background-color 160ms ease,
@@ -21,8 +19,6 @@
 }
 
 .select-toggle {
-  anchor-name: --select;
-
   justify-content: space-between;
 
   width: 100%;
@@ -55,49 +51,105 @@
 }
 
 .select-menu {
-  position: fixed;
-  position-anchor: --select;
-  inset: auto;
-  inset-block-start: calc(anchor(bottom) + 8px);
-  inset-inline-start: anchor(left);
+  display: none;
 
-  width: anchor-size(width);
-  max-height: min(20rem, calc(100dvh - 32px));
+  max-height: 0;
   margin: 0;
-  padding: 4px;
-  border: 1px solid var(--border);
-  border-radius: 8px;
+  padding: 0 4px;
+  border-top: 1px solid transparent;
 
-  background: var(--panel);
-  box-shadow: var(--shadow);
+  background: var(--background);
   color: var(--text);
 
   opacity: 0;
-  overflow: auto;
-  overscroll-behavior: contain;
+  overflow: hidden;
   transform: translateY(-8px);
 
-  position-try-fallbacks: flip-block;
-
   transition:
-    display 160ms allow-discrete,
-    overlay 160ms allow-discrete,
     background-color 160ms ease,
-    color 160ms ease,
-    opacity 160ms ease,
-    transform 160ms ease;
+    color 160ms ease;
 }
 
-.select-menu:popover-open {
+.select[data-expand] > .select-menu:not([popover]) {
+  transition:
+    display 180ms allow-discrete,
+    max-height 180ms ease,
+    padding 180ms ease,
+    border-color 160ms ease,
+    background-color 160ms ease,
+    color 160ms ease,
+    opacity 180ms ease,
+    transform 180ms ease;
+}
+
+.select[data-expand][data-open] > .select-menu:not([popover]) {
+  display: block;
+
+  max-height: 20rem;
+  padding-block: 4px;
+  border-top-color: var(--border);
+
   opacity: 1;
+  overflow: auto;
   transform: translateY(0);
 }
 
 @starting-style {
-  .select-menu:popover-open {
+  .select[data-expand][data-open] > .select-menu:not([popover]) {
+    max-height: 0;
+    padding-block: 0;
+    border-top-color: transparent;
+
     opacity: 0;
     transform: translateY(-8px);
   }
+}
+
+.select-menu[popover] {
+  position: fixed;
+  inset: var(--select-top, 0px) auto auto var(--select-left, 0px);
+  box-sizing: border-box;
+  margin: 0;
+  padding: 4px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: var(--shadow);
+  overscroll-behavior: contain;
+  transition:
+    opacity 180ms ease,
+    transform 180ms ease,
+    background-color 160ms ease,
+    color 160ms ease;
+}
+
+.select-menu[popover]:popover-open {
+  display: block;
+  opacity: 1;
+  overflow: auto;
+  transform: translateY(0);
+}
+
+@starting-style {
+  .select-menu[popover]:popover-open {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+}
+
+.select-menu::backdrop {
+  background: transparent;
+  pointer-events: none;
+}
+
+.select-menu[data-fullscreen] {
+  display: block;
+  max-height: none;
+  padding: 0;
+  border: 0;
+  opacity: 1;
+  overflow: visible;
+  transform: none;
+  transition: none;
 }
 
 .select-option {
@@ -132,7 +184,7 @@
   background: var(--select);
 }
 
-.select-option:enabled:is(:hover, :focus-visible) {
+.select-option:enabled:focus-visible {
   background-image: var(--overlay);
 }
 
@@ -151,19 +203,14 @@
 .wearable .select-toggle {
   min-height: 72px;
   padding-inline: 24px;
+  border-radius: inherit;
 
   font-size: 2rem;
   text-align: center;
 }
 
-.wearable .select-menu {
-  position-anchor: auto;
-  inset: 8dvh 8dvw;
-
-  width: auto;
-  max-height: none;
-
-  position-try-fallbacks: none;
+.wearable .select[data-expand][data-open] > .select-menu {
+  display: none;
 }
 
 .wearable .select-option {
@@ -199,7 +246,9 @@
   .select,
   .select-toggle > .icon,
   .select-option::after,
-  .select-menu {
+  .select-menu,
+  .select-menu[popover],
+  .select[data-expand] > .select-menu:not([popover]) {
     transition: none;
   }
 }

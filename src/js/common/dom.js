@@ -16,6 +16,12 @@ export const all = (selector, target = document) => [
   ...(target?.querySelectorAll(selector) ?? [])
 ];
 
+// 전달한 요소 자체와 그 안의 요소를 함께 찾습니다.
+export const find = (selector, target = document) => [
+  ...(target?.matches?.(selector) ? [target] : []),
+  ...all(selector, target)
+];
+
 export const has = (name, target = root) =>
   target?.classList.contains(name) ?? false;
 

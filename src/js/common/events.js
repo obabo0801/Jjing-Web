@@ -1,5 +1,5 @@
-import * as role from "#config/role";
-import { events as path } from "#config/route";
+import * as role from "#shared/role";
+import { events as path } from "#shared/route";
 
 import * as dom from "#common/dom";
 import api from "#common/api";
@@ -11,7 +11,7 @@ let value = role.user;
 
 const blocks = new Set();
 
-export const isAdmin = () => value === role.admin;
+export const isAdmin = () => role.staff(value);
 export const isBlocked = (uid) => blocks.has(uid);
 
 const data = (event) => {
@@ -77,7 +77,33 @@ export default function events() {
   watch();
   source = new EventSource(`/api${path}`);
   source.addEventListener("ready", (event) => {
-    value = Number(data(event).role) === role.admin ? role.admin : role.user;
+    const next = Number(data(event).role);
+    const previous = value;
+
+    value = role.staff(next) ? next : role.user;
+    if (previous !== value) profile.reset();
+  });
+
+  source.addEventListener("role", (event) => {
+    const next = Number(data(event).role);
+
+    value = role.staff(next) ? next : role.user;
+    profile.reset();
+  });
+
+  source.addEventListener("profile-update", (event) => {
+    const { uid } = data(event);
+
+    if (uid) profile.refresh(uid);
+  });
+
+  source.addEventListener("chatting-unblock", (event) => {
+    const { uid } = data(event);
+
+    blocks.delete(uid);
+    registry
+      .messageAll(uid)
+      .forEach((element) => dom.remove(element, "data-blocked"));
   });
   source.addEventListener("presence", presence);
   source.addEventListener("profile-image", (event) => {

@@ -8,6 +8,12 @@
   "imports": {
     "#common/*": "./src/js/common/*.js",
     "#config/*": "./config/*.js",
+    "#shared/*": "./shared/*.js",
+    "#build/*": "./build/*.js",
+    "#db": "./db/index.js",
+    "#db/*": "./db/*.js",
+    "#service/*": "./service/*.js",
+    "#service/log": "./service/log/index.js",
     "#middleware/*": "./middleware/*.js",
     "#router/*": "./router/*.js",
     "#src/*": "./src/js/*.js",
@@ -22,6 +28,10 @@
     "#audio/*": "./src/assets/audio/*"
   },
   "scripts": {
+    "lint": "eslint .",
+    "format:check": "prettier --check \"**/*.{js,css,html}\"",
+    "test": "node --test \"test/*.test.js\"",
+    "check": "npm run lint && npm test",
     "format": "eslint . --fix && prettier --write \"**/*.{js,css,html}\"",
     "dev": "vite",
     "build": "vite build",
@@ -43,6 +53,7 @@
   "devDependencies": {
     "@stylistic/eslint-plugin": "^5.10.0",
     "eslint": "^10.9.1",
+    "globals": "^17.12.0",
     "prettier": "^3.9.6",
     "vite": "^8.2.1"
   },

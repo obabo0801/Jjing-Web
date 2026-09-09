@@ -1,14 +1,14 @@
 import express, { Router } from "express";
 
 import address from "#config/ip";
-import { now } from "#config/log";
-import record from "#config/log/stt";
-import recognize, { enabled } from "#config/speech";
-import { get } from "#config/sqlite";
-import save, { supported } from "#config/stt";
+import { now } from "#service/log";
+import record from "#service/log/stt";
+import recognize, { enabled } from "#service/speech";
+import { get } from "#db";
+import save, { supported } from "#service/stt";
 import uid from "#config/uid";
 
-import string from "#src/string";
+import string from "#shared/string";
 
 import limit from "#middleware/limit";
 

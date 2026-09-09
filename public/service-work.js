@@ -158,17 +158,28 @@ const fetchApi = async (request) => {
   }
 };
 
-const synchronize = async () => {
-  for (const item of await requests()) {
-    const response = await fetch(item.url, item.options);
+let syncing;
 
-    if (response.status < 500) {
-      await removeRequest(item.id);
-      continue;
+const synchronize = () => {
+  syncing ??= (async () => {
+    // 처리 중 추가된 요청도 같은 작업에서 이어서 전송합니다.
+    for (let queue = await requests(); queue.length; queue = await requests()) {
+      for (const item of queue) {
+        const response = await fetch(item.url, item.options);
+
+        if (response.status < 500) {
+          await removeRequest(item.id);
+          continue;
+        }
+
+        throw new Error();
+      }
     }
+  })().finally(() => {
+    syncing = undefined;
+  });
 
-    throw new Error();
-  }
+  return syncing;
 };
 
 self.addEventListener("install", (event) => {
