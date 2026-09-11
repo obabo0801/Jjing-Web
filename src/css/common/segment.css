@@ -59,9 +59,9 @@
 
   position: absolute;
   inset-block: 8px;
-  inset-inline-start: -0.5px;
+  inset-inline-start: -1px;
 
-  width: 0.5px;
+  width: 1px;
 
   background: var(--border);
 

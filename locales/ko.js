@@ -1,5 +1,16 @@
 export default {
-  app: { title: "\u200B" },
+  app: { title: "찡" },
+
+  online: {
+    open: "접속자",
+    title: "접속자 ({count}명)",
+    admin: "관리자",
+    user: "일반",
+    search: "검색",
+    refresh: "새로고침",
+    empty: "표시할 접속자가 없습니다.",
+    error: "접속자 목록을 불러오지 못했습니다."
+  },
 
   error: { heading: "페이지 없음", action: "홈으로" },
   offline: { heading: "오프라인", action: "다시 연결" },
@@ -94,7 +105,6 @@ export default {
 
   legal: {
     google: "Google 개인정보처리방침",
-    manager: "담당자:",
     email: "메일 문의:"
   },
 
@@ -156,7 +166,7 @@ export default {
         "① 이용자가 작성하거나 등록한 내용의 권리는 " +
         "해당 권리자에게 있습니다.\n" +
         "② 게시물은 서비스 제공에 필요한 범위에서 " +
-        "저장·전송·표시되거나 화면에 맞게 처리될 수 있습니다.\n" +
+        "저장 · 전송 · 표시되거나 화면에 맞게 처리될 수 있습니다.\n" +
         "③ 법령이나 약관을 위반하거나 타인의 권리를 " +
         "침해하는 내용은 표시가 제한되거나 삭제될 수 있습니다."
     },
@@ -215,7 +225,7 @@ export default {
         "② 채팅: 메시지 내용, 작성자 식별정보, 작성 시각을 " +
         "메시지 전달과 표시에 이용합니다.\n" +
         "③ 접속 및 보안: IP 주소, 접속 시각, 운영체제, " +
-        "브라우저, 요청 경로·응답 상태, 언어 정보를 " +
+        "브라우저, 요청 경로 · 응답 상태, 언어 정보를 " +
         "서비스 제공, 오류 확인 및 부정 이용 대응에 이용합니다.\n" +
         "④ 웹 푸시 알림: 푸시 구독 주소, 암호화 키, " +
         "등록 시각 등 알림 전달에 필요한 정보를 처리합니다.\n" +
@@ -300,7 +310,7 @@ export default {
     cookies: {
       title: "제7조 (쿠키와 기기 내 저장정보)",
       description:
-        "① 서비스는 이용자 식별과 테마·언어 등 설정 저장을 위해 " +
+        "① 서비스는 이용자 식별과 테마 · 언어 등 설정 저장을 위해 " +
         "쿠키 또는 브라우저 저장공간을 사용할 수 있습니다.\n" +
         "② 사용자 식별 쿠키의 유효기간은 발급 시점부터 " +
         "최대 1년이며 재발급 시 갱신될 수 있습니다.\n" +
@@ -335,7 +345,7 @@ export default {
       title: "제10조 (개인정보 문의)",
       description:
         "개인정보에 관한 문의, 불편 사항 또는 " +
-        "열람·정정·삭제 등 권리 행사 요청은 " +
+        "열람 · 정정 · 삭제 등 권리 행사 요청은 " +
         "아래 연락처를 통해 접수할 수 있습니다."
     },
 
@@ -348,16 +358,11 @@ export default {
   },
 
   setup: {
-    intro: "환영합니다",
-    start: "프로필이 준비되어 있습니다. 대화를 시작해 보세요.",
-    profile: "대화에 사용할 프로필을 만들어 주세요.",
-    reason: "닉네임과 프로필 이미지는 " + "다른 사용자에게 표시됩니다.",
-    optional: "이메일과 프로필 이미지는 선택 사항입니다.",
-
     title: "프로필 설정",
-    create: "프로필 설정하기",
     review: "프로필 확인",
     name: "닉네임",
+    required: "필수",
+    optional: "선택",
     namePlaceholder: "닉네임",
     nameChecking: "닉네임을 확인하고 있습니다.",
     nameAvailable: "사용 가능한 닉네임입니다.",
@@ -378,7 +383,7 @@ export default {
     next: "다음",
     avatar: "프로필 이미지",
     finish: "이 프로필로 시작할까요?",
-    revise: "수정하려면 뒤로 돌아가 주세요.",
+    revise: "수정하기",
     complete: "시작하기",
     saveError: "프로필을 저장하지 못했습니다.",
     uploadError: "이미지를 업로드하지 못했습니다."
@@ -386,7 +391,7 @@ export default {
 
   image: {
     loadError: "이미지를 불러오지 못했습니다.",
-    title: "이미지 조절",
+    title: "이미지 편집",
     select: "이미지 선택",
     camera: "카메라",
     gallery: "이미지",
@@ -398,6 +403,9 @@ export default {
     sizeError: "이미지는 15MB 이하만 업로드할 수 있습니다.",
     uploadError: "이미지를 전송하지 못했습니다.",
     reset: "초기화",
+    rotate: "회전",
+    zoom: "확대",
+    clear: "삭제",
     save: "저장",
     cancel: "취소",
     confirm: "완료"
@@ -405,6 +413,11 @@ export default {
 
   profile: {
     uid: "UID",
+    protect: "보호 모드",
+    unprotect: "보호 해제",
+    copy: "UID 복사",
+    copied: "UID를 복사했습니다.",
+    copyError: "UID를 복사하지 못했습니다. 전체 UID를 열어 복사해 주세요.",
     email: "이메일",
 
     access: "접속 정보",
@@ -412,13 +425,42 @@ export default {
     userIp: "가입 당시 IP",
     accessIp: "현재 접속 IP",
     date: "최초 가입일",
-    last: "최근 접속일",
+    time: "최근 접속일",
     os: "운영체제",
     browser: "브라우저",
     lang: "지역 언어",
 
     chatMute: "채팅 금지",
+    chatHistory: "채팅 내역",
+    historyText: "메시지 내용",
+    reportHistory: "신고 내역",
+    blockHistory: "제재 내역",
+    historyEmpty: "조회된 기록이 없습니다.",
+    historyError:
+      "기록을 불러오지 못했습니다. 권한을 확인하거나 다시 시도해 주세요.",
+    historySearch: "검색",
+    historyDate: "날짜",
+    historyType: "종류",
+    historyAll: "전체",
+    historyLoading: "기록을 불러오는 중입니다.",
+    historyTime: "기록 일시",
+    historyAction: "처리",
+    historyReason: "사유",
+    historyBlock: "차단",
+    historyUnblock: "차단 해제",
+    historyMute: "채팅 금지",
+    historyKick: "강제 퇴장",
+    historyUnkick: "강제 퇴장 해제",
+    until: "제한 종료",
+    around: "대화 보기",
     kick: "강제 퇴장",
+    unkick: "강제 퇴장 해제",
+    mute30: "30초 제한",
+    mute30Info: "1회 적용",
+    mute60: "60초 제한",
+    mute60Info: "2회 적용",
+    mute120: "120초 제한",
+    mute120Info: "3회 적용",
     block: "영구 차단",
     blocked: "영구 차단됨",
     unblock: "영구 차단 해제",
@@ -445,20 +487,113 @@ export default {
     message: "쪽지 보내기",
     whisper: "귓속말 보내기",
     hide: "채팅 안보기",
-    report: "채팅 신고하기",
+    report: "사용자 신고하기",
 
     active: "활동 중",
     away: "자리 비움"
   },
 
+  report: {
+    type: "신고 유형",
+    text: "메시지 내용",
+    user: "사용자 신고",
+    message: "메시지 신고",
+    reason: "신고 사유",
+    detail: "추가 설명 (최대 1000자)",
+    spam: "스팸 · 광고",
+    abuse: "욕설 · 괴롭힘",
+    privacy: "개인정보 침해",
+    other: "기타",
+    send: "신고 접수",
+    success: "신고가 접수되었습니다.",
+    error: "신고하지 못했습니다. 대상을 확인하거나 다시 시도해 주세요.",
+    inbox: "신고함",
+    all: "전체 신고",
+    target: "신고 대상",
+    reporter: "신고자",
+    time: "접수 일시",
+    description: "추가 설명",
+    conversation: "대화 보기"
+  },
+
   chatting: {
+    attach: {
+      clipboard:
+        "이미지 데이터를 읽지 못했습니다. GIF를 파일로 저장한 뒤 첨부해 주세요.",
+      limit: "첨부는 메시지당 최대 10개까지 추가할 수 있습니다.",
+      description: "이미지 설명",
+      spoiler: "스포일러 표시",
+      remove: "제거하기",
+      reveal: "눌러서 이미지 보기"
+    },
+    send: "전송",
+    voice: "음성 입력",
+    tools: {
+      open: "채팅 도구",
+      emoji: "이모티콘",
+      image: "이미지",
+      draw: "그리기",
+      stt: "음성 녹음 (STT)",
+      tts: "음성 만들기 (TTS)",
+      preview: "이미지 전송",
+      unavailable: "이 브라우저에서 음성 기능을 사용할 수 없습니다."
+    },
+    audio: {
+      preview: "음성 전송",
+      record: "녹음 시작",
+      stop: "녹음 마치기",
+      hint: "최대 60초 동안 녹음할 수 있습니다.",
+      text: "음성으로 보낼 내용을 입력하세요. (최대 500자)",
+      error: "음성을 처리하지 못했습니다. 다시 시도해 주세요.",
+      size: "음성은 15MB 이하만 전송할 수 있습니다.",
+      message: "음성 메시지"
+    },
+    entered: "채팅에 입장하였습니다.",
+    muteNotice: "{name}님이 채팅 금지 {count}회가 되셨습니다.",
+    kickNotice: "{name}님이 강제 퇴장 되셨습니다.",
+    unkickNotice: "{name}님의 강제 퇴장이 해제되었습니다.",
+    unblockNotice: "{name}님의 영구 차단이 해제되었습니다.",
+    countdown: "{seconds}초",
+    remaining: "{time} 후 다시 채팅할 수 있습니다.",
+    muteDetail: "{handler}님에 의해 {seconds}초 동안 채팅이 제한되었습니다.",
+    reason: "사유: {reason}",
+    handler: "관리자",
+    kickTitle: "강제 퇴장되었습니다.",
+    blockTitle: "이용이 제한되었습니다.",
+    kickDetail: "{handler}님에 의해 현재 채팅에서 퇴장 처리되었습니다.",
+    blockDetail: "{handler}님에 의해 서비스 이용이 제한되었습니다.",
+    muted: "채팅 금지 중입니다. 제한 시간이 지나면 다시 입력할 수 있습니다.",
+    previous: "이전 메시지",
+    next: "이후 메시지",
+    latest: "최근 대화",
+    date: "날짜별 조회",
+    retry: "다시 불러오기",
+    emoji: {
+      recent: "최근",
+      ogq: "OGQ",
+      basic: "이모티콘",
+      clear: "내용 지우기",
+      unavailable: "일부 이모티콘 목록을 갱신하지 못했습니다."
+    },
+    loadFailed: "대화를 불러오지 못했습니다. 다시 시도해 주세요.",
+    unavailable: "이 메시지를 조회할 수 없습니다.",
+    sendFailed:
+      "메시지를 저장하지 못했습니다. 입력 내용을 확인하고 다시 시도해 주세요.",
+    tooLong: "메시지는 2,000자까지 입력할 수 있습니다.",
+    rate: "메시지를 너무 자주 보냈습니다. 잠시 후 다시 시도해 주세요.",
+    copied: "메시지 링크를 복사했습니다.",
+    copyFailed: "메시지 링크를 복사하지 못했습니다.",
+    removeTitle: "메시지를 삭제할까요?",
+    removeSuccess: "메시지를 삭제했습니다.",
+    removeFailed: "메시지를 삭제하지 못했습니다.",
     yesterday: "어제",
     action: {
       copyText: "텍스트 복사하기",
       saveImage: "이미지 저장하기",
       copyImage: "이미지 링크 복사",
       copyLink: "메시지 링크 복사",
-      report: "신고하기"
+      remove: "메시지 삭제하기",
+      report: "메시지 신고하기"
     }
   },
 

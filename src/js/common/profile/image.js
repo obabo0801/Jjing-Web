@@ -25,6 +25,9 @@ const portrait = (source, original = source) => {
   let pending;
   let url;
   let adjustment;
+  let active = true;
+
+  const opening = once();
 
   const adjust = async (file, anchor, previous) => {
     try {
@@ -59,13 +62,15 @@ const portrait = (source, original = source) => {
     let temporary = false;
     let version = 0;
     let adjusting = false;
+    let token;
+    let opened = true;
 
     const show = () => {
-      version += 1;
+      const value = draftUrl ?? source;
 
-      stage.set(draftUrl || source, draft?.edit);
-
-      stage.root.disabled = adjusting;
+      stage.set(value, draft?.edit);
+      stage.root.disabled = adjusting || !value;
+      panel.dispatchEvent(new Event("input", { bubbles: true }));
     };
 
     const update = (result) => {
@@ -74,28 +79,31 @@ const portrait = (source, original = source) => {
       }
 
       draft = result;
-      draftUrl = URL.createObjectURL(result.file);
-      temporary = true;
+      draftUrl = result ? URL.createObjectURL(result.file) : "";
+      temporary = !!result;
+      adjusting = false;
+      token = undefined;
+      version += 1;
       show();
     };
 
     dom.on(stage.root, "click", () => {
       revise(stage.root, async () => {
-        if (stage.root.disabled || !(draftUrl || source)) {
+        if (stage.root.disabled || !(draftUrl ?? source)) {
           return;
         }
 
-        const rev = version;
+        const rev = ++version;
         const previous = draft?.edit;
 
         let file = draft?.file;
 
         adjusting = true;
-        stage.root.disabled = true;
+        show();
 
         try {
           if (!file) {
-            const response = await fetch(draftUrl || original);
+            const response = await fetch(draftUrl ?? original);
 
             if (!response.ok) {
               throw new Error("image.loadError");
@@ -104,7 +112,7 @@ const portrait = (source, original = source) => {
             file = await response.blob();
           }
 
-          if (rev !== version || !panel.isConnected) {
+          if (rev !== version || !opened || !active) {
             return;
           }
 
@@ -115,29 +123,55 @@ const portrait = (source, original = source) => {
 
           const result = await adjust(file, stage.root, previous);
 
-          if (result && rev === version && panel.isConnected) {
+          if (result && rev === version && opened && active) {
             update(result);
           }
         } catch {
-          if (rev === version && panel.isConnected) {
+          if (rev === version && opened && active) {
             toast({ type: "error", title: "image.loadError" });
           }
         } finally {
-          adjusting = false;
-          stage.root.disabled = false;
+          if (rev === version && opened && active) {
+            adjusting = false;
+            show();
+          }
         }
       }).catch(() => {});
     });
 
-    const offLink = profile.onLink((token) => {
-      if (temporary && draftUrl) {
-        URL.revokeObjectURL(draftUrl);
-      }
+    const offLink = profile.onLink(async (value) => {
+      if (!token || token !== value || !opened || !active) return;
 
-      draft = undefined;
-      draftUrl = profile.linkImage(token);
-      temporary = false;
+      const rev = ++version;
+
+      adjusting = true;
       show();
+
+      try {
+        const response = await fetch(profile.linkImage(value));
+
+        if (!response.ok) throw new Error("image.loadError");
+
+        const file = await response.blob();
+
+        if (rev !== version || !opened || !active) return;
+        if (file.size > limit) {
+          toast({ type: "error", title: "image.sizeError" });
+          return;
+        }
+
+        // 수신 파일을 보관해 링크 만료/재전송과 무관하게 취소 · 재시도합니다.
+        update({ file });
+      } catch {
+        if (rev === version && opened && active) {
+          toast({ type: "error", title: "image.loadError" });
+        }
+      } finally {
+        if (rev === version && opened && active) {
+          adjusting = false;
+          show();
+        }
+      }
     });
 
     const choose = (icon, key, capture = false) => {
@@ -175,13 +209,22 @@ const portrait = (source, original = source) => {
           return;
         }
 
+        const rev = ++version;
+
+        token = undefined;
+        adjusting = true;
+        show();
+
         const result = await adjust(file, button);
 
-        if (!result) {
-          return;
-        }
+        if (rev !== version || !opened || !active) return;
 
-        update(result);
+        if (result) {
+          update(result);
+        } else {
+          adjusting = false;
+          show();
+        }
       });
 
       return { button, input };
@@ -198,12 +241,19 @@ const portrait = (source, original = source) => {
       dom.set(button, "data-tooltip", "image.phone");
 
       dom.on(button, "click", async () => {
+        const rev = ++version;
+
+        token = undefined;
+        adjusting = false;
+        show();
+
         const result = await profile.imageLink();
 
-        if (!result.ok) {
+        if (!result.ok || rev !== version || !opened || !active) {
           return;
         }
 
+        token = result.data.token;
         const url = new URL("/image", location.origin);
 
         url.searchParams.set("token", result.data.token);
@@ -224,6 +274,8 @@ const portrait = (source, original = source) => {
 
         code.src = await QRCode.toDataURL(url.href, { width: 240, margin: 1 });
 
+        if (rev !== version || !opened || !active) return;
+
         content.append(code, guide);
 
         let off;
@@ -232,17 +284,25 @@ const portrait = (source, original = source) => {
           title: "image.phone",
           content,
           direction: "↓",
+          closing: (received) => {
+            off?.();
+
+            if (received === true || token !== result.data.token) return;
+
+            token = undefined;
+            version += 1;
+            adjusting = false;
+            if (opened && active) show();
+          },
           ready: (_, close) => {
-            off = profile.onLink(() => {
-              close(true);
+            off = profile.onLink((value) => {
+              if (value === result.data.token) close(true);
             });
           },
           actions: [
             { text: "image.cancel", icon: "close", data: ["data-neutral"] }
           ]
-        });
-
-        off?.();
+        }).finally(() => off?.());
       });
 
       return { button };
@@ -268,50 +328,50 @@ const portrait = (source, original = source) => {
     );
     show();
 
-    const saved = await sheet({
-      title: "image.select",
-      content: panel,
-      stage: "full",
-      direction: "↓",
-      actions: [
-        {
-          text: "image.reset",
-          icon: "reload",
-          data: ["data-neutral"],
-          close: false,
-          run: () => {
-            if (temporary && draftUrl) {
-              URL.revokeObjectURL(draftUrl);
-            }
+    let saved;
 
-            profile.clearLink();
-            draft = undefined;
-            draftUrl = undefined;
-            temporary = false;
-            show();
-            return false;
-          }
+    try {
+      saved = await sheet({
+        title: "image.select",
+        content: panel,
+        stage: "full",
+        direction: "↓",
+        closing: () => {
+          opened = false;
+          version += 1;
+          offLink();
         },
-        {
-          text: "image.save",
-          icon: "check",
-          value: true,
-          data: ["data-confirm"]
-        }
-      ]
-    });
+        actions: [
+          {
+            text: "image.clear",
+            icon: "delete",
+            data: ["data-neutral"],
+            close: false,
+            run: () => {
+              update(null);
+              return false;
+            }
+          },
+          {
+            text: "image.save",
+            icon: "check",
+            value: true,
+            disabled: () => adjusting,
+            data: ["data-confirm"]
+          }
+        ]
+      });
+    } finally {
+      opened = false;
+      version += 1;
+      offLink();
 
-    offLink();
-
-    if (!saved) {
-      profile.clearLink();
-
-      if (temporary && draftUrl) {
+      if ((!saved || !active) && temporary && draftUrl) {
         URL.revokeObjectURL(draftUrl);
       }
-
-      return;
     }
+
+    if (!saved || !active) return;
 
     if (url && url !== draftUrl) {
       URL.revokeObjectURL(url);
@@ -320,16 +380,18 @@ const portrait = (source, original = source) => {
     pending = draft;
     url = draftUrl;
 
-    if (pending) {
+    if (pending !== undefined) {
       profile.clearLink();
     }
 
     adjustment = pending?.edit;
-    media.set(url || source, adjustment);
+    media.set(url ?? source, adjustment);
   };
 
   dom.on(media.root, "click", () => {
-    select().catch(() => {});
+    if (active && !media.root.disabled) {
+      opening(media.root, select).catch(() => {});
+    }
   });
 
   return {
@@ -339,14 +401,11 @@ const portrait = (source, original = source) => {
       const image = avatar();
 
       root.className = "profile-avatar";
-      image.set(url || source, adjustment);
+      image.set(url ?? source, adjustment);
       root.append(image.root);
       return root;
     },
     file: () => pending,
-    saved: () => {
-      pending = undefined;
-    },
     busy: (value) => {
       media.root.disabled = value;
 
@@ -357,6 +416,7 @@ const portrait = (source, original = source) => {
       }
     },
     destroy: () => {
+      active = false;
       if (url) {
         URL.revokeObjectURL(url);
       }

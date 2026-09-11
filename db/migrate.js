@@ -1,4 +1,26 @@
+import { publicId } from "#config/uid";
+
 export default async function migrate({ exec, get, run, all }, backup) {
+  const chatting = await all("PRAGMA table_info(chatting)");
+
+  for (const column of [
+    "system",
+    "image",
+    "preview",
+    "audio",
+    "attachments",
+    "deleted",
+    "deleted_by"
+  ]) {
+    if (!chatting.some(({ name }) => name === column)) {
+      await exec(`ALTER TABLE chatting ADD COLUMN ${column} TEXT;`);
+    }
+  }
+  const sanctions = await all("PRAGMA table_info(sanction)");
+
+  if (!sanctions.some(({ name }) => name === "notice")) {
+    await exec("ALTER TABLE sanction ADD COLUMN notice TEXT;");
+  }
   const columns = await all("PRAGMA table_info(user)");
 
   for (const name of ["initial", "lang"]) {
@@ -49,6 +71,26 @@ export default async function migrate({ exec, get, run, all }, backup) {
 
   if (!columns.some(({ name }) => name === "consent")) {
     await exec("ALTER TABLE user ADD COLUMN consent TEXT;");
+  }
+
+  try {
+    await exec("BEGIN IMMEDIATE;");
+    if (!columns.some(({ name }) => name === "id")) {
+      await exec("ALTER TABLE user ADD COLUMN id TEXT;");
+    }
+    const users = await all("SELECT uid FROM user WHERE id IS NULL");
+
+    for (const user of users) {
+      await run("UPDATE user SET id = ? WHERE uid = ?", [
+        publicId(user.uid),
+        user.uid
+      ]);
+    }
+    await exec("CREATE UNIQUE INDEX IF NOT EXISTS user_id ON user (id);");
+    await exec("COMMIT;");
+  } catch (error) {
+    await exec("ROLLBACK;");
+    throw error;
   }
 
   const blocks = await all("PRAGMA table_info(block)");

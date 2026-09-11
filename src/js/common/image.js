@@ -3,6 +3,13 @@ import * as dom from "#common/dom";
 import device from "#common/device";
 import popover from "#common/popover";
 import double from "#common/image/double";
+import toolbar from "#common/toolbar";
+import range from "#common/range";
+import * as i18n from "#common/i18n";
+
+i18n.preload("image.title", "image.confirm", "image.rotate", "image.zoom");
+
+const reduce = matchMedia("(prefers-reduced-motion: reduce)");
 
 const create = (tag, name) => {
   const element = dom.create(tag);
@@ -93,14 +100,8 @@ const load = async (file, limit) =>
 
 const createState = () => ({
   model: { angle: 0, scale: 1, x: 0, y: 0, view: null },
-  gesture: {
-    pointers: new Map(),
-    pan: null,
-    pinch: null,
-    turning: null,
-    skipClick: false
-  },
-  timer: { hold: null, cursor: null, click: null },
+  gesture: { pointers: new Map(), pan: null, pinch: null },
+  timer: { cursor: null },
   raf: { draw: null, measure: null },
   layout: {
     width: 0,
@@ -117,38 +118,74 @@ export default async function edit(file, options = {}) {
     return null;
   }
 
-  const width = Math.max(1, Number(options.width) || 512);
-  const height = Math.max(1, Number(options.height) || 512);
+  let width = Math.max(1, Number(options.width) || 512);
+  let height = Math.max(1, Number(options.height) || 512);
+
   const loaded = await load(file, Math.max(width, height) * 3);
 
   if (!loaded) {
     return null;
   }
 
-  const shape = options.shape === "circle" ? "circle" : "square";
+  const shape = ["circle", "original"].includes(options.shape)
+    ? options.shape
+    : "square";
 
   const { image, url, width: sourceWidth, height: sourceHeight } = loaded;
+
+  if (shape === "original") {
+    const ratio = Math.min(1, 1024 / Math.max(sourceWidth, sourceHeight));
+
+    width = Math.max(1, Math.round(sourceWidth * ratio));
+    height = Math.max(1, Math.round(sourceHeight * ratio));
+  }
   const root = create("div", "image-editor");
   const stage = create("div", "image-stage");
   const frame = create("div", "image-frame");
+  const dock = create("div", "image-tools");
   const controls = create("div", "image-controls");
-  const rotate = create("button", "image-rotate");
+  const label = create("label", "image-value");
+  const ruler = create("div", "range");
+  const track = create("div", "range-track");
+  const thumb = create("div", "range-thumb");
+  const slider = dom.create("input");
 
-  rotate.type = "button";
+  slider.type = "range";
+  slider.id = crypto.randomUUID();
+  slider.step = "1";
+  label.htmlFor = slider.id;
 
   dom.set(root, "data-drag", "none");
+  dom.set(dock, "data-drag", "none");
   dom.set(stage, "data-shape", shape);
-  dom.set(rotate, "data-icon", "rotate");
-  dom.set(rotate, "data-circle", "");
-  dom.set(rotate, "data-background", "");
-  dom.set(rotate, "data-response", "");
+  css.set(root, { "--image-aspect": width / height });
 
   frame.append(image);
   stage.append(frame);
-  controls.append(rotate);
-  root.append(stage, controls);
+  ruler.append(track, thumb, slider);
+  controls.append(label, ruler);
+  root.append(stage);
 
   const { model, gesture, timer, raf, layout } = createState();
+
+  let tool = "rotate";
+
+  const sync = () => {
+    const rotation = tool === "rotate";
+    const angle = ((((model.angle + 180) % 360) + 360) % 360) - 180;
+    const value = rotation
+      ? model.angle === 180
+        ? 180
+        : angle
+      : model.scale * 100;
+
+    slider.min = rotation ? "-180" : "100";
+    slider.max = rotation ? "180" : "300";
+    slider.value = String(Math.round(value));
+    label.textContent = `${Math.round(value)}${rotation ? "°" : "%"}`;
+    dom.set(slider, "data-tooltip", `image.${tool}`);
+    range(controls);
+  };
 
   const metrics = () => {
     const { width: stageWidth, height: stageHeight } = layout;
@@ -197,7 +234,7 @@ export default async function edit(file, options = {}) {
 
     model.view = { width: stageWidth, height: stageHeight, cover };
 
-    const zoom = cover * model.scale;
+    const zoom = base * model.scale;
     const localX = model.x * cosine + model.y * sine;
     const localY = -model.x * sine + model.y * cosine;
     const requiredX =
@@ -222,11 +259,12 @@ export default async function edit(file, options = {}) {
     css.set(root, {
       "--image-width": `${sourceWidth * base}px`,
       "--image-height": `${sourceHeight * base}px`,
-      "--image-scale": zoom / base,
+      "--image-scale": model.scale,
       "--image-x": `${model.x}px`,
       "--image-y": `${model.y}px`,
       "--image-angle": `${model.angle}deg`
     });
+    sync();
   };
 
   const render = () => {
@@ -245,6 +283,7 @@ export default async function edit(file, options = {}) {
     const stageWidth = stage.clientWidth;
     const stageHeight = stage.clientHeight;
 
+    if (!stageWidth || !stageHeight) return;
     if (layout.width && layout.height) {
       model.x *= stageWidth / layout.width;
       model.y *= stageHeight / layout.height;
@@ -306,6 +345,27 @@ export default async function edit(file, options = {}) {
       zoomTo(value, point);
     }
   });
+
+  const tools = toolbar(
+    ["rotate", "zoom"].map((name) => ({
+      icon: name === "rotate" ? "rotate" : "search",
+      text: `image.${name}`,
+      run: (button) => {
+        if (tool === name) return;
+        tapping.cancel();
+        tool = name;
+        [...tools.children].forEach((item) => dom.remove(item, "data-active"));
+        dom.set(button, "data-active", "");
+        sync();
+        controls.getAnimations().forEach((animation) => animation.cancel());
+        if (!reduce.matches)
+          controls.animate({ opacity: [0.4, 1] }, { duration: 160 });
+      }
+    }))
+  );
+
+  dom.set(tools.firstElementChild, "data-active", "");
+  dock.append(controls, tools);
 
   const beginPinch = () => {
     const points = [...gesture.pointers.values()].slice(0, 2);
@@ -436,10 +496,6 @@ export default async function edit(file, options = {}) {
   dom.on(stage, "pointercancel", releasePointer);
   dom.on(stage, "lostpointercapture", releasePointer);
 
-  const pointerAngle = (point) => {
-    return (Math.atan2(point.y, point.x) * 180) / Math.PI;
-  };
-
   const rotateBy = (difference) => {
     tapping.cancel();
     const radians = (difference * Math.PI) / 180;
@@ -454,91 +510,12 @@ export default async function edit(file, options = {}) {
     render();
   };
 
-  dom.on(rotate, "pointerdown", (event) => {
-    if (event.pointerType === "mouse" && event.button !== 0) {
-      return;
-    }
-
+  dom.on(slider, "input", () => {
     tapping.cancel();
-    measure();
+    const value = Number(slider.value);
 
-    const point = position(event);
-
-    gesture.turning = {
-      id: event.pointerId,
-      point,
-      pointer: pointerAngle(point),
-      active: false
-    };
-    rotate.setPointerCapture(event.pointerId);
-
-    timer.hold = setTimeout(() => {
-      if (!gesture.turning) {
-        return;
-      }
-
-      gesture.turning.active = true;
-      gesture.turning.pointer = pointerAngle(gesture.turning.point);
-
-      dom.set(root, "data-rotating", "");
-    }, 350);
-  });
-
-  dom.on(rotate, "pointermove", (event) => {
-    if (gesture.turning?.id !== event.pointerId) {
-      return;
-    }
-
-    gesture.turning.point = position(event);
-
-    if (!gesture.turning.active) {
-      return;
-    }
-
-    const next = pointerAngle(gesture.turning.point);
-    const difference = ((next - gesture.turning.pointer + 540) % 360) - 180;
-
-    rotateBy(difference);
-    gesture.turning.pointer = next;
-  });
-
-  const releaseRotation = (event) => {
-    if (gesture.turning?.id !== event.pointerId) {
-      return;
-    }
-
-    clearTimeout(timer.hold);
-    gesture.skipClick = gesture.turning.active;
-
-    clearTimeout(timer.click);
-
-    if (gesture.skipClick) {
-      timer.click = setTimeout(() => {
-        gesture.skipClick = false;
-      });
-    }
-
-    gesture.turning = null;
-    model.angle = ((model.angle % 360) + 360) % 360;
-    dom.remove(root, "data-rotating");
-  };
-
-  dom.on(rotate, "pointerup", releaseRotation);
-  dom.on(rotate, "pointercancel", releaseRotation);
-  dom.on(rotate, "lostpointercapture", releaseRotation);
-  dom.on(rotate, "contextmenu", (event) => {
-    event.preventDefault();
-  });
-
-  dom.on(rotate, "click", (event) => {
-    if (gesture.skipClick) {
-      gesture.skipClick = false;
-      event.preventDefault();
-      return;
-    }
-
-    rotateBy(90);
-    model.angle %= 360;
+    if (tool === "rotate") rotateBy(value - model.angle);
+    else zoomTo(value / 100, { x: 0, y: 0 });
   });
 
   const resize = () => {
@@ -562,6 +539,12 @@ export default async function edit(file, options = {}) {
       back: true,
       title: options.title || "image.title",
       content: root,
+      toolbar: dock,
+      closing: () => {
+        tapping.cancel();
+        dock.inert = root.inert = true;
+        controls.getAnimations().forEach((animation) => animation.cancel());
+      },
       ready: () => {
         measure();
 
@@ -577,23 +560,16 @@ export default async function edit(file, options = {}) {
           });
           paint();
         }
+        sync();
       },
       actions: [
         {
-          text: "image.reset",
-          close: false,
-          run: () => {
-            tapping.cancel();
-            Object.assign(model, { angle: 0, scale: 1, x: 0, y: 0 });
-            render();
-          },
-          data: ["data-neutral"]
-        },
-        {
           text: "image.confirm",
+          icon: "check",
+          head: true,
           value: true,
-          run: () => tapping.cancel(),
-          data: ["data-confirm"]
+          data: ["data-confirm"],
+          run: () => tapping.cancel()
         }
       ],
       fullscreen: !device().window
@@ -608,9 +584,7 @@ export default async function edit(file, options = {}) {
   } finally {
     removeResize.forEach((remove) => remove());
     tapping.destroy();
-    clearTimeout(timer.hold);
     clearTimeout(timer.cursor);
-    clearTimeout(timer.click);
     cancelAnimationFrame(raf.measure);
     cancelAnimationFrame(raf.draw);
     raf.measure = null;

@@ -10,6 +10,8 @@ import portrait from "#common/profile/image";
 const keys = [
   "setup.title",
   "setup.name",
+  "setup.required",
+  "setup.optional",
   "setup.namePlaceholder",
   "setup.nameChecking",
   "setup.nameAvailable",
@@ -30,6 +32,7 @@ const keys = [
   "image.scan",
   "image.sizeError",
   "image.reset",
+  "image.clear",
   "image.save",
   "setup.review",
   "setup.finish",
@@ -56,10 +59,24 @@ const text = (tag, name, key) => {
   return element;
 };
 
+const step = (current) => {
+  const element = dom.create("small");
+
+  element.className = "setup-step";
+  element.textContent = `${current} / 2`;
+
+  return element;
+};
+
 const field = (name, type = "text") => {
   const root = dom.create("div");
   const label = dom.create("label");
   const title = text("span", "label-key", `setup.${name}`);
+  const required = text(
+    "small",
+    "setup-field-state",
+    name === "name" ? "setup.required" : "setup.optional"
+  );
   const control = dom.create("span");
   const input = dom.create("input");
   const status = dom.create("small");
@@ -83,7 +100,12 @@ const field = (name, type = "text") => {
 
   dom.set(input, "data-control", "");
   dom.set(input, "data-i18n-placeholder", `setup.${name}Placeholder`);
-  label.append(title, control);
+  const heading = dom.create("span");
+
+  heading.className = "setup-field-title";
+
+  heading.append(title, required);
+  label.append(heading, control);
   control.append(input);
   root.append(label, status);
 
@@ -98,8 +120,8 @@ const state = (element, key, value) => {
 const finish = async (user, picture, agreement, close) => {
   const root = dom.create("div");
   const details = dom.create("div");
+  const progress = step(2);
   const notice = text("p", "", "setup.finish");
-  const revise = text("p", "setup-hint", "setup.revise");
 
   root.className = "setup-profile";
   details.className = "group";
@@ -122,81 +144,97 @@ const finish = async (user, picture, agreement, close) => {
     details.append(item);
   }
 
-  root.append(notice, picture.preview(), details, revise);
+  root.append(progress, notice, picture.preview(), details);
 
-  return drawer({
-    back: true,
-    title: "setup.review",
-    content: root,
-    side: "right",
-    direction: "→",
-    actions: [
-      {
-        text: "setup.complete",
-        icon: "check",
-        data: ["data-confirm"],
-        close: false,
-        run: async ({ button, close: end }) => {
-          button.disabled = true;
-          picture.busy(true);
-          dom.set(button, "data-icon", "throbber");
+  let active = true;
 
-          const file = picture.file();
-          const uploaded = file
-            ? await profile.uploadAvatar(file)
-            : { ok: true };
+  try {
+    return await drawer({
+      back: true,
+      title: "setup.review",
+      content: root,
+      side: "right",
+      direction: "→",
+      closing: () => {
+        active = false;
+      },
+      actions: [
+        { text: "setup.revise", value: false },
+        {
+          text: "setup.complete",
+          icon: "check",
+          data: ["data-confirm"],
+          close: false,
+          run: async ({ button, close: end }) => {
+            button.disabled = true;
+            picture.busy(true);
+            dom.set(button, "data-icon", "throbber");
 
-          if (uploaded.ok && file) {
-            picture.saved();
-          }
+            const file = picture.file();
+            const uploaded = file
+              ? await profile.uploadAvatar(file)
+              : { ok: true };
 
-          const saved = uploaded.ok
-            ? await profile.complete(agreement.value())
-            : uploaded;
+            if (!active) return false;
 
-          if (saved.ok) {
-            await close(true);
-            await end(true);
+            const saved = uploaded.ok
+              ? await profile.complete(
+                  agreement.value(),
+                  file === null ? null : file ? "draft" : "keep"
+                )
+              : uploaded;
+
+            if (!active) return false;
+
+            if (saved.ok) {
+              await close(true);
+              await end(true);
+              return false;
+            }
+
+            toast({
+              type: "error",
+              title:
+                saved.status === 412
+                  ? "setup.consent.error"
+                  : uploaded.status === 413
+                    ? "image.sizeError"
+                    : uploaded.ok
+                      ? "setup.saveError"
+                      : "setup.uploadError"
+            });
+            button.disabled = false;
+            picture.busy(false);
+            dom.set(button, "data-icon", "check");
+
             return false;
           }
-
-          toast({
-            type: "error",
-            title:
-              saved.status === 412
-                ? "setup.consent.error"
-                : uploaded.status === 413
-                  ? "image.sizeError"
-                  : uploaded.ok
-                    ? "setup.saveError"
-                    : "setup.uploadError"
-          });
-          button.disabled = false;
-          picture.busy(false);
-          dom.set(button, "data-icon", "check");
-
-          return false;
         }
-      }
-    ]
-  });
+      ]
+    });
+  } finally {
+    active = false;
+    picture.busy(false);
+  }
 };
 
 export default async function editor(user, ready) {
   const form = dom.create("div");
+  const progress = step(1);
   const picture = portrait(user.avatar, user.image || user.avatar);
   const name = field("name");
   const email = field("email", "email");
   const agreement = consent();
 
   form.className = "setup-form";
-  form.append(picture.root, name.root, email.root, agreement.root);
+  form.append(progress, picture.root, name.root, email.root, agreement.root);
   name.input.value = user.name || "";
   email.input.value = user.email || "";
 
   let available = false;
   let timer;
   let version = 0;
+  let active = true;
 
   const refresh = () =>
     form.dispatchEvent(new Event("input", { bubbles: true }));
@@ -257,87 +295,83 @@ export default async function editor(user, ready) {
     );
   });
 
-  const result = await dialog({
-    back: true,
-    title: "setup.title",
-    content: form,
-    ready: (element) => {
-      element.tabIndex = -1;
-      element.focus({ preventScroll: true });
-      ready?.();
+  try {
+    return await dialog({
+      title: "setup.title",
+      content: form,
+      locked: true,
+      ready: (element) => {
+        element.tabIndex = -1;
+        element.focus({ preventScroll: true });
+        ready?.();
 
-      if (name.input.value) {
-        name.input.dispatchEvent(new Event("input", { bubbles: true }));
-      }
+        if (name.input.value) {
+          name.input.dispatchEvent(new Event("input", { bubbles: true }));
+        }
 
-      if (email.input.value) {
-        email.input.dispatchEvent(new Event("input", { bubbles: true }));
-      }
-    },
-    actions: [
-      {
-        text: "setup.next",
-        submit: true,
-        icon: "arrow",
-        data: ["data-confirm"],
-        close: false,
-        disabled: () =>
-          !validName(name.input.value.trim()) ||
-          !available ||
-          !validEmail(email.input.value.trim()) ||
-          !agreement.valid(),
-        run: async ({ close }) => {
-          if (
-            !available ||
+        if (email.input.value) {
+          email.input.dispatchEvent(new Event("input", { bubbles: true }));
+        }
+      },
+      actions: [
+        {
+          text: "setup.next",
+          submit: true,
+          icon: "arrow",
+          data: ["data-confirm"],
+          close: false,
+          disabled: () =>
             !validName(name.input.value.trim()) ||
+            !available ||
             !validEmail(email.input.value.trim()) ||
-            !agreement.valid()
-          ) {
-            return false;
-          }
-
-          const saved = await profile.save({
-            name: name.input.value.trim(),
-            email: email.input.value.trim(),
-            consent: agreement.value()
-          });
-
-          if (!saved.ok) {
-            if (saved.status === 409) {
-              available = false;
-              state(name.status, "setup.nameUnavailable", "error");
-              refresh();
-            } else {
-              toast({
-                type: "error",
-                title:
-                  saved.status === 412
-                    ? "setup.consent.error"
-                    : "setup.saveError"
-              });
+            !agreement.valid(),
+          run: async ({ close }) => {
+            if (
+              !available ||
+              !validName(name.input.value.trim()) ||
+              !validEmail(email.input.value.trim()) ||
+              !agreement.valid()
+            ) {
+              return false;
             }
 
+            const saved = await profile.save({
+              name: name.input.value.trim(),
+              email: email.input.value.trim(),
+              consent: agreement.value()
+            });
+
+            if (!active) return false;
+
+            if (!saved.ok) {
+              if (saved.status === 409) {
+                available = false;
+                state(name.status, "setup.nameUnavailable", "error");
+                refresh();
+              } else {
+                toast({
+                  type: "error",
+                  title:
+                    saved.status === 412
+                      ? "setup.consent.error"
+                      : "setup.saveError"
+                });
+              }
+
+              return false;
+            }
+
+            await finish(saved.data, picture, agreement, close);
+
             return false;
           }
-
-          const linked = await profile.applyLink();
-
-          if (!linked.ok) {
-            toast({ type: "error", title: "setup.uploadError" });
-
-            return false;
-          }
-
-          await finish(saved.data, picture, agreement, close);
-
-          return false;
         }
-      }
-    ]
-  });
-
-  version += 1;
-  clearTimeout(timer);
-  picture.destroy();
-  return result;
+      ]
+    });
+  } finally {
+    active = false;
+    version += 1;
+    clearTimeout(timer);
+    picture.destroy();
+  }
 }

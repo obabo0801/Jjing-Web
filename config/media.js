@@ -1,7 +1,7 @@
 import hash from "#config/hash";
 
-export const routes = ["users", "images"].flatMap((folder) =>
-  ["original", "resizing"].map((kind) => {
+export const routes = ["users", "images", "audio"].flatMap((folder) =>
+  (folder === "audio" ? ["original"] : ["original", "resizing"]).map((kind) => {
     const directory = `${folder}/${kind}`;
     const legacy = `/upload/${directory}`;
 

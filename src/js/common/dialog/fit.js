@@ -42,7 +42,7 @@ export default function fit(element) {
       return;
     }
 
-    // 확대·화면 이동을 키보드로 오인해 dialog를 계속 재배치하지 않습니다.
+    // 확대 · 화면 이동을 키보드로 오인해 dialog를 계속 재배치하지 않습니다.
     if (Math.abs(view.scale - 1) > 0.01) return;
 
     const height = Math.round(view.height);

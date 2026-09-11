@@ -1,3 +1,35 @@
+.group-section {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 8px;
+  min-width: 0;
+}
+
+.group-section + .group-section {
+  margin-block-start: 8px;
+}
+
+.group-title {
+  min-width: 0;
+  margin: 0;
+  padding-inline: 16px;
+  color: var(--mute);
+  font-size: 0.875rem;
+  font-weight: 600;
+  line-height: 1.4;
+  text-align: start;
+  white-space: normal;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+
+  transition: color 160ms ease;
+}
+
+:is(.small, .wearable) .group-title {
+  padding-inline: 0;
+  text-align: center;
+}
+
 .group {
   display: grid;
 
@@ -82,7 +114,7 @@
   inset-block-start: 0;
   inset-inline: 8px;
 
-  height: 0.5px;
+  height: 1px;
 
   background: var(--border);
 
@@ -93,6 +125,10 @@
 
 .wearable .group-item {
   min-height: 72px;
+}
+
+.wearable dialog .group :is(button, .switch) {
+  font-size: inherit;
 }
 
 :is(.small, .wearable) .group[data-view="grid"] {
@@ -150,6 +186,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .group-title,
   .group,
   .group-item > .icon,
   .group-item::before {

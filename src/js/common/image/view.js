@@ -24,6 +24,7 @@ export default async function view(source, anchor, icon = "") {
   const empty = dom.create("span");
   const image = dom.create("img");
   const full = dom.create("button");
+  const back = dom.create("button");
 
   root.className = "image-view";
   stage.className = "image-view-stage";
@@ -31,6 +32,8 @@ export default async function view(source, anchor, icon = "") {
   image.className = "image-view-media";
   full.type = "button";
   full.className = "image-view-full";
+  back.type = "button";
+  back.className = "image-view-back";
 
   empty.classList.add("image-view-media");
 
@@ -48,8 +51,14 @@ export default async function view(source, anchor, icon = "") {
   dom.set(full, "data-background", "");
   dom.set(full, "data-response", "");
 
+  dom.set(back, "data-icon", "arrow");
+  dom.set(back, "data-angle", "left");
+  dom.set(back, "data-circle", "");
+  dom.set(back, "data-background", "");
+  dom.set(back, "data-response", "");
+
   stage.append(empty, image);
-  root.append(stage, full);
+  root.append(stage, full, back);
 
   const state = {
     scale: 1,
@@ -60,7 +69,16 @@ export default async function view(source, anchor, icon = "") {
     pointers: new Map(),
     pan: null,
     pinch: null,
-    frame: null
+    frame: null,
+    close: null,
+    closing: false,
+    screening: false
+  };
+
+  const controls = (visible) => {
+    back.hidden = !visible || state.closing;
+    full.hidden =
+      back.hidden || !document.fullscreenEnabled || !root.requestFullscreen;
   };
 
   const paint = () => {
@@ -135,6 +153,13 @@ export default async function view(source, anchor, icon = "") {
     state.x = center.x + (state.x - center.x) * ratio;
     state.y = center.y + (state.y - center.y) * ratio;
     state.scale = next;
+
+    if (state.pan) {
+      state.pan.start = null;
+      state.pan.press = null;
+    }
+
+    controls(next <= 1.01);
     render();
   };
 
@@ -151,12 +176,53 @@ export default async function view(source, anchor, icon = "") {
       center: midpoint(points)
     };
     state.pan = null;
+    controls(false);
     dom.remove(root, "data-moving");
+  };
+
+  const dismiss = async () => {
+    if (state.closing || state.screening || !state.close) {
+      return;
+    }
+
+    state.closing = true;
+    controls(false);
+
+    try {
+      if (document.fullscreenElement === root) {
+        await document.exitFullscreen();
+      }
+
+      await state.close(false);
+    } finally {
+      state.closing = false;
+    }
   };
 
   const release = (event) => {
     if (!state.pointers.has(event.pointerId)) {
       return;
+    }
+
+    const pan = state.pan?.id === event.pointerId ? state.pan : null;
+    const start = pan?.start;
+    const press = pan?.press;
+    const tapped =
+      event.type === "pointerup" &&
+      !event.defaultPrevented &&
+      press &&
+      event.timeStamp - press.time <= 300 &&
+      Math.hypot(event.clientX - press.x, event.clientY - press.y) <= 8;
+
+    if (event.type === "pointerup" && start && state.scale <= 1.01) {
+      const current = point(event);
+      const x = start.x - current.x;
+      const y = Math.abs(start.y - current.y);
+      const minimum = Math.max(24, Math.min(80, root.clientWidth * 0.2));
+
+      if (x >= minimum && x > y * 1.5) {
+        dismiss().catch(() => {});
+      }
     }
 
     state.pointers.delete(event.pointerId);
@@ -170,26 +236,40 @@ export default async function view(source, anchor, icon = "") {
     } else {
       state.pan = null;
       dom.remove(root, "data-moving");
+      controls(
+        !event.defaultPrevented && (tapped ? press.hidden : state.scale <= 1.01)
+      );
     }
   };
 
   const screen = async () => {
-    if (!root.requestFullscreen) {
+    if (
+      !root.requestFullscreen ||
+      (document.fullscreenElement && document.fullscreenElement !== root) ||
+      state.screening ||
+      state.closing
+    ) {
       return;
     }
 
-    if (document.fullscreenElement) {
-      await document.exitFullscreen();
-      return;
-    }
+    state.screening = true;
 
-    await root.requestFullscreen();
+    try {
+      if (document.fullscreenElement === root) {
+        await document.exitFullscreen();
+      } else {
+        await root.requestFullscreen();
+      }
+    } finally {
+      state.screening = false;
+    }
   };
 
   const screenState = () => {
     const active = document.fullscreenElement === root;
 
     dom.set(full, "data-icon", active ? "full-exit" : "full");
+    controls(!active && state.scale <= 1.01);
 
     measure();
   };
@@ -199,6 +279,9 @@ export default async function view(source, anchor, icon = "") {
     dom.on(window, "resize", measure),
     dom.on(full, "click", () => {
       screen().catch(() => {});
+    }),
+    dom.on(back, "click", () => {
+      dismiss().catch(() => {});
     }),
     dom.on(document, "fullscreenchange", screenState),
     dom.on(
@@ -235,12 +318,24 @@ export default async function view(source, anchor, icon = "") {
       }
 
       const current = point(event);
+      const hidden = back.hidden;
 
+      controls(false);
       state.pointers.set(event.pointerId, current);
       root.setPointerCapture(event.pointerId);
 
       if (state.pointers.size === 1) {
-        state.pan = { id: event.pointerId, ...current };
+        state.pan = {
+          id: event.pointerId,
+          ...current,
+          start: state.scale <= 1.01 ? current : null,
+          press: {
+            x: event.clientX,
+            y: event.clientY,
+            time: event.timeStamp,
+            hidden
+          }
+        };
         dom.set(root, "data-moving", "");
       } else if (state.pointers.size === 2) {
         beginPinch();
@@ -271,11 +366,21 @@ export default async function view(source, anchor, icon = "") {
         state.y = center.y + (state.pinch.y - state.pinch.center.y) * ratio;
 
         state.scale = next;
+        controls(false);
         render();
         return;
       }
 
       if (state.pan?.id === event.pointerId) {
+        const press = state.pan.press;
+
+        if (
+          press &&
+          Math.hypot(event.clientX - press.x, event.clientY - press.y) > 8
+        ) {
+          state.pan.press = null;
+        }
+
         state.x += current.x - state.pan.x;
         state.y += current.y - state.pan.y;
         state.pan.x = current.x;
@@ -300,17 +405,12 @@ export default async function view(source, anchor, icon = "") {
   try {
     return await popover({
       anchor,
-      back: true,
       content: root,
       fullscreen: true,
-      ready: () => {
-        const enabled = document.fullscreenEnabled;
-        const supported = Boolean(root.requestFullscreen);
-
-        full.hidden = !enabled || !supported;
-
+      ready: (element, close) => {
+        state.close = close;
         restore = theme.color(root);
-        measure();
+        screenState();
       }
     });
   } finally {

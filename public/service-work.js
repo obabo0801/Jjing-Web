@@ -236,7 +236,9 @@ self.addEventListener("fetch", (event) => {
   }
 
   if (url.pathname.startsWith("/api/")) {
-    event.respondWith(fetchApi(request));
+    event.respondWith(
+      request.cache === "no-store" ? fetch(request) : fetchApi(request)
+    );
 
     return;
   }

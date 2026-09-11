@@ -116,12 +116,12 @@
   font-size: 1.5rem;
 }
 
-.profile-uid,
-.profile-last {
+.profile-head > .profile-id,
+.profile-time {
   color: var(--mute);
 }
 
-.profile-last[data-blocked],
+.profile-time[data-blocked],
 .profile-error {
   color: var(--error);
 }
@@ -130,37 +130,93 @@
   color: var(--text);
 }
 
-.label-memo {
-  flex: none;
-  width: 32px;
-  min-height: 32px;
-  height: 32px;
-  padding: 0;
-  border: 0;
-  border-radius: 999px;
-}
-
-.profile-memo {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  width: 100%;
-  min-width: 0;
-}
-
-.profile-memo > .input {
-  flex: 1;
-  min-width: 0;
-}
-
-.profile-last:empty,
-.profile-uid:empty {
+.profile-time:empty,
+.profile-head > .profile-id:empty {
   display: none;
 }
 
-.profile-section {
+.profile-protect {
+  color: var(--mute);
+}
+
+.profile-protect[data-protected="true"] {
+  color: var(--text);
+}
+
+.profile-section,
+.profile-details {
   display: grid;
   gap: 16px;
+}
+
+.history-day {
+  display: grid;
+  gap: 16px;
+  min-width: 0;
+}
+
+.history-day > .profile-section > .group,
+.history-date {
+  animation: history-show 180ms ease-out;
+}
+
+:is(.profile-records, .report) .group[data-deleted] {
+  opacity: 0.5;
+}
+
+.history-status > .progress {
+  animation: loading 800ms linear infinite;
+}
+
+.history-edge {
+  height: 1px;
+  pointer-events: none;
+}
+
+.profile-section:not(:empty) + .history-status {
+  min-height: 0;
+  padding-block: 8px;
+}
+
+@keyframes history-show {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.history-date {
+  margin: 0;
+  color: var(--mute);
+  font-size: 1rem;
+  text-align: center;
+}
+
+.history-status {
+  display: grid;
+  place-items: center;
+  min-height: min(30dvh, 240px);
+  margin: 0;
+  padding-block: 32px;
+  color: var(--mute);
+  text-align: center;
+}
+
+.history-status.profile-error {
+  color: var(--error);
+}
+
+.history-tools > button {
+  color: var(--mute);
+}
+
+.history-tools > button[data-selected] {
+  color: var(--text);
 }
 
 .profile .label {
@@ -176,7 +232,7 @@
   user-select: none;
 }
 
-.profile .label-value[data-expand] {
+.profile button.label-value {
   display: block;
   min-height: 0;
   height: auto;
@@ -187,7 +243,9 @@
   line-height: inherit;
 }
 
-.profile .label-value[data-expand="true"] {
+p.profile-id {
+  margin: 0;
+
   white-space: normal;
   overflow-wrap: anywhere;
   -webkit-user-select: text;
@@ -251,6 +309,12 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .history-day > .profile-section > .group,
+  .history-date,
+  .history-status > .progress {
+    animation: none;
+  }
+
   .profile-edit,
   .profile-status,
   .chatting-message[data-blocked] {
@@ -260,4 +324,10 @@
   .profile-status[data-state="online"] {
     animation: none;
   }
+}
+:is(.report, .profile-records) .label-content > .label-value {
+  overflow: visible;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+  word-break: keep-all;
 }

@@ -2,7 +2,7 @@ import * as dom from "#common/dom";
 import * as i18n from "#common/i18n";
 
 const key = "chatting.yesterday";
-const day = 86_400_000;
+const duration = 86_400_000;
 
 i18n.preload(key);
 
@@ -22,10 +22,16 @@ const parse = (value) => {
   );
 };
 
-const date = (value) =>
-  Date.UTC(value.getFullYear(), value.getMonth(), value.getDate());
+export const day = (value) =>
+  new Date(parse(value).getTime() + 9 * 3600000).toISOString().slice(0, 10);
 
-const pad = (value) => String(value).padStart(2, "0");
+export const label = (value) =>
+  new Intl.DateTimeFormat(dom.root.lang || navigator.language, {
+    timeZone: "Asia/Seoul",
+    year: "numeric",
+    month: "long",
+    day: "numeric"
+  }).format(parse(value));
 
 export const stamp = (value) => {
   const result = parse(value).getTime();
@@ -38,15 +44,12 @@ export const detail = (value) => {
   const lang = dom.root.lang || navigator.language;
   const clock = new Intl.DateTimeFormat(lang, {
     hour: "numeric",
+    timeZone: "Asia/Seoul",
     minute: "2-digit",
     hour12: true
   }).format(source);
 
-  const full = [
-    source.getFullYear(),
-    pad(source.getMonth() + 1),
-    pad(source.getDate())
-  ].join("-");
+  const full = day(source);
 
   return `${full} ${clock}`;
 };
@@ -57,10 +60,11 @@ export const format = (value) => {
   const lang = dom.root.lang || navigator.language;
   const clock = new Intl.DateTimeFormat(lang, {
     hour: "numeric",
+    timeZone: "Asia/Seoul",
     minute: "2-digit",
     hour12: true
   }).format(source);
-  const passed = (date(now) - date(source)) / day;
+  const passed = (Date.parse(day(now)) - Date.parse(day(source))) / duration;
 
   if (passed === 0) {
     return clock;
@@ -70,11 +74,7 @@ export const format = (value) => {
     return `${i18n.message(key)} ${clock}`.trim();
   }
 
-  const full = [
-    source.getFullYear(),
-    pad(source.getMonth() + 1),
-    pad(source.getDate())
-  ].join("-");
+  const full = day(source);
 
   return `${full} ${clock}`;
 };

@@ -6,6 +6,7 @@ const selector = "[data-tooltip], [title]";
 
 let tip;
 let source;
+let closing;
 
 i18n.register("data-tooltip", () => {});
 
@@ -38,6 +39,10 @@ const hide = (element = source) => {
 
   source = null;
   dom.remove(tip, "data-open");
+  clearTimeout(closing);
+  closing = setTimeout(() => {
+    if (!source && tip?.matches(":popover-open")) tip.hidePopover();
+  }, 120);
 };
 
 const place = () => {
@@ -81,6 +86,7 @@ const place = () => {
 };
 
 const show = (element) => {
+  if (!element.isConnected || element.closest("dialog:not([open])")) return;
   element = convert(element);
 
   const value = content(element);
@@ -91,8 +97,11 @@ const show = (element) => {
     return;
   }
 
+  clearTimeout(closing);
+  if (source !== element && tip.matches(":popover-open")) tip.hidePopover();
   source = element;
   tip.textContent = value;
+  if (!tip.matches(":popover-open")) tip.showPopover();
   place();
   dom.set(tip, "data-open", "");
 };
@@ -122,17 +131,152 @@ export default function tooltip() {
 
   const wrap = dom.create("div");
 
+  let press;
+  let blocked;
+  let keyboard = true;
+
+  const cancel = () => {
+    if (!press) return;
+
+    clearTimeout(press.timer);
+    press.cancelled = true;
+    hide(press.element);
+  };
+
+  const finish = (event) => {
+    if (!press || (event && event.pointerId !== press.id)) return;
+
+    const previous = press;
+
+    cancel();
+    press = undefined;
+    if (previous.shown) {
+      blocked = { element: previous.element, until: performance.now() + 800 };
+    }
+  };
+
+  const start = (event) => {
+    keyboard = false;
+    blocked = undefined;
+    if (press) {
+      cancel();
+      return;
+    }
+
+    if (event.pointerType !== "touch" && event.pointerType !== "pen") return;
+
+    hide();
+    const element = target(event);
+
+    if (!element || event.isPrimary === false || event.button !== 0) return;
+
+    const current = {
+      id: event.pointerId,
+      element: convert(element),
+      x: event.clientX,
+      y: event.clientY,
+      shown: false,
+      cancelled: false
+    };
+
+    press = current;
+    current.timer = setTimeout(() => {
+      if (press !== current || current.cancelled || !element.isConnected)
+        return;
+
+      show(element);
+      current.shown = source === element;
+    }, 500);
+  };
+
+  const move = (event) => {
+    if (!press || event.pointerId !== press.id) return;
+
+    if (Math.hypot(event.clientX - press.x, event.clientY - press.y) > 8)
+      cancel();
+  };
+
+  const click = (event) => {
+    if (!blocked || performance.now() > blocked.until) return;
+    if (!event.pointerType && event.detail === 0) return;
+    if (event.pointerType && !["touch", "pen"].includes(event.pointerType))
+      return;
+    if (!blocked.element.contains(event.target)) return;
+
+    // 롱 터치가 끝난 뒤 생성되는 클릭만 막고 다음 탭은 허용합니다.
+    blocked = undefined;
+    event.preventDefault();
+    event.stopImmediatePropagation();
+  };
+
+  const update = () => {
+    cancel();
+    place();
+  };
+
   tip = dom.create("div");
   tip.className = "tooltip";
+  dom.set(tip, "popover", "manual");
   dom.set(tip, "data-background", "");
   dom.set(tip, "data-shadow", "");
   wrap.append(tip);
   dom.body.append(wrap);
 
-  dom.on(document, "pointerover", enter);
-  dom.on(document, "pointerout", leave);
-  dom.on(document, "focusin", enter);
+  dom.on(document, "pointerover", (event) => {
+    if (event.pointerType === "mouse") enter(event);
+  });
+
+  dom.on(document, "pointerout", (event) => {
+    if (event.pointerType === "mouse") leave(event);
+  });
+
+  dom.on(document, "focusin", (event) => {
+    if (keyboard) enter(event);
+  });
   dom.on(document, "focusout", leave);
-  dom.on(document, "scroll", place, true);
-  dom.on(window, "resize", place);
+  dom.on(
+    document,
+    "close",
+    (event) => {
+      if (source && event.target.contains(source)) hide();
+    },
+    true
+  );
+  const observer = new MutationObserver(() => {
+    if (source && !source.isConnected) hide();
+  });
+
+  observer.observe(document.body, { childList: true, subtree: true });
+  dom.on(
+    document,
+    "keydown",
+    () => {
+      keyboard = true;
+    },
+    true
+  );
+  dom.on(document, "pointerdown", start, true);
+  dom.on(document, "pointermove", move, true);
+  dom.on(document, "pointerup", finish, true);
+  dom.on(document, "pointercancel", finish, true);
+  dom.on(document, "lostpointercapture", finish, true);
+  dom.on(window, "click", click, true);
+  dom.on(document, "contextmenu", (event) => {
+    if (press && !press.cancelled && press.element.contains(event.target)) {
+      event.preventDefault();
+    }
+  });
+  dom.on(document, "scroll", update, true);
+  dom.on(window, "resize", update);
+  dom.on(window, "blur", () => {
+    finish();
+    hide();
+  });
+
+  dom.on(document, "visibilitychange", () => {
+    if (document.hidden) {
+      finish();
+      hide();
+    }
+  });
 }

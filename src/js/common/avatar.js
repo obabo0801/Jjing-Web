@@ -27,9 +27,16 @@ export default function avatar(source = "", tag = "div") {
       return;
     }
 
+    const ratio =
+      adjustment?.shape === "original"
+        ? adjustment.width / adjustment.height
+        : 1;
+
+    root.toggleAttribute("data-original", adjustment?.shape === "original");
     css.set(root, {
-      "--avatar-width": `${Math.max(1, width / height) * 100}%`,
-      "--avatar-height": `${Math.max(1, height / width) * 100}%`,
+      "--avatar-aspect": ratio,
+      "--avatar-width": `${Math.max(1, width / height / ratio) * 100}%`,
+      "--avatar-height": `${Math.max(1, (height / width) * ratio) * 100}%`,
       "--avatar-x": `${Number(adjustment?.x) * 100 || 0}%`,
       "--avatar-y": `${Number(adjustment?.y) * 100 || 0}%`,
       "--avatar-angle": `${Number(adjustment?.angle) || 0}deg`,

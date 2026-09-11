@@ -8,6 +8,21 @@
   min-width: 0;
 }
 
+.setup-field-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+
+  min-width: 0;
+  flex-wrap: wrap;
+}
+
+.setup-field-state {
+  color: var(--mute);
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
 .setup-form {
   width: min(100%, 36rem);
   margin-inline: auto;
@@ -75,6 +90,19 @@
   padding: 8px 0;
 }
 
+.setup-step {
+  display: block;
+
+  color: var(--mute);
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-align: center;
+}
+
+.setup-form > .setup-step {
+  margin-bottom: 8px;
+}
+
 .setup-status {
   min-height: 1.5em;
 
@@ -87,10 +115,6 @@
 
 .setup-status[data-state="success"] {
   color: var(--success);
-}
-
-.setup-hint {
-  color: var(--mute);
 }
 
 .setup-profile {

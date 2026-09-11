@@ -3,35 +3,79 @@ import { Router } from "express";
 import admin from "#middleware/admin";
 import * as events from "#service/events";
 import management from "#service/manage";
+import { deliver } from "#service/chatting";
 import * as role from "#shared/role";
 import string from "#shared/string";
+import { resolve } from "#service/profile/data";
 
 const router = Router();
 
-router.post("/:uid/block", admin, async (req, res) => {
+router.post("/:id/sanction", admin, async (req, res) => {
+  const { action, reason } = req.body || {};
+
+  if (!["mute", "kick", "unkick"].includes(action))
+    return res.status(400).end();
+  const user = await resolve(string(req.params.id).trim());
+
+  if (!user) return res.status(404).end();
+  try {
+    const result = await management(req.user.uid, user.uid, action, { reason });
+
+    if (action === "kick") {
+      events.send(user.uid, "kick", {
+        handler: result.handler,
+        reason: reason.trim()
+      });
+      events.disconnect(user.uid);
+    } else if (action === "mute") {
+      events.send(user.uid, "mute", {
+        until: result.sanction.muted,
+        message: result.message,
+        ...JSON.parse(result.sanction.notice)
+      });
+    }
+    await deliver(result.message.url, action === "mute" ? user.uid : undefined);
+    events.broadcast("profile-update", { id: user.id });
+    res.status(204).end();
+  } catch (error) {
+    if (error.status) return res.status(error.status).end();
+    throw error;
+  }
+});
+
+router.post("/:id/block", admin, async (req, res) => {
   const reason = string(req.body?.reason).trim();
 
   if (!reason || reason.length > 500) {
     return res.status(400).end();
   }
 
-  const uid = string(req.params.uid).trim();
+  const user = await resolve(string(req.params.id).trim());
+
+  if (!user) return res.status(404).end();
+  const uid = user.uid;
+
+  let result;
 
   try {
-    await management(req.user.uid, uid, "block", { reason });
+    result = await management(req.user.uid, uid, "block", { reason });
   } catch (error) {
     if (error.status) return res.status(error.status).end();
     throw error;
   }
-  events.send(uid, "block");
-  events.send(uid, "role", { role: role.user });
-  events.broadcast("chatting-block", { uid });
-  events.broadcast("profile-update", { uid });
+  events.send(uid, "block", { handler: result.handler, reason });
+  events.disconnect(uid);
+  await deliver(result.message.url);
+  events.broadcast("chatting-block", { id: user.id });
+  events.broadcast("profile-update", { id: user.id });
   res.status(204).end();
 });
 
-router.delete("/:uid/block", admin, async (req, res) => {
-  const uid = string(req.params.uid).trim();
+router.delete("/:id/block", admin, async (req, res) => {
+  const user = await resolve(string(req.params.id).trim());
+
+  if (!user) return res.status(404).end();
+  const uid = user.uid;
   const reason = string(req.body?.reason).trim();
 
   if (!reason || reason.length > 500) return res.status(400).end();
@@ -44,17 +88,23 @@ router.delete("/:uid/block", admin, async (req, res) => {
     if (error.status) return res.status(error.status).end();
     throw error;
   }
-  events.broadcast("chatting-unblock", { uid });
+  events.broadcast("chatting-unblock", { id: user.id });
+  if (current.message) await deliver(current.message.url);
   events.send(uid, "role", { role: current.role });
-  events.broadcast("profile-update", { uid });
+  events.broadcast("profile-update", { id: user.id });
   res.status(204).end();
 });
 
-router.patch("/:uid/authority", admin, async (req, res) => {
-  const uid = string(req.params.uid).trim();
+router.patch("/:id/authority", admin, async (req, res) => {
+  const id = string(req.params.id).trim();
   const { enabled, memo } = req.body || {};
 
   if (req.user.role !== role.root) return res.status(403).end();
+  const user = await resolve(id);
+
+  if (!user) return res.status(404).end();
+  const uid = user.uid;
+
   if (
     (enabled === undefined && memo === undefined) ||
     (enabled !== undefined && typeof enabled !== "boolean") ||
@@ -74,7 +124,7 @@ router.patch("/:uid/authority", admin, async (req, res) => {
   }
   if (enabled !== undefined)
     events.send(uid, "role", { role: enabled ? role.admin : role.user });
-  events.broadcast("profile-update", { uid });
+  events.broadcast("profile-update", { id: user.id });
   res.status(204).end();
 });
 

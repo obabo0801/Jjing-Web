@@ -1,6 +1,11 @@
 import * as dom from "#common/dom";
 
 const icons = {
+  smile: [
+    "M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20Z",
+    "M8 9h.01M16 9h.01",
+    "M7 14s1.5 3 5 3 5-3 5-3"
+  ],
   arrow: ["m9 18 6-6-6-6"],
   phone: [
     "M7 2h10a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2Z",
@@ -13,7 +18,7 @@ const icons = {
       "a2 2 0 0 0-2-2h-3.5Z",
     "M12 17a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z"
   ],
-  edit: ["M12 20h9", "M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"],
+  edit: ["M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"],
   home: ["M3 11 12 3l9 8", "M5 10v10h14V10", "M9 20v-6h6v6"],
   reload: ["M20 11a8 8 0 1 0-2.34 5.66", "M20 4v7h-7"],
   rotate: [
@@ -23,6 +28,8 @@ const icons = {
     "M21 21v-5h-5"
   ],
   close: ["M18 6 6 18", "m6 6 12 12"],
+  clock: ["M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20Z", "M12 6v6l4 2"],
+  trash: ["M3 6h18", "M5 6l1 15h12l1-15", "M9 6V3h6v3", "M10 10v7M14 10v7"],
   full: ["M8 3H3v5", "M16 3h5v5", "M8 21H3v-5", "M16 21h5v-5"],
   "full-exit": ["M9 3v6H3", "M15 3v6h6", "M9 21v-6H3", "M15 21v-6h6"],
   copy: ["M8 8h12v12H8z", "M4 16V4h12"],
@@ -143,6 +150,7 @@ const icons = {
     "M21 21l-4.35-4.35",
     "M10.5 18a7.5 7.5 0 1 0 0-15" + " 7.5 7.5 0 0 0 0 15Z"
   ],
+  calendar: ["M3 5h18v16H3Z", "M3 10h18", "M7 3v4", "M17 3v4"],
   send: ["M22 2 15 22l-4-9-9-4Z", "M22 2 11 13"],
   voice: [
     "M12 2a3 3 0 0 0-3 3v7" + "a3 3 0 0 0 6 0V5" + "a3 3 0 0 0-3-3Z",
@@ -373,7 +381,7 @@ export default function icon() {
     });
   });
 
-  observer.observe(document.documentElement, {
+  observer.observe(dom.root, {
     subtree: true,
     childList: true,
     attributes: true,

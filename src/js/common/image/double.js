@@ -84,7 +84,7 @@ export default function double(element, { scale, point, zoom }) {
       element,
       "pointerdown",
       (event) => {
-        if (event.button !== 0) {
+        if (event.button !== 0 || event.target.closest?.("button")) {
           return;
         }
 

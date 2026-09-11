@@ -7,10 +7,13 @@ export const maxPixels = 64_000_000;
 const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
 
 export const transform = async (data, value, quality) => {
-  const width = clamp(Math.round(Number(value?.width) || 512), 64, 1024);
-  const height = clamp(Math.round(Number(value?.height) || 512), 64, 1024);
+  let width = clamp(Math.round(Number(value?.width) || 512), 64, 1024);
+  let height = clamp(Math.round(Number(value?.height) || 512), 64, 1024);
+
   const angle = (((Number(value?.angle) || 0) % 360) + 360) % 360;
-  const shape = value?.shape === "circle" ? "circle" : "square";
+  const shape = ["circle", "original"].includes(value?.shape)
+    ? value.shape
+    : "square";
   const scale = clamp(Number(value?.scale) || 1, 1, 3);
   const offsetX = clamp(Number(value?.x) || 0, -1, 1);
   const offsetY = clamp(Number(value?.y) || 0, -1, 1);
@@ -41,6 +44,14 @@ export const transform = async (data, value, quality) => {
     .toBuffer({ resolveWithObject: true });
   const sourceWidth = decoded.info.width;
   const sourceHeight = Math.round(decoded.info.height / pages);
+
+  if (shape === "original") {
+    const ratio = Math.min(1, 1024 / Math.max(sourceWidth, sourceHeight));
+
+    width = Math.max(1, Math.round(sourceWidth * ratio));
+    height = Math.max(1, Math.round(sourceHeight * ratio));
+    if (width * height * pages > maxPixels) return null;
+  }
   const radians = (angle * Math.PI) / 180;
   const horizontal = Math.abs(Math.cos(radians));
   const vertical = Math.abs(Math.sin(radians));
@@ -54,6 +65,14 @@ export const transform = async (data, value, quality) => {
   const zoom = cover * scale;
   const resizedWidth = Math.ceil(sourceWidth * zoom);
   const resizedHeight = Math.ceil(sourceHeight * zoom);
+
+  if (
+    (resizedWidth * horizontal + resizedHeight * vertical) *
+      (resizedWidth * vertical + resizedHeight * horizontal) *
+      pages >
+    maxPixels
+  )
+    return null;
   const stride = sourceWidth * sourceHeight * decoded.info.channels;
   const frames = [];
 

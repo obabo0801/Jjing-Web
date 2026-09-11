@@ -27,6 +27,17 @@
     visibility 0s 120ms;
 }
 
+.tooltip:where([popover]) {
+  inset: auto;
+  margin: 0;
+  overflow: visible;
+}
+
+.tooltip::backdrop {
+  background: transparent;
+  pointer-events: none;
+}
+
 .tooltip[data-background] {
   background: var(--background);
 }

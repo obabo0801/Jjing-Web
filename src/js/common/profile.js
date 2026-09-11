@@ -5,34 +5,37 @@ import upload from "#common/upload";
 
 const records = new Map();
 const pending = new Map();
+const latest = new Map();
 const bindings = new Set();
 const linkBindings = new Set();
 
 let linked = "";
+let generation = 0;
+let sequence = 0;
 
-const key = (uid) => uid || "me";
+const key = (id) => id || "me";
 
-const notify = (uid, user) => {
+const notify = (id, user) => {
   for (const binding of bindings) {
     if (!binding.element.isConnected) {
       bindings.delete(binding);
-    } else if (binding.uid === uid) {
+    } else if (binding.id === id) {
       binding.render(user);
     }
   }
 };
 
-const remember = (uid, user) => {
-  if (!user?.uid) {
+const remember = (id, user) => {
+  if (!user?.id) {
     return user;
   }
 
-  const value = { ...records.get(user.uid), ...user };
+  const value = { ...user };
 
-  records.set(user.uid, value);
-  notify(user.uid, value);
+  records.set(user.id, value);
+  notify(user.id, value);
 
-  if (uid === "me" || value.self) {
+  if (id === "me" || value.self) {
     records.set("me", value);
     notify("me", value);
   }
@@ -40,11 +43,26 @@ const remember = (uid, user) => {
   return value;
 };
 
-export const value = (uid = "me") => records.get(key(uid));
+export const value = (id = "me") => records.get(key(id));
 
-export const bind = (element, uid, render) => {
-  const binding = { element, uid: key(uid), render };
-  const user = value(binding.uid);
+const discard = (target) => {
+  const user = records.get(target);
+
+  records.delete(target);
+  if (!user) return;
+  const { id, name, image, avatar, self, state, time } = user;
+  const own = records.get("me")?.id === id || target === "me";
+  const safe = { id, name, image, avatar, self, state, time, manage: false };
+
+  records.delete(id);
+  if (own) records.delete("me");
+  notify(id, safe);
+  if (own) notify("me", safe);
+};
+
+export const bind = (element, id, render) => {
+  const binding = { element, id: key(id), render };
+  const user = value(binding.id);
 
   bindings.add(binding);
 
@@ -55,41 +73,64 @@ export const bind = (element, uid, render) => {
   return () => bindings.delete(binding);
 };
 
-export const read = async (uid = "me", options = {}) => {
-  const id = key(uid);
+export const read = async (id = "me", options = {}) => {
+  const target = key(id);
 
-  if (!options.fresh && records.has(id)) {
-    return { ok: true, status: 200, data: records.get(id) };
+  if (!options.fresh && records.has(target)) {
+    return { ok: true, status: 200, data: records.get(target) };
   }
 
-  if (!options.fresh && pending.has(id)) {
-    return pending.get(id);
+  if (!options.fresh && pending.has(target)) {
+    return pending.get(target);
   }
 
-  const request = api(`${path}/${encodeURIComponent(id)}`).then((result) =>
-    result.ok ? { ...result, data: remember(id, result.data) } : result
+  const version = generation;
+  const canonical = records.get(target)?.id || target;
+  const entry = { order: ++sequence };
+
+  latest.set(target, entry);
+  latest.set(canonical, entry);
+  const request = api(`${path}/${encodeURIComponent(target)}`).then(
+    (result) => {
+      const current = [target, canonical, result.data?.id]
+        .map((id) => latest.get(id))
+        .filter(Boolean)
+        .sort((a, b) => b.order - a.order)[0];
+
+      if (version !== generation || current !== entry) {
+        // 지난 응답은 버리되 호출자는 최신 조회의 성공 · 실패를 받습니다.
+        return current?.request || read(target);
+      }
+      if (!result.ok) {
+        if ([403, 404].includes(result.status)) discard(target);
+        return result;
+      }
+      latest.set(result.data?.id || canonical, entry);
+      return { ...result, data: remember(target, result.data) };
+    }
   );
 
-  pending.set(id, request);
+  entry.request = request;
+  pending.set(target, request);
 
   try {
     return await request;
   } finally {
-    if (pending.get(id) === request) {
-      pending.delete(id);
+    if (pending.get(target) === request) {
+      pending.delete(target);
     }
   }
 };
 
-export const presence = (uid, state) => {
-  const id = key(uid);
-  const user = records.get(id);
+export const presence = (id, state) => {
+  const target = key(id);
+  const user = records.get(target);
 
   if (!user) {
     return;
   }
 
-  remember(id, { ...user, state });
+  remember(target, { ...user, state });
 };
 
 export const receiveLink = (token) => {
@@ -145,44 +186,48 @@ export const applyLink = async () => {
   return result;
 };
 
-export const block = (uid, reason) =>
-  api(`${path}/${encodeURIComponent(uid)}/block`, {
+export const block = (id, reason) =>
+  api(`${path}/${encodeURIComponent(id)}/block`, {
     method: "POST",
     data: { reason }
   });
 
-export const unblock = (uid, reason) =>
-  api(`${path}/${encodeURIComponent(uid)}/block`, {
+export const unblock = (id, reason) =>
+  api(`${path}/${encodeURIComponent(id)}/block`, {
     method: "DELETE",
     data: { reason }
   });
 
-export const authority = (uid, data) =>
-  api(`${path}/${encodeURIComponent(uid)}/authority`, {
-    method: "PATCH",
-    data
-  });
+export const authority = (id, data) =>
+  api(`${path}/${encodeURIComponent(id)}/authority`, { method: "PATCH", data });
 
-export const refresh = (uid) => {
-  records.delete(key(uid));
-  return read(uid, { fresh: true });
+export const refresh = async (id) => {
+  const result = await read(id, { fresh: true });
+
+  if (!result.ok) discard(key(id));
+  return result;
 };
 
 export const reset = () => {
-  records.clear();
-  const ids = new Set(
-    [...bindings]
+  const ids = new Set([
+    ...pending.keys(),
+    ...[...bindings]
       .filter(({ element }) => element.isConnected)
-      .map(({ uid }) => uid)
-  );
+      .map(({ id }) => id)
+  ]);
 
-  ids.forEach((uid) => read(uid, { fresh: true }));
+  generation++;
+  pending.clear();
+  latest.clear();
+  // 권한 변경 후 재조회가 늦거나 실패해도 이전 관리 정보를 즉시 지웁니다.
+  for (const target of [...records.keys()]) discard(target);
+  return Promise.all([...ids].map((id) => read(id, { fresh: true })));
 };
 
-export const complete = async (consent) => {
+export const complete = async (consent, image = "keep") => {
   const result = await api(`${path}/complete`, {
     method: "POST",
-    data: { consent }
+    data: { consent, image }
   });
 
   if (result.ok) {
@@ -191,3 +236,9 @@ export const complete = async (consent) => {
 
   return result;
 };
+
+export const sanction = (id, action, reason) =>
+  api(`${path}/${encodeURIComponent(id)}/sanction`, {
+    method: "POST",
+    data: { action, reason }
+  });

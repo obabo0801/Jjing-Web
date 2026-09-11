@@ -17,7 +17,7 @@
 
   flex: 1;
   min-width: 16px;
-  border-block-start: 0.5px solid var(--border);
+  border-block-start: 1px solid var(--border);
 
   pointer-events: none;
 
@@ -25,7 +25,7 @@
 }
 
 .line[data-line="dotted"]::after {
-  border-block-start-width: 1px;
+  border-block-start-width: 3px;
   border-block-start-style: dotted;
 }
 
@@ -41,6 +41,19 @@
 .line > :not(.icon) {
   min-width: 0;
   overflow-wrap: anywhere;
+}
+
+:is(.small, .wearable) dialog .line {
+  flex-direction: column;
+  justify-content: center;
+
+  text-align: center;
+}
+
+:is(.small, .wearable) dialog .line::after {
+  flex: none;
+  width: 100%;
+  min-width: 0;
 }
 
 @media (prefers-reduced-motion: reduce) {

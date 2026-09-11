@@ -6,6 +6,19 @@ import * as profile from "#common/profile";
 import line from "#common/line";
 import label from "#common/profile/label";
 import authority from "#common/profile/authority";
+import history from "#common/profile/history";
+import report from "#common/report";
+import inbox from "#common/report/inbox";
+
+i18n.preload(
+  "profile.mute30",
+  "profile.mute30Info",
+  "profile.mute60",
+  "profile.mute60Info",
+  "profile.mute120",
+  "profile.mute120Info",
+  "profile.reportHistory"
+);
 
 const emit = (target, type, detail) => {
   target?.dispatchEvent(new CustomEvent(type, { bubbles: true, detail }));
@@ -92,9 +105,11 @@ const hidden = (target, options) => {
 
 const block = async (user) => {
   const blocked = user.blocked;
+  const content = dom.create("div");
   const field = dom.create("div");
   const input = dom.create("input");
 
+  content.className = "profile";
   field.className = "input";
   input.name = "block-reason";
   input.autocomplete = "off";
@@ -108,21 +123,28 @@ const block = async (user) => {
     blocked ? "profile.unblockReason" : "profile.blockReason"
   );
   field.append(input);
+  content.append(field);
 
   const confirmed = await dialog({
-    title: blocked ? "profile.unblock" : "profile.blockTitle",
-    content: field,
+    title: blocked ? "profile.unblock" : "profile.block",
+    content,
+    direction: "→",
     actions: [
-      { text: "profile.cancel", value: false, data: ["data-neutral"] },
+      {
+        text: "profile.cancel",
+        icon: "close",
+        value: false,
+        data: ["data-neutral"]
+      },
       {
         text: "profile.confirm",
+        icon: "check",
         submit: true,
         value: true,
         data: ["data-danger"],
         disabled: () => !input.value.trim()
       }
-    ],
-    locked: true
+    ]
   });
 
   if (!confirmed) {
@@ -130,53 +152,132 @@ const block = async (user) => {
   }
 
   const result = blocked
-    ? await profile.unblock(user.uid, input.value.trim())
-    : await profile.block(user.uid, input.value.trim());
+    ? await profile.unblock(user.id, input.value.trim())
+    : await profile.block(user.id, input.value.trim());
 
   if (!result.ok) {
     await dialog({ title: "profile.saveError" });
     return;
   }
-  await profile.read(user.uid, { fresh: true });
+  await profile.read(user.id, { fresh: true });
+};
+
+const sanction = async (user, action) => {
+  const content = dom.create("div");
+  const field = dom.create("div");
+  const input = dom.create("input");
+
+  content.className = "profile";
+  if (action === "mute") {
+    content.append(
+      group(
+        ...[30, 60, 120].map((seconds) => {
+          const key = `profile.mute${seconds}`;
+          const row = label(key, i18n.message(`${key}Info`));
+
+          dom.set(dom.query(".label-value", row), "data-i18n", `${key}Info`);
+          return row;
+        })
+      )
+    );
+  }
+  field.className = "input";
+  input.name = "sanction-reason";
+  input.maxLength = 500;
+  input.enterKeyHint = "done";
+  dom.set(input, "data-control", "");
+  dom.set(input, "data-i18n-placeholder", "profile.historyReason");
+  field.append(input);
+  content.append(field);
+  let busy = false;
+
+  await dialog({
+    title:
+      action === "mute"
+        ? "profile.chatMute"
+        : action === "kick"
+          ? "profile.kick"
+          : "profile.unkick",
+    content,
+    direction: "→",
+    actions: [
+      {
+        text: "profile.cancel",
+        icon: "close",
+        value: false,
+        data: ["data-neutral"]
+      },
+      {
+        text: "profile.confirm",
+        icon: "check",
+        submit: true,
+        data: ["data-danger"],
+        disabled: () => busy || !input.value.trim(),
+        run: async () => {
+          if (busy || !input.value.trim()) return false;
+          busy = true;
+          try {
+            const result = await profile.sanction(
+              user.id,
+              action,
+              input.value.trim()
+            );
+
+            if (!result.ok) {
+              await dialog({ title: "profile.saveError" });
+              return false;
+            }
+            await profile.read(user.id, { fresh: true });
+            return true;
+          } finally {
+            busy = false;
+          }
+        }
+      }
+    ]
+  });
 };
 
 export const manage = (user, target, options, handlers, opening) => {
-  if (!user.manage || !user.details) {
+  if ((!user.manage && !user.self) || !user.details) {
     return null;
   }
 
   const details = user.details;
   const element = dom.create("section");
-
-  element.className = "profile-section";
-  element.append(
-    group(
-      label("profile.uid", details.uid, { short: true }),
-      label("profile.email", details.email)
-    ),
-    ...(details.date || details.userIp || details.last || details.accessIp
+  const info = dom.create("div");
+  const fields = group(
+    label("profile.uid", details.uid, { short: true }),
+    label("profile.email", details.email),
+    ...(details.date || details.userIp || details.time || details.accessIp
       ? [line({ type: "dotted", text: "profile.access", icon: "info" })]
       : []),
-    group(
-      label("profile.date", details.date, { date: true }),
-      label("profile.userIp", details.userIp),
-      label("profile.last", details.last, { date: true }),
-      label("profile.accessIp", details.accessIp)
-    ),
+    label("profile.date", details.date, { date: true }),
+    label("profile.userIp", details.userIp),
+    label("profile.time", details.time, { date: true }),
+    label("profile.accessIp", details.accessIp),
     ...(details.os || details.browser || details.lang
       ? [line({ type: "dotted", text: "profile.environment", icon: "theme" })]
       : []),
-    group(
-      label("profile.os", details.os),
-      label("profile.browser", details.browser),
-      label("profile.lang", details.lang)
-    ),
+    label("profile.lang", details.lang),
+    label("profile.os", details.os),
+    label("profile.browser", details.browser)
+  );
+
+  element.className = "profile-section";
+  info.className = "profile-details";
+  dom.set(fields, "data-background", "");
+  info.append(fields);
+  element.append(info);
+  if (user.self || !user.manage) return element;
+
+  element.append(
     group(
       user.authority ? authority(user) : null,
       ...(user.blocked
         ? [
             label("profile.blockReason", user.block?.reason),
-            label("profile.blockTime", user.block?.time),
+            label("profile.blockTime", user.block?.time, { date: true }),
             label("profile.handler", user.block?.handler || user.block?.actor)
           ]
         : [
@@ -185,22 +286,34 @@ export const manage = (user, target, options, handlers, opening) => {
               icon: "tts-mute",
               danger: true,
               close: false,
-              run: () => emit(target, "chatting-mute", options)
+              run: () =>
+                opening(`sanction:${user.id}`, () => sanction(user, "mute"))
             }),
             item(handlers, {
-              text: "profile.kick",
+              text: user.sanction?.kicked ? "profile.unkick" : "profile.kick",
               icon: "arrow",
               danger: true,
               close: false,
-              run: () => emit(target, "chatting-kick", options)
+              run: () =>
+                opening(`sanction:${user.id}`, () =>
+                  sanction(user, user.sanction?.kicked ? "unkick" : "kick")
+                )
             })
           ]),
+      item(handlers, {
+        text: "profile.blockHistory",
+        icon: "info",
+        next: true,
+        close: false,
+        run: () =>
+          opening(`history:${user.id}`, () => history(user.id, "sanction"))
+      }),
       item(handlers, {
         text: user.blocked ? "profile.unblock" : "profile.block",
         icon: "error",
         danger: true,
         close: false,
-        run: () => opening(`block:${user.uid}`, () => block(user))
+        run: () => opening(`block:${user.id}`, () => block(user))
       })
     )
   );
@@ -209,7 +322,7 @@ export const manage = (user, target, options, handlers, opening) => {
   return element;
 };
 
-export const context = (user, target, options, handlers) => {
+export const context = (user, target, options, handlers, opening) => {
   const gift = item(handlers, {
     text: "profile.gift",
     icon: "gift",
@@ -248,13 +361,37 @@ export const context = (user, target, options, handlers) => {
       whisper
     ];
 
+    items.push(hidden(target, options));
+    if (user.manage && user.details) {
+      const entry = item(handlers, {
+        text: "profile.chatHistory",
+        icon: "info",
+        next: true,
+        close: false,
+        run: () =>
+          opening(`history:${user.id}`, () => history(user.id, "chatting"))
+      });
+
+      entry.classList.add("profile-history");
+      items.push(entry);
+      const reports = item(handlers, {
+        text: "profile.reportHistory",
+        icon: "flag",
+        next: true,
+        close: false,
+        run: () => opening(`reports:${user.id}`, () => inbox(user.id))
+      });
+
+      reports.classList.add("profile-history");
+      items.push(reports);
+    }
     items.push(
-      hidden(target, options),
       item(handlers, {
         text: "profile.report",
         icon: "flag",
         danger: true,
-        run: () => emit(target, "chatting-report", options)
+        close: false,
+        run: () => report("user", user.id, user.self)
       })
     );
     element.append(group(...items));

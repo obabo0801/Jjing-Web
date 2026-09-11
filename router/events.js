@@ -4,6 +4,7 @@ import * as events from "#service/events";
 import address from "#config/ip";
 import { get } from "#db";
 import identity from "#config/uid";
+import { viewer } from "#service/chatting";
 
 const router = Router();
 
@@ -23,6 +24,8 @@ const find = async (req) => {
             WHERE block.uid = user.uid
               OR block.ip = ?
           )
+          AND NOT EXISTS (SELECT 1 FROM sanction WHERE uid = user.uid
+            AND kicked > datetime('now', '+9 hours'))
       `,
         [uid, ip]
       )
@@ -36,11 +39,45 @@ router.post("/", async (req, res) => {
     return res.status(403).end();
   }
 
-  events.touch(user.uid);
+  if (
+    typeof req.body?.session !== "string" ||
+    !events.touch(user.uid, req.body.session)
+  )
+    return res.status(409).end();
   res.status(204).end();
 });
 
+router.get("/list", async (req, res) => {
+  res.set({ "Cache-Control": "private, no-store", Vary: "Cookie" });
+  try {
+    await viewer(
+      identity(req),
+      address(req),
+      req.app.get("env") === "development"
+    );
+    const result = await events.list();
+
+    await viewer(
+      identity(req),
+      address(req),
+      req.app.get("env") === "development"
+    );
+    res.json(result);
+  } catch (error) {
+    if (error.status) return res.status(error.status).end();
+    throw error;
+  }
+});
+
 router.get("/", async (req, res) => {
+  const tab = req.query.tab;
+
+  if (
+    tab !== undefined &&
+    (typeof tab !== "string" ||
+      !/^[\da-f]{8}(-[\da-f]{4}){3}-[\da-f]{12}$/i.test(tab))
+  )
+    return res.status(400).end();
   const user = await find(req);
 
   if (!user) {
@@ -55,16 +92,30 @@ router.get("/", async (req, res) => {
   res.flushHeaders?.();
   res.write("retry: 3000\n\n");
 
-  const close = events.connect(user, res);
+  const close = events.connect(
+    {
+      ...user,
+      tab,
+      ip: address(req),
+      development: req.app.get("env") === "development"
+    },
+    res
+  );
+
   const ping = setInterval(() => {
-    res.write(": ping\n\n");
+    if (res.writableEnded || res.destroyed) return;
+    res.write("event: heartbeat\ndata: {}\n\n");
   }, 25_000);
 
   ping.unref?.();
-  req.on("close", () => {
+  const cleanup = () => {
     clearInterval(ping);
     close();
-  });
+  };
+
+  req.on("close", cleanup);
+  res.on("close", cleanup);
+  res.on("error", cleanup);
 });
 
 export default router;

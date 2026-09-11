@@ -4,6 +4,8 @@ import * as profile from "#common/profile";
 import * as toggle from "#common/toggle";
 import label from "#common/profile/label";
 import mount from "#common/mount";
+import toolbar from "#common/toolbar";
+import dialog from "#common/dialog";
 
 const group = (...items) => {
   const root = dom.create("div");
@@ -25,6 +27,9 @@ export default function authority(user) {
   const content = dom.create("fieldset");
   const status = dom.create("span");
   const info = group();
+  const tools = toolbar([
+    { icon: "edit", text: "profile.memo", run: () => edit() }
+  ]);
 
   row.className = "group-item";
   root.className = "toggle";
@@ -48,31 +53,35 @@ export default function authority(user) {
   status.hidden = true;
   status.textContent = i18n.message("profile.saveError");
   dom.set(status, "data-i18n", "profile.saveError");
-  content.append(info, status);
+  content.append(info, status, tools);
   root.append(head, content);
   row.append(root);
 
   let busy = false;
 
   const sync = () => {
-    input.disabled = busy || Boolean(user.blocked) || !user.authority;
+    input.disabled =
+      busy || !user.manage || Boolean(user.blocked) || !user.authority;
     button.disabled = input.disabled;
+    tools.hidden =
+      !user.manage || Boolean(user.blocked) || !user.authority?.enabled;
+    dom.query("button", tools).disabled = busy || tools.hidden;
     toggle.sync(root);
   };
 
   const save = async (data) => {
-    if (busy || user.blocked || !user.authority) return false;
+    if (busy || !user.manage || user.blocked || !user.authority) return false;
     busy = true;
     sync();
     status.hidden = true;
     try {
-      const result = await profile.authority(user.uid, data);
+      const result = await profile.authority(user.id, data);
 
       if (!result.ok) {
         status.hidden = false;
         return false;
       }
-      const fresh = await profile.read(user.uid, { fresh: true });
+      const fresh = await profile.read(user.id, { fresh: true });
 
       if (!fresh.ok || !fresh.data.authority) {
         status.hidden = false;
@@ -87,54 +96,78 @@ export default function authority(user) {
     }
   };
 
+  async function edit() {
+    if (busy || user.blocked || !user.authority?.enabled) return;
+
+    const content = dom.create("div");
+    const field = dom.create("div");
+    const input = dom.create("input");
+    const error = dom.create("p");
+
+    field.className = "input";
+    input.value = user.authority.memo || "";
+    input.name = "memo";
+    input.maxLength = 500;
+    input.autocomplete = "off";
+    input.enterKeyHint = "done";
+    dom.set(input, "data-control", "");
+    dom.set(input, "data-i18n-placeholder", "profile.memo");
+    error.className = "profile-error";
+    error.hidden = true;
+    error.textContent = i18n.message("profile.saveError");
+    dom.set(error, "data-i18n", "profile.saveError");
+    field.append(input);
+    content.append(field, error);
+
+    await dialog({
+      title: "profile.editMemo",
+      content,
+      direction: "→",
+      ready: () => input.focus({ preventScroll: true }),
+      actions: [
+        {
+          text: "profile.cancel",
+          icon: "close",
+          value: false,
+          data: ["data-neutral"]
+        },
+        {
+          text: "profile.confirm",
+          icon: "check",
+          submit: true,
+          data: ["data-confirm"],
+          disabled: () => busy,
+          run: async () => {
+            error.hidden = true;
+            const saved = await save({ memo: input.value.trim() });
+
+            error.hidden = saved;
+            return saved;
+          }
+        }
+      ]
+    });
+  }
+
   function render() {
     const authority = user.authority;
+
+    if (!user.manage || !authority) {
+      input.checked = false;
+      input.disabled = true;
+      button.disabled = true;
+      info.replaceChildren();
+      tools.hidden = true;
+      dom.query("button", tools).disabled = true;
+      toggle.sync(root);
+      return;
+    }
     const memo = label(
       "profile.memo",
       authority.memo || i18n.message("profile.none") || "-"
     );
-    const edit = dom.create("button");
-    const details = dom.query(".label-content", memo);
-    const value = dom.query(".label-value", memo);
 
     input.checked = !user.blocked && authority.enabled;
-    edit.type = "button";
-    edit.className = "label-memo";
-    dom.set(edit, "data-icon", "edit");
-    dom.set(edit, "data-tooltip", "profile.editMemo");
-    details.append(edit);
-    dom.on(edit, "click", () => {
-      if (busy || dom.query("input", details)) return;
-      const field = dom.create("form");
-      const wrapper = dom.create("div");
-      const input = dom.create("input");
-      const confirm = dom.create("button");
-
-      wrapper.className = "input";
-      field.className = "profile-memo";
-      input.value = authority.memo || "";
-      input.maxLength = 500;
-      input.name = "memo";
-      dom.set(input, "data-control", "");
-      dom.set(input, "data-i18n-placeholder", "profile.memo");
-      confirm.type = "submit";
-      confirm.className = "label-memo";
-      dom.set(confirm, "data-icon", "check");
-      dom.set(confirm, "data-tooltip", "profile.confirm");
-      wrapper.append(input);
-      field.append(wrapper, confirm);
-      value.hidden = true;
-      edit.hidden = true;
-      details.append(field);
-      mount(field);
-      input.focus({ preventScroll: true });
-      dom.on(field, "submit", async (event) => {
-        event.preventDefault();
-        confirm.disabled = true;
-        await save({ memo: input.value.trim() });
-        confirm.disabled = false;
-      });
-    });
     const activity = authority.activity;
     const summary = activity
       ? (i18n.message("profile.counts") || "")
@@ -156,6 +189,17 @@ export default function authority(user) {
   }
 
   render();
+  let signature = JSON.stringify([user.manage, user.blocked, user.authority]);
+
+  profile.bind(content, user.id, (value) => {
+    user = { ...value };
+    const next = JSON.stringify([user.manage, user.blocked, user.authority]);
+
+    if (signature === next) return;
+    signature = next;
+    render();
+  });
+
   dom.on(input, "input", async () => {
     const enabled = input.checked;
 

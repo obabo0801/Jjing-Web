@@ -1,10 +1,34 @@
 .image-editor {
+  container-type: size;
   display: grid;
-  justify-items: center;
-  gap: 16px;
+  place-items: center;
 
-  width: min(100%, 32rem);
-  margin-inline: auto;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+}
+
+dialog[data-popover]:has(> .layer-content > .image-editor) {
+  height: min(calc(100dvh - 2rem), 50rem);
+  padding: 0;
+  overflow: hidden;
+}
+
+dialog[data-popover][data-fullscreen]:has(> .layer-content > .image-editor) {
+  height: 100dvh;
+}
+
+dialog[data-popover] > .layer-content:has(> .image-editor) {
+  flex: 1 1 0;
+  min-height: 0;
+  padding: 8px max(16px, env(safe-area-inset-right)) 8px
+    max(16px, env(safe-area-inset-left));
+  overflow: hidden;
+}
+
+dialog:has(> .layer-content > .image-editor) > .layer-head .layer-title {
+  font-size: 1.25rem;
+  line-height: 1.2;
 }
 
 dialog[data-popover][data-fullscreen]:has(> .layer-content > .image-view) {
@@ -44,11 +68,10 @@ dialog[data-popover][data-fullscreen] > .layer-content:has(> .image-view) {
   user-select: none;
 }
 
-.image-view-full {
+button:is(.image-view-full, .image-view-back) {
   position: absolute;
   z-index: 2;
   inset-block-start: 16px;
-  inset-inline-end: 16px;
 
   width: 48px;
   min-height: 48px;
@@ -57,6 +80,41 @@ dialog[data-popover][data-fullscreen] > .layer-content:has(> .image-view) {
   border: 0;
 
   color: var(--white);
+}
+
+.image-view-full {
+  inset-inline-end: 16px;
+}
+
+.image-view-back {
+  inset-inline-start: 16px;
+}
+
+:is(.small, .wearable) button:is(.image-view-full, .image-view-back) {
+  inset-block-start: 6px;
+
+  width: 36px;
+  min-height: 36px;
+  height: 36px;
+}
+
+:is(.small, .wearable) .image-view-full {
+  inset-inline-end: 6px;
+}
+
+:is(.small, .wearable) .image-view-back {
+  inset-inline-start: 6px;
+}
+
+:is(.small, .wearable) .image-view > button > .icon {
+  width: 16px;
+  height: 16px;
+}
+
+.wearable button:is(.image-view-full, .image-view-back) {
+  width: 44px;
+  min-height: 44px;
+  height: 44px;
 }
 
 .image-view-stage {
@@ -105,7 +163,7 @@ dialog[data-popover][data-fullscreen] > .layer-content:has(> .image-view) {
 .image-stage {
   position: relative;
 
-  width: min(100%, 28rem);
+  width: min(100cqw, 100cqh, 28rem);
   aspect-ratio: 1;
   margin-inline: auto;
   border: 0;
@@ -121,6 +179,11 @@ dialog[data-popover][data-fullscreen] > .layer-content:has(> .image-view) {
 
 .image-stage[data-shape="circle"] {
   border-radius: 999px;
+}
+
+.image-stage[data-shape="original"] {
+  width: min(100cqw, calc(100cqh * var(--image-aspect)), 40rem);
+  aspect-ratio: var(--image-aspect);
 }
 
 .image-stage[data-moving] {
@@ -164,24 +227,70 @@ dialog[data-popover][data-fullscreen] > .layer-content:has(> .image-view) {
   pointer-events: none;
 }
 
-.image-controls {
+.image-tools {
+  flex: 0 0 auto;
   display: grid;
-  place-items: center;
+  justify-items: center;
+  gap: 8px;
+  padding: 8px max(24px, env(safe-area-inset-right))
+    max(12px, env(safe-area-inset-bottom)) max(24px, env(safe-area-inset-left));
 }
 
-.image-rotate {
-  border: 0;
+.image-tools > .toolbar {
+  position: static;
+  translate: none;
+  margin: 0;
+}
 
+.image-tools > .toolbar > button[data-active] {
+  background-color: var(--canvas);
+  color: var(--focus);
+}
+
+.image-tools > .image-controls {
+  display: grid;
+  gap: 4px;
+  width: min(100%, 24rem);
+  min-width: 0;
+}
+
+.image-value {
+  color: var(--text);
+  text-align: center;
+  font-size: 1rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.25;
+}
+
+.image-controls > .range {
+  height: 40px;
+}
+
+.image-tools .range input {
   touch-action: none;
-
-  transition:
-    opacity 120ms ease,
-    background-color 160ms ease,
-    color 160ms ease;
 }
 
-.image-editor[data-rotating] .image-rotate {
-  opacity: 0;
+.image-tools .range-track,
+.image-tools .range[data-drag] .range-track {
+  height: 20px;
+  border-radius: 0;
+  background: repeating-linear-gradient(
+    to right,
+    var(--mute) 0 1px,
+    transparent 1px 10px
+  );
+}
+
+.image-tools .range-thumb,
+.image-tools .range[data-drag] .range-thumb {
+  width: 4px;
+  height: 30px;
+  border: 0;
+  border-radius: 2px;
+  background: var(--focus);
+  opacity: 1;
+  transform: translate(-50%, -50%);
 }
 
 .image-select {
@@ -196,6 +305,11 @@ dialog[data-popover][data-fullscreen] > .layer-content:has(> .image-view) {
   width: 128px;
   padding: 0;
   border: 0;
+}
+
+.image-select > .avatar:disabled:not([data-image]) {
+  opacity: 1;
+  background-image: none;
 }
 
 .image-select > .avatar > svg.icon {
@@ -255,17 +369,87 @@ dialog[data-popover][data-fullscreen] > .layer-content:has(> .image-view) {
   text-align: center;
 }
 
-.wearable .image-editor {
-  width: 100%;
+:is(.small, .wearable)
+  dialog[data-popover]:has(> .layer-content > .image-editor) {
+  height: 100dvh;
 }
 
-.wearable .image-stage {
-  width: min(56dvw, 56dvh);
+:is(.small, .wearable) .image-tools {
+  gap: 2px;
+  padding-block: 2px max(4px, env(safe-area-inset-bottom));
+  padding-inline: max(16px, env(safe-area-inset-left))
+    max(16px, env(safe-area-inset-right));
+}
+
+:is(.small, .wearable) .image-controls > .range {
+  height: 32px;
+}
+
+.wearable dialog:has(> .layer-content > .image-editor) > .layer-head {
+  padding-block-start: max(8dvh, env(safe-area-inset-top));
+  padding-inline: 12dvw;
+}
+
+.wearable .image-tools {
+  padding-block-end: max(8dvh, env(safe-area-inset-bottom));
+  padding-inline: 16dvw;
+}
+
+:is(.small, .wearable)
+  dialog:has(> .layer-content > .image-editor)
+  > .layer-head
+  .layer-title {
+  font-size: 0.875rem;
+}
+
+.small:not(.wearable)
+  dialog:has(> .layer-content > .image-editor)
+  > .layer-head {
+  grid-template-columns: 32px minmax(0, 1fr) 32px;
+  padding-block: max(4px, env(safe-area-inset-top)) 4px;
+}
+
+.small:not(.wearable)
+  dialog:has(> .layer-content > .image-editor)
+  > .layer-head
+  > :is(.layer-back, .layer-action) {
+  width: 32px;
+  min-height: 32px;
+  height: 32px;
+}
+
+.small:not(.wearable) .image-tools > .toolbar > button {
+  min-height: 32px;
+  padding-block: 2px;
+}
+
+.small:not(.wearable) .image-tools > .toolbar > button > span {
+  font-size: 0.625rem;
+}
+
+.small:not(.wearable) .image-tools > .toolbar > button > .icon {
+  width: 14px;
+  height: 14px;
+}
+
+.small:not(.wearable) .image-value {
+  font-size: 0.875rem;
+}
+
+.small:not(.wearable) .image-controls > .range {
+  height: 24px;
+}
+
+.small:not(.wearable) .image-tools .range-track {
+  height: 14px;
+}
+
+.small:not(.wearable) .image-tools .range-thumb {
+  height: 22px;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .image-stage,
-  .image-rotate {
+  .image-stage {
     transition: none;
   }
 }

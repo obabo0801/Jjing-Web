@@ -43,6 +43,21 @@
   opacity: 1;
 }
 
+.input textarea[data-control] {
+  display: block;
+  padding-block: calc((60px - 1.5em) / 2);
+  border-radius: inherit;
+
+  font: inherit;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+  resize: none;
+}
+
+.wearable .input:has(textarea[data-control]) {
+  border-radius: 16px;
+}
+
 .input [data-control]::-webkit-search-cancel-button {
   display: none;
 }

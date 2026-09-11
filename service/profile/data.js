@@ -12,6 +12,7 @@ export const find = (uid) =>
     SELECT
       rowid AS number,
       uid,
+      id,
       name,
       email,
       image,
@@ -27,3 +28,9 @@ export const find = (uid) =>
   `,
     [uid]
   );
+
+export const resolve = async (id) => {
+  const user = await get("SELECT uid FROM user WHERE id = ?", [id]);
+
+  return user ? find(user.uid) : null;
+};

@@ -208,6 +208,7 @@ function select(column, button, sync = true) {
     togglePeriod(column);
   }
 
+  column.dispatchEvent(new Event("change", { bubbles: true }));
   return true;
 }
 
@@ -317,6 +318,25 @@ const append = (list, items, count) => {
   }
 };
 
+export const update = (column) => {
+  const list = dom.query(".picker-list", column);
+
+  if (!list) return;
+  const items = values(column);
+  const current = dom.get(column, "data-value");
+  const value = items.includes(current) ? current : items.at(-1);
+
+  list.replaceChildren();
+  append(list, items, dom.get(column, "data-loop") !== null ? 3 : 1);
+  const input = source(column);
+
+  if (input) input.max = dom.get(column, "data-max");
+  const button = nearest(list, value);
+
+  select(column, button, false);
+  move(list, button);
+};
+
 const build = (column) => {
   if (bound.has(column)) {
     return;
@@ -349,7 +369,7 @@ const build = (column) => {
     input.max = max;
     input.step = "1";
     input.inputMode = "none";
-    input.maxLength = 2;
+    input.maxLength = Math.max(min.length, max.length);
     input.autocomplete = "off";
     input.hidden = true;
 
@@ -495,7 +515,7 @@ const build = (column) => {
       let index = Math.round(list.scrollTop / height);
 
       if (loop) {
-        const length = items.length;
+        const length = values(column).length;
 
         let offset = 0;
 
@@ -561,7 +581,7 @@ const build = (column) => {
     });
 
     dom.on(input, "input", () => {
-      const value = input.value.replace(/\D/g, "").slice(0, 2);
+      const value = input.value.replace(/\D/g, "").slice(0, input.maxLength);
 
       if (input.value !== value) {
         input.value = value;

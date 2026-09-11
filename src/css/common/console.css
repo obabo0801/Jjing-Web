@@ -18,7 +18,7 @@
   line-height: 1.5;
 
   overflow: auto;
-  overscroll-behavior: contain;
+  overscroll-behavior: auto;
 
   transition:
     background-color 160ms ease,

@@ -107,10 +107,12 @@ const open = async (element, source) => {
 
   opened.add(element);
   const target = content(element);
+  const toolbar = dom.query(":scope > .toolbar", target);
 
   try {
     await drawer({
       content: create(element, source, target),
+      toolbar,
       back: true,
       title: "profile.authority",
       side: "right",
@@ -118,6 +120,7 @@ const open = async (element, source) => {
     });
   } finally {
     if (target) {
+      if (toolbar) target.append(toolbar);
       element.append(target);
     }
 

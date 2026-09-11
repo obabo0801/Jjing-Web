@@ -99,6 +99,26 @@
   background-image: var(--overlay);
 }
 
+:is(.small, .wearable) dialog .switch {
+  justify-content: center;
+  min-width: 0;
+  padding: 8px 0;
+}
+
+:is(.small, .wearable) dialog .switch > label {
+  flex-direction: column;
+  justify-content: center;
+  width: 100%;
+
+  text-align: center;
+}
+
+:is(.small, .wearable) dialog .switch > label > [data-icon] {
+  flex-direction: column;
+  justify-content: center;
+  min-width: 0;
+}
+
 @media (hover: hover) and (pointer: fine) {
   .switch:has(input:enabled):hover {
     background-image: var(--overlay);

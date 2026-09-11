@@ -6,6 +6,7 @@ import * as media from "#config/media";
 import { clear, find } from "#service/profile/data";
 import * as consent from "#shared/consent";
 import string from "#shared/string";
+import * as events from "#service/events";
 
 const router = Router();
 
@@ -92,6 +93,8 @@ router.patch("/", async (req, res) => {
       ON CONFLICT(uid) DO UPDATE SET
         name = excluded.name,
         email = excluded.email,
+        image = NULL,
+        avatar = NULL,
         time = excluded.time
     `,
       [uid, name, email]
@@ -110,16 +113,13 @@ router.patch("/", async (req, res) => {
 
   const user = await find(uid);
 
-  res.json({
-    name,
-    email,
-    number: user.number,
-    avatar: media.resolve(user.avatar)
-  });
+  res.json({ name, email, avatar: media.resolve(user.avatar) });
 });
 
 router.post("/complete", async (req, res) => {
   const uid = identity(req);
+  const image =
+    req.body?.image === null ? "clear" : (req.body?.image ?? "keep");
 
   if (!uid) {
     return res.status(403).end();
@@ -127,6 +127,10 @@ router.post("/complete", async (req, res) => {
 
   if (!consent.valid(req.body?.consent)) {
     return res.status(412).end();
+  }
+
+  if (!["keep", "clear", "draft"].includes(image)) {
+    return res.status(400).end();
   }
 
   await clear();
@@ -145,27 +149,35 @@ router.post("/complete", async (req, res) => {
       SET
         name = (SELECT name FROM profile),
         email = (SELECT email FROM profile),
-        image = COALESCE(
-          (SELECT image FROM profile),
-          image
-        ),
-        avatar = COALESCE(
-          (SELECT avatar FROM profile),
-          avatar
-        ),
+        image = CASE ?
+          WHEN 'clear' THEN NULL
+          WHEN 'draft' THEN (SELECT image FROM profile)
+          ELSE image
+        END,
+        avatar = CASE ?
+          WHEN 'clear' THEN NULL
+          WHEN 'draft' THEN (SELECT avatar FROM profile)
+          ELSE avatar
+        END,
         setup = 1,
         consent = ?
       WHERE uid = ?
         AND EXISTS (SELECT 1 FROM profile)
+        AND (? <> 'draft' OR EXISTS (
+          SELECT 1 FROM profile WHERE image IS NOT NULL AND avatar IS NOT NULL
+        ))
     `,
       [
         uid,
+        image,
+        image,
         JSON.stringify({
           terms: consent.terms,
           privacy: consent.privacy,
           time: new Date().toISOString()
         }),
-        uid
+        uid,
+        image
       ]
     );
   } catch (error) {
@@ -181,6 +193,7 @@ router.post("/complete", async (req, res) => {
   }
 
   await run("DELETE FROM draft WHERE uid = ?", [uid]);
+  events.broadcast("online");
 
   res.status(204).end();
 });

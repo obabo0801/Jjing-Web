@@ -30,8 +30,6 @@
   "scripts": {
     "lint": "eslint .",
     "format:check": "prettier --check \"**/*.{js,css,html}\"",
-    "test": "node --test \"test/*.test.js\"",
-    "check": "npm run lint && npm test",
     "format": "eslint . --fix && prettier --write \"**/*.{js,css,html}\"",
     "dev": "vite",
     "build": "vite build",

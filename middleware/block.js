@@ -10,12 +10,12 @@ export const denied = async (req) => {
   return get(
     `
     SELECT 1
-    FROM block
-    WHERE uid = ?
-      OR ip = ?
+    FROM block WHERE uid = ? OR ip = ?
+    UNION ALL SELECT 1 FROM sanction WHERE uid = ?
+      AND kicked > datetime('now', '+9 hours')
     LIMIT 1
   `,
-    [uid(req) || null, ip]
+    [uid(req) || null, ip, uid(req) || null]
   );
 };
 

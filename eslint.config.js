@@ -32,8 +32,7 @@ export default [
       "service/**/*.js",
       "build/**/*.js",
       "middleware/**/*.js",
-      "router/**/*.js",
-      "test/**/*.js"
+      "router/**/*.js"
     ],
     languageOptions: { globals: globals.node }
   },

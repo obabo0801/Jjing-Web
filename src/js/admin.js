@@ -5,6 +5,7 @@ import api from "#common/api";
 import * as i18n from "#common/i18n";
 import init from "#src/init";
 import upload from "#common/upload";
+import inbox from "#common/report/inbox";
 
 const send = async (form) => {
   const fields = new FormData(form);
@@ -45,6 +46,8 @@ const start = async () => {
 
     const form = dom.query(".admin-form");
     const output = dom.query(".admin-result");
+
+    dom.on(dom.query(".admin-reports"), "click", inbox);
 
     dom.on(form, "submit", async (event) => {
       event.preventDefault();

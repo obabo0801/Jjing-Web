@@ -8,7 +8,7 @@ import address from "#config/ip";
 import access from "#service/log/access";
 import { usage } from "#shared/route";
 import { get, run } from "#db";
-import identity, { key } from "#config/uid";
+import identity, { key, publicId } from "#config/uid";
 
 import string from "#shared/string";
 
@@ -125,6 +125,17 @@ router.post("/", async (req, res) => {
     [uid || null, ip]
   );
 
+  const kicked = await get(
+    `SELECT reason, time, kicked AS until
+    FROM sanction WHERE uid = ? AND kicked > datetime('now', '+9 hours')`,
+    [uid || null]
+  );
+
+  if (kicked) {
+    remember(res, uid);
+    return res.status(403).json(kicked);
+  }
+
   if (blocked) {
     remember(res, uid);
 
@@ -151,10 +162,10 @@ router.post("/", async (req, res) => {
     uid = randomUUID();
     await run(
       `
-      INSERT INTO user (uid, role, ip, initial, lang)
-      VALUES (?, ?, ?, ?, ?)
+      INSERT INTO user (uid, id, role, ip, initial, lang)
+      VALUES (?, ?, ?, ?, ?, ?)
     `,
-      [uid, role.user, ip, ip, lang]
+      [uid, publicId(uid), role.user, ip, ip, lang]
     );
   } else if (user.ip !== ip || user.lang !== lang) {
     await run(
@@ -170,7 +181,7 @@ router.post("/", async (req, res) => {
   }
 
   remember(res, uid);
-  res.json({ uid });
+  res.json({ id: publicId(uid) });
 });
 
 export default router;

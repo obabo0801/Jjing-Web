@@ -63,15 +63,6 @@
   white-space: nowrap;
 }
 
-.label-content > .label-value[data-expand="true"] {
-  max-width: min(19ch, 100%);
-  overflow: visible;
-
-  text-overflow: clip;
-  white-space: normal;
-  overflow-wrap: anywhere;
-}
-
 .label-copy {
   flex: none;
 
@@ -118,6 +109,16 @@
 
   background: transparent;
   text-align: start;
+
+  :is(.small, .wearable) dialog & {
+    align-items: center;
+    text-align: center;
+
+    & > .label-key,
+    & .label-value {
+      text-align: center;
+    }
+  }
 }
 
 .group > .group-item > .label:not(:has(> .input)) > .label-key {
@@ -131,7 +132,7 @@
   text-align: start;
 }
 
-.group:has(> .line, > .group-item > :is(.label, .line)):not(
+.group[data-background]:has(> .line, > .group-item > :is(.label, .line)):not(
     :has(> :not(.group-item, .line)),
     :has(> .group-item > :not(.label, .line, .icon)),
     :has(> .group-item > .label > .input)
@@ -152,4 +153,20 @@
     color: var(--mute);
     text-align: end;
   }
+
+  :is(.small, .wearable) dialog & > .group-item > .label {
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+
+    & .label-value {
+      text-align: center;
+    }
+  }
+}
+
+:is(.small, .wearable) dialog .label-content {
+  flex: none;
+  justify-content: center;
+  width: 100%;
 }

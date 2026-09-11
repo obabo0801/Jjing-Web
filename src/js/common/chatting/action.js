@@ -1,6 +1,84 @@
 import * as dom from "#common/dom";
 import * as css from "#common/css";
+import * as route from "#shared/route";
 import sheet from "#common/sheet";
+import toast from "#common/toast";
+import dialog from "#common/dialog";
+import * as i18n from "#common/i18n";
+import { validId } from "#shared/chatting";
+import report from "#common/report";
+
+i18n.preload(
+  "chatting.copied",
+  "chatting.copyFailed",
+  "chatting.removeSuccess",
+  "chatting.removeFailed",
+  "chatting.removeTitle",
+  "dialog.cancel",
+  "dialog.confirm"
+);
+
+export const link = (id) => {
+  if (!validId(id)) return "";
+  const url = new URL("/", location.origin);
+
+  url.searchParams.set("message", id);
+  return url.href;
+};
+
+export const copyLink = async (id) => {
+  try {
+    const url = link(id);
+
+    if (!url) throw new Error("Unstored message");
+    await navigator.clipboard.writeText(url);
+    toast({ text: "chatting.copied", type: "success" });
+    return true;
+  } catch {
+    toast({ text: "chatting.copyFailed", type: "error" });
+    return false;
+  }
+};
+
+const confirmRemove = async () => {
+  return dialog({
+    title: "chatting.removeTitle",
+    actions: [
+      { text: "dialog.cancel", value: false },
+      {
+        text: "dialog.confirm",
+        icon: "trash",
+        value: true,
+        data: ["data-danger"]
+      }
+    ]
+  });
+};
+
+const remove = async (id) => {
+  try {
+    if (!validId(id)) {
+      throw new Error("Invalid message");
+    }
+
+    const response = await fetch(
+      `/api${route.chatting}/${encodeURIComponent(id)}`,
+      { method: "DELETE", credentials: "same-origin" }
+    );
+
+    if (!response.ok) {
+      throw new Error("Message remove failed");
+    }
+
+    toast({ text: "chatting.removeSuccess", type: "success" });
+
+    return true;
+  } catch {
+    toast({ text: "chatting.removeFailed", type: "error" });
+
+    return false;
+  }
+};
 
 const opened = new WeakSet();
 
@@ -38,7 +116,7 @@ const item = ({ value, text, icon, run, danger = false, disabled = false }) => {
   button.textContent = text;
   button.disabled = disabled;
 
-  dom.set(row, "data-icon", icon);
+  dom.set(button, "data-icon", icon);
   dom.set(button, "data-i18n", text);
   dom.set(button, "data-response", "");
   dom.set(button, "data-layer-action", value);
@@ -48,7 +126,8 @@ const item = ({ value, text, icon, run, danger = false, disabled = false }) => {
   }
 
   dom.on(button, "click", () => {
-    Promise.resolve(run()).catch(() => {});
+    if (button.disabled) return;
+    Promise.resolve(run?.()).catch(() => {});
   });
 
   row.append(button);
@@ -102,6 +181,7 @@ const content = (message, options) => {
       value: "copy-text",
       text: "chatting.action.copyText",
       icon: "copy",
+      disabled: !options.text,
       run: () => copy(options.text)
     })
   ];
@@ -128,25 +208,36 @@ const content = (message, options) => {
       value: "copy-link",
       text: "chatting.action.copyLink",
       icon: "link",
-      disabled: !options.url,
-      run: () => copy(options.url)
+      disabled: !validId(options.url),
+      run: () => copyLink(options.url)
     })
   );
 
-  const report = item({
-    value: "report",
-    text: "chatting.action.report",
-    icon: "flag",
-    danger: true,
-    run: () => {
-      message.dispatchEvent(
-        new CustomEvent("chatting-report", { bubbles: true, detail: options })
-      );
-    }
-  });
+  const moderation = [];
+
+  if (options.removable) {
+    moderation.push(
+      item({
+        value: "remove",
+        text: "chatting.action.remove",
+        icon: "trash",
+        danger: true
+      })
+    );
+  }
+
+  moderation.push(
+    item({
+      value: "report",
+      text: "chatting.action.report",
+      icon: "flag",
+      danger: true,
+      disabled: Boolean(options.own) || !validId(options.url)
+    })
+  );
 
   element.className = "chatting-actions";
-  element.append(preview(message), group(...items), group(report));
+  element.append(preview(message), group(...items), group(...moderation));
 
   return element;
 };
@@ -160,7 +251,22 @@ const open = async (message, options) => {
   dom.set(message, "data-action", "");
 
   try {
-    await sheet({ content: content(message, options), direction: "↓" });
+    const value = await sheet({
+      content: content(message, options),
+      direction: "↓"
+    });
+
+    if (value === "remove") {
+      const confirmed = await confirmRemove();
+
+      if (confirmed === true) {
+        await remove(options.url);
+      }
+    }
+
+    if (value === "report") {
+      await report("message", options.url, options.own);
+    }
   } finally {
     dom.remove(message, "data-action");
     opened.delete(message);
@@ -179,10 +285,15 @@ export default function action(message, options) {
   };
 
   const show = () => {
+    if (dom.get(message, "data-deleted") !== null) {
+      return;
+    }
+
     open(message, options).catch(() => {});
   };
 
   dom.on(message, "pointerdown", (event) => {
+    if (event.target.closest?.("audio")) return;
     if (event.pointerType === "mouse") {
       return;
     }
@@ -237,6 +348,7 @@ export default function action(message, options) {
   );
 
   dom.on(message, "contextmenu", (event) => {
+    if (event.target.closest?.("audio")) return;
     event.preventDefault();
     show();
   });

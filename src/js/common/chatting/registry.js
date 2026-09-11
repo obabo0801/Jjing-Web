@@ -1,22 +1,24 @@
 const ids = new WeakMap();
 const messages = new Set();
+const urls = new WeakMap();
+const stored = new Set();
 
-const bind = (items, element, uid) => {
-  if (!uid) {
+const bind = (items, values, element, id) => {
+  if (!id) {
     return;
   }
 
-  ids.set(element, uid);
+  values.set(element, id);
   items.add(element);
 };
 
-const find = (items, uid) => {
+const find = (items, values, id) => {
   const result = [];
 
   for (const element of items) {
     if (!element.isConnected) {
       items.delete(element);
-    } else if (ids.get(element) === uid) {
+    } else if (values.get(element) === id) {
       result.push(element);
     }
   }
@@ -24,6 +26,10 @@ const find = (items, uid) => {
   return result;
 };
 
-export const message = (element, uid) => bind(messages, element, uid);
+export const message = (element, id) => bind(messages, ids, element, id);
 
-export const messageAll = (uid) => find(messages, uid);
+export const messageAll = (id) => find(messages, ids, id);
+
+export const storedMessage = (element, id) => bind(stored, urls, element, id);
+
+export const storedAll = (id) => find(stored, urls, id);

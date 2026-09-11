@@ -3,6 +3,7 @@
 @import "./common/icon.css";
 @import "./common/overlay.css";
 @import "./common/button.css";
+@import "./common/toolbar.css";
 @import "./common/avatar.css";
 @import "./common/accordion.css";
 @import "./common/input.css";
@@ -12,6 +13,7 @@
 @import "./common/console.css";
 @import "./common/chatting.css";
 @import "./common/profile.css";
+@import "./common/online.css";
 @import "./common/image.css";
 @import "./common/setup.css";
 @import "./common/dialog.css";

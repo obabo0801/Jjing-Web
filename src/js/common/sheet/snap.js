@@ -1,6 +1,6 @@
 import * as css from "#common/css";
 import * as dom from "#common/dom";
-import swipe from "#common/swipe";
+import * as pointer from "#common/pointer";
 import vibrate from "#common/vibrate";
 
 const stages = ["peek", "half", "full"];
@@ -41,6 +41,7 @@ export default function snap(element, options = {}) {
   let height = sizes[initial];
   let resizeFrame;
   let gesture = null;
+  let dragged = false;
 
   const render = (value) => {
     height = clamp(value, sizes[0], sizes[2]);
@@ -61,11 +62,7 @@ export default function snap(element, options = {}) {
     const full = height >= sizes[2] - 1;
     const scrolling = full && (up ? top < max : top > 0);
 
-    if ((up && full) || scrolling) {
-      return "*";
-    }
-
-    return "button, a";
+    return (up && full) || scrolling;
   };
 
   const resize = () => {
@@ -83,32 +80,44 @@ export default function snap(element, options = {}) {
   };
 
   const stop = () => {
+    const current = gesture;
+
     gesture = null;
     dom.remove(element, "data-swipe");
+
+    if (current?.mouse && element.hasPointerCapture?.(current.id)) {
+      element.releasePointerCapture(current.id);
+    }
   };
 
-  const finish = (value, cancelled) => {
+  const finish = (y, cancelled = false) => {
     if (!gesture) {
       return;
     }
 
-    const { from, target } = gesture;
+    const { from, startY, moving } = gesture;
+
+    stop();
+
+    if (!moving) {
+      configure();
+      return;
+    }
 
     if (cancelled) {
-      stop();
       render(from);
     } else {
-      const next = from + (target - from) * value;
+      const next = Number.isFinite(y)
+        ? clamp(from + startY - y, 0, sizes[2])
+        : height;
 
-      if (target === 0 && next < sizes[0] * 0.5) {
-        stop();
+      if (next < sizes[0] * 0.5) {
         options.close?.(false, false);
         return;
       }
 
       const snapped = nearest(next, sizes);
 
-      stop();
       render(snapped);
 
       if (from < sizes[2] - 1 && snapped === sizes[2]) {
@@ -119,46 +128,148 @@ export default function snap(element, options = {}) {
     configure();
   };
 
-  const bind = (direction, step) =>
-    swipe(direction, {
-      target: element,
-      ignore: () => blocked(step),
-      length: () =>
-        gesture ? Math.abs(gesture.target - gesture.from) || 1 : 1,
-      start: () => {
-        options.finish?.();
-        gesture = {
-          from: element.getBoundingClientRect().height,
-          target: step > 0 ? sizes[2] : 0
-        };
-        dom.set(element, "data-swipe", "");
-      },
-      move: (value) => {
-        if (!gesture) {
-          return;
-        }
+  const start = (event, id, x, y, mouse) => {
+    if (gesture) return;
 
-        const next = gesture.from + (gesture.target - gesture.from) * value;
+    dragged = false;
 
-        height = next;
-        css.set(element, { "--sheet-height": `${next}px` });
-      },
-      end: (_complete, value, _event, cancelled) => finish(value, cancelled)
-    });
+    if (
+      window.getSelection()?.isCollapsed === false ||
+      pointer.blocked(event)
+    ) {
+      return;
+    }
+
+    gesture = {
+      id,
+      mouse,
+      // 방향이 바뀌어도 누르기 시작한 좌표와 높이를 유지합니다.
+      startX: x,
+      startY: y,
+      from: element.getBoundingClientRect().height,
+      up: !blocked(1),
+      down: !blocked(-1),
+      moving: false
+    };
+  };
+
+  const move = (event, x, y) => {
+    if (!gesture) return;
+
+    if (!gesture.moving) {
+      // 가로 그룹 전환 등 내부 조작이 먼저 시작되면 높이는 건드리지 않습니다.
+      if (event.defaultPrevented || element.hasAttribute("data-swipe")) {
+        gesture = null;
+        return;
+      }
+      const dx = x - gesture.startX;
+      const dy = y - gesture.startY;
+
+      if (
+        Math.abs(dy) < 4 ||
+        Math.abs(dx) >= Math.abs(dy) ||
+        !(dy < 0 ? gesture.up : gesture.down)
+      ) {
+        return;
+      }
+
+      options.finish?.();
+      gesture.moving = true;
+      dragged = true;
+      dom.set(element, "data-swipe", "");
+
+      if (gesture.mouse) element.setPointerCapture?.(gesture.id);
+    }
+
+    window.getSelection()?.removeAllRanges();
+    if (event.cancelable) event.preventDefault();
+    height = clamp(gesture.from + gesture.startY - y, 0, sizes[2]);
+    css.set(element, { "--sheet-height": `${height}px` });
+  };
+
+  const touchStart = (event) => {
+    if (event.touches.length !== 1) {
+      finish(undefined, true);
+      return;
+    }
+
+    const touch = event.touches[0];
+
+    start(event, touch.identifier, touch.clientX, touch.clientY, false);
+  };
+
+  const touchMove = (event) => {
+    if (!gesture || gesture.mouse) return;
+    if (event.touches.length !== 1) {
+      finish(undefined, true);
+      return;
+    }
+
+    const touch = [...event.touches].find(
+      (item) => item.identifier === gesture.id
+    );
+
+    if (touch) move(event, touch.clientX, touch.clientY);
+  };
+
+  const touchEnd = (event) => {
+    if (!gesture || gesture.mouse) return;
+
+    const touch = [...event.changedTouches].find(
+      (item) => item.identifier === gesture.id
+    );
+
+    if (touch) finish(touch.clientY, event.type === "touchcancel");
+  };
+
+  const pointerStart = (event) => {
+    if (pointer.press(event)) {
+      start(event, event.pointerId, event.clientX, event.clientY, true);
+    }
+  };
+
+  const pointerMove = (event) => {
+    if (gesture?.mouse && pointer.match(event, gesture.id)) {
+      move(event, event.clientX, event.clientY);
+    }
+  };
+
+  const pointerEnd = (event) => {
+    if (gesture?.mouse && pointer.match(event, gesture.id)) {
+      finish(event.clientY, event.type !== "pointerup");
+    }
+  };
+
+  const click = (event) => {
+    if (!dragged) return;
+
+    event.preventDefault();
+    event.stopPropagation();
+    dragged = false;
+  };
 
   render(height);
 
   const remove = [
-    bind("↑", 1),
-    bind("↓", -1),
+    // 터치는 기존 스크롤을 유지하고 마우스만 Pointer Events로 처리합니다.
+    dom.on(element, "touchstart", touchStart, { passive: true }),
+    dom.on(element, "touchmove", touchMove, { passive: false }),
+    dom.on(element, "touchend", touchEnd, { passive: true }),
+    dom.on(element, "touchcancel", touchEnd, { passive: true }),
+    dom.on(element, "pointerdown", pointerStart),
+    dom.on(window, "pointermove", pointerMove),
+    dom.on(window, "pointerup", pointerEnd),
+    dom.on(window, "pointercancel", pointerEnd),
+    dom.on(element, "lostpointercapture", pointerEnd),
+    dom.on(element, "click", click, true),
     dom.on(window, "resize", resize)
   ];
 
   return () => {
     remove.forEach((off) => off());
     cancelAnimationFrame(resizeFrame);
-    gesture = null;
+    stop();
+    dragged = false;
     css.set(element, { "--sheet-height": null });
-    dom.remove(element, "data-swipe");
   };
 }

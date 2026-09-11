@@ -42,9 +42,9 @@
 
   position: absolute;
   inset-block: 8px;
-  inset-inline-start: -0.5px;
+  inset-inline-start: -1px;
 
-  width: 0.5px;
+  width: 1px;
 
   background: var(--border);
 
@@ -85,6 +85,26 @@
 
 .toggle-content[inert] {
   opacity: 0.5;
+}
+
+:is(.small, .wearable) dialog .toggle-head {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+:is(.small, .wearable) dialog .toggle-button {
+  flex-direction: column;
+  justify-content: center;
+  padding: 8px 0;
+
+  text-align: center;
+}
+
+:is(.small, .wearable) dialog .toggle-switch::before {
+  inset-inline: 8px;
+  inset-block: 0 auto;
+
+  width: auto;
+  height: 1px;
 }
 
 @media (prefers-reduced-motion: reduce) {

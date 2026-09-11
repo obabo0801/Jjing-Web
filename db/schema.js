@@ -1,6 +1,53 @@
 export default `
+  CREATE TABLE IF NOT EXISTS chatting (
+    seq INTEGER PRIMARY KEY AUTOINCREMENT,
+    id TEXT NOT NULL UNIQUE,
+    uid TEXT NOT NULL,
+    text TEXT NOT NULL,
+    system TEXT,
+    image TEXT,
+    preview TEXT,
+    audio TEXT,
+    attachments TEXT,
+    deleted TEXT,
+    deleted_by TEXT,
+    time TEXT NOT NULL DEFAULT (datetime('now', '+9 hours'))
+  );
+
+  CREATE INDEX IF NOT EXISTS chatting_time ON chatting (time, seq);
+  CREATE INDEX IF NOT EXISTS chatting_uid ON chatting (uid, seq);
+
+  CREATE TABLE IF NOT EXISTS report (
+    seq INTEGER PRIMARY KEY AUTOINCREMENT,
+    id TEXT NOT NULL UNIQUE,
+    type TEXT NOT NULL CHECK (type IN ('user', 'message')),
+    reporter TEXT NOT NULL,
+    target TEXT NOT NULL,
+    message TEXT,
+    text TEXT,
+    reason TEXT NOT NULL,
+    detail TEXT NOT NULL DEFAULT '',
+    time TEXT NOT NULL DEFAULT (datetime('now', '+9 hours')),
+    CHECK (reporter <> target),
+    CHECK ((type = 'user' AND message IS NULL AND text IS NULL)
+      OR (type = 'message' AND message IS NOT NULL AND text IS NOT NULL))
+  );
+
+  CREATE INDEX IF NOT EXISTS report_target ON report (target, seq);
+
+  CREATE TABLE IF NOT EXISTS sanction (
+    uid TEXT PRIMARY KEY,
+    count INTEGER NOT NULL DEFAULT 0,
+    muted TEXT,
+    notice TEXT,
+    kicked TEXT,
+    reason TEXT,
+    time TEXT
+  );
+
   CREATE TABLE IF NOT EXISTS user (
     uid TEXT PRIMARY KEY,
+    id TEXT,
     name TEXT,
     email TEXT,
     image TEXT,

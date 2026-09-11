@@ -7,16 +7,20 @@ import avatar from "#common/avatar";
 import once from "#common/once";
 import mount from "#common/mount";
 import * as actions from "#common/profile/actions";
+import toolbar from "#common/toolbar";
+import * as storage from "#common/storage";
 
 const opening = once();
 
 const keys = [
   "profile.uid",
+  "profile.protect",
+  "profile.unprotect",
   "profile.email",
   "profile.userIp",
   "profile.accessIp",
   "profile.date",
-  "profile.last",
+  "profile.time",
   "profile.os",
   "profile.browser",
   "profile.lang",
@@ -39,6 +43,7 @@ const keys = [
   "toggle.off",
   "profile.chatMute",
   "profile.kick",
+  "profile.unkick",
   "profile.block",
   "profile.blockTitle",
   "profile.blockReason",
@@ -87,38 +92,38 @@ const relative = (value) => {
   );
 };
 
-const setState = (status, last, value, time, blocked) => {
+const setState = (status, time, value, stamp, blocked) => {
   const state = ["online", "away"].includes(value) ? value : "offline";
 
   dom.set(status, "data-state", state);
-  dom.remove(last, "data-i18n");
+  dom.remove(time, "data-i18n");
   if (blocked) {
-    dom.set(last, "data-blocked", "");
-    dom.set(last, "data-i18n", "profile.blocked");
-    last.textContent = i18n.message("profile.blocked") || "";
+    dom.set(time, "data-blocked", "");
+    dom.set(time, "data-i18n", "profile.blocked");
+    time.textContent = i18n.message("profile.blocked") || "";
     return;
   }
-  dom.remove(last, "data-blocked");
+  dom.remove(time, "data-blocked");
 
   if (state === "offline") {
-    last.textContent = relative(time);
+    time.textContent = relative(stamp);
     return;
   }
 
   const key = state === "online" ? "profile.active" : "profile.away";
 
-  dom.set(last, "data-i18n", key);
-  last.textContent = i18n.message(key);
+  dom.set(time, "data-i18n", key);
+  time.textContent = i18n.message(key);
 };
 
 const request = async (options) => {
-  const uid = options.own ? "me" : options.uid;
+  const id = options.own ? "me" : options.id;
 
-  if (!uid) {
+  if (!id) {
     return null;
   }
 
-  const result = await profile.read(uid, { fresh: true });
+  const result = await profile.read(id, { fresh: true });
 
   return result.ok ? result.data : null;
 };
@@ -156,35 +161,86 @@ const content = (user, target, options, handlers) => {
   const media = avatar("", "button");
   const status = dom.create("span");
   const name = dom.create("strong");
-  const uid = dom.create("span");
-  const last = dom.create("time");
+  const id = dom.create("span");
+  const time = dom.create("time");
 
   root.className = "profile";
   head.className = "profile-head";
   picture.className = "profile-avatar";
   status.className = "profile-status";
   name.className = "profile-name";
-  uid.className = "profile-uid";
-  last.className = "profile-last";
+  id.className = "profile-id";
+  time.className = "profile-time";
   let admin;
+  let context;
   let signature;
+  let protectedMode = storage.get("profile-protect") !== "false";
+
+  const tools = toolbar([
+    {
+      icon: "eye-off",
+      text: "profile.protect",
+      run: () => {
+        if ((!user.manage && !user.self) || !user.details) return;
+        protectedMode = !protectedMode;
+        storage.set("profile-protect", protectedMode);
+        protect();
+      }
+    }
+  ]);
+
+  dom.query("button", tools).className = "profile-protect";
+
+  function protect() {
+    const button = dom.query("button", tools);
+    const label = dom.query("span", button);
+    const key = protectedMode ? "profile.unprotect" : "profile.protect";
+
+    if (admin) admin.hidden = protectedMode;
+    for (const history of dom.all(".profile-history", root))
+      history.hidden = protectedMode || !user.manage;
+    setState(
+      status,
+      time,
+      user.state,
+      user.time || options.time,
+      user.manage && !protectedMode && user.blocked
+    );
+    tools.hidden = (!user.manage && !user.self) || !user.details;
+    button.disabled = tools.hidden;
+    dom.set(button, "data-protected", String(protectedMode));
+    dom.set(label, "data-i18n", key);
+    label.textContent = i18n.message(key);
+  }
 
   dom.set(media.root, "data-response", "");
 
-  const render = (value) => {
-    Object.assign(user, value);
-    media.set(user.avatar || options.avatar || "");
-    name.textContent = user.name || options.name || "";
-    uid.textContent = user.short || user.uid?.slice(0, 8) || "";
+  const rename = () => {
+    const label = user.name || options.name || "";
+    const number = options.number;
 
-    setState(status, last, user.state, user.last || options.last, user.blocked);
+    name.textContent = number ? `${label} (${number})` : label;
+  };
+
+  const render = (value) => {
+    const changed =
+      user.self !== value.self ||
+      Boolean(user.manage && user.details) !==
+        Boolean(value.manage && value.details);
+
+    user = { ...value };
+    media.set(user.avatar || options.avatar || "");
+    rename();
+    id.textContent = user.id?.slice(0, 8) || "";
 
     const next = JSON.stringify([
+      user.self,
       user.manage,
       user.details,
       user.blocked,
       user.block,
-      user.authority
+      user.sanction,
+      Boolean(user.authority)
     ]);
 
     if (signature !== undefined && signature !== next) {
@@ -196,6 +252,17 @@ const content = (user, target, options, handlers) => {
       } else if (content) head.after(content);
       admin = content;
       if (content) mount(content);
+      if (context && changed) {
+        const settings = {
+          ...options,
+          hidden: dom.query("input", context)?.checked ?? options.hidden
+        };
+        const next = actions.context(user, target, settings, handlers, opening);
+
+        context.replaceWith(next);
+        context = next;
+        mount(context);
+      }
       i18n.translate();
     }
     signature = next;
@@ -205,6 +272,7 @@ const content = (user, target, options, handlers) => {
     if (whisper) {
       whisper.hidden = user.state === "offline";
     }
+    protect();
   };
 
   render(user);
@@ -215,7 +283,7 @@ const content = (user, target, options, handlers) => {
     viewer(source, media.root, "user").catch(() => {});
   });
   picture.append(media.root, status);
-  head.append(picture, name, uid, last);
+  head.append(picture, name, id, time);
   root.append(head);
 
   const segment = tabs(options);
@@ -231,44 +299,54 @@ const content = (user, target, options, handlers) => {
   }
 
   if (options.context === "chatting") {
-    root.append(actions.context(user, target, options, handlers));
+    context = actions.context(user, target, options, handlers, opening);
+    root.append(context);
   }
 
-  if (user.uid) {
-    profile.bind(root, user.uid, render);
+  if (user.id) {
+    profile.bind(root, user.id, render);
   }
 
-  return root;
+  protect();
+  return { root, tools, off: dom.on(options.online, "online-update", rename) };
 };
 
 async function open(anchor, target, options) {
   const result = await request(options);
   const handlers = new Map();
   const user = result ?? {
-    uid: options.uid || "",
-    short: options.uid?.slice(0, 8) || "",
+    id: options.id || "",
     name: options.name || "",
     image: options.image || "",
     avatar: options.avatar || "",
     self: Boolean(options.own),
     state: options.state || (options.online ? "online" : "offline"),
-    last: options.last || "",
+    time: options.time || "",
     manage: false
   };
 
-  const value = await popover({
-    anchor,
-    back: true,
-    content: content(user, target, options, handlers),
-    direction: "←",
-    scroll: 0
-  });
+  const view = content(user, target, options, handlers);
+
+  let value;
+
+  try {
+    value = await popover({
+      anchor,
+      back: true,
+      content: view.root,
+      toolbar: view.tools,
+      direction: "→",
+      scroll: 0
+    });
+  } finally {
+    view.off();
+  }
 
   return handlers.get(value)?.();
 }
 
 export default function view(anchor, target, options) {
-  const key = options.own ? "me" : options.uid || anchor || target;
+  const key = options.own ? "me" : options.id || anchor || target;
 
   return opening(key, () => open(anchor, target, options));
 }

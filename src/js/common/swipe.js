@@ -191,6 +191,7 @@ function match(direction, x, y) {
 function blocked(event, selector) {
   const custom = typeof selector === "function" ? selector(event) : selector;
 
+  if (custom === true) return true;
   const value = custom ? `${ignored}, ${custom}` : ignored;
 
   return event.target.closest?.(value);
@@ -211,6 +212,31 @@ function progress(direction, options) {
   let reached = false;
   let dragged = false;
   let value = 0;
+  let source;
+
+  const scrolling = (x, y) => {
+    if (!options.scroll) return false;
+    const horizontal = Math.abs(x) >= Math.abs(y);
+    const delta = horizontal ? x : y;
+
+    for (let node = source; node; node = node.parentElement) {
+      const style = getComputedStyle(node);
+      const overflow = horizontal ? style.overflowX : style.overflowY;
+      const position = horizontal ? node.scrollLeft : node.scrollTop;
+      const maximum = horizontal
+        ? node.scrollWidth - node.clientWidth
+        : node.scrollHeight - node.clientHeight;
+
+      if (
+        ["auto", "scroll"].includes(overflow) &&
+        (delta < 0 ? position < maximum - 1 : position > 1)
+      ) {
+        return true;
+      }
+      if (node === target) break;
+    }
+    return false;
+  };
 
   const limit = () => {
     const result = Number(typeof ratio === "function" ? ratio() : ratio);
@@ -229,6 +255,7 @@ function progress(direction, options) {
 
   const reset = () => {
     id = undefined;
+    source = undefined;
     moving = false;
     reached = false;
     value = 0;
@@ -248,11 +275,26 @@ function progress(direction, options) {
 
   const update = (x, y, event) => {
     if (!moving) {
+      // 내부 UI가 이미 처리한 조작은 바깥 레이어에서 다시 시작하지 않습니다.
+      if (event.defaultPrevented) {
+        reset();
+        return false;
+      }
       if (Math.hypot(x, y) < 4) {
         return false;
       }
 
       if (!match(direction, x, y)) {
+        return false;
+      }
+
+      if (scrolling(x, y)) {
+        reset();
+        return false;
+      }
+
+      if (options.accept?.(event) === false) {
+        reset();
         return false;
       }
 
@@ -298,6 +340,7 @@ function progress(direction, options) {
     const touch = event.touches[0];
 
     dragged = false;
+    source = event.target;
     prepare(touch.identifier, touch.clientX, touch.clientY);
   };
 
@@ -311,11 +354,9 @@ function progress(direction, options) {
     const x = touch.clientX - startX;
     const y = touch.clientY - startY;
 
-    if (moving || match(direction, x, y)) {
+    if (update(x, y, event)) {
       event.preventDefault();
     }
-
-    update(x, y, event);
   };
 
   const touchEnd = (event) => {
@@ -331,6 +372,9 @@ function progress(direction, options) {
       return;
     }
 
+    if (moving) {
+      update(touch.clientX - startX, touch.clientY - startY, event);
+    }
     finish(event);
   };
 
@@ -351,6 +395,7 @@ function progress(direction, options) {
       return;
     }
 
+    source = event.target;
     prepare(event.pointerId, event.clientX, event.clientY);
   };
 
@@ -372,6 +417,9 @@ function progress(direction, options) {
       return;
     }
 
+    if (moving) {
+      update(event.clientX - startX, event.clientY - startY, event);
+    }
     finish(event);
   };
 

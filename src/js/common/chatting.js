@@ -1,17 +1,31 @@
 import * as dom from "#common/dom";
+import * as i18n from "#common/i18n";
+import * as emoji from "#common/emoji";
+import editor, { enter } from "#common/chatting/input";
 import action from "#common/chatting/action";
 import profile from "#common/chatting/profile";
 import * as registry from "#common/chatting/registry";
 import * as clock from "#common/chatting/time";
 import * as events from "#common/events";
-import voice from "#common/voice";
+import listen from "#common/chatting/voice";
+import media from "#common/chatting/media";
+import { notices } from "#shared/chatting";
+import { insert } from "#common/input";
+
+i18n.preload(
+  "chatting.tools.image",
+  "chatting.voice",
+  "chatting.send",
+  "chatting.emoji.clear"
+);
 
 const bound = new WeakSet();
 const groups = new WeakMap();
 const observers = new WeakMap();
+const records = new WeakMap();
 const duration = 30 * 60 * 1000;
 
-const atBottom = (list) =>
+export const atBottom = (list) =>
   list.scrollHeight - list.scrollTop - list.clientHeight < 24;
 
 const updateBottom = (list) => {
@@ -19,23 +33,23 @@ const updateBottom = (list) => {
   const button = dom.query(".chatting-bottom", root);
 
   if (button) {
-    button.hidden = atBottom(list);
+    button.hidden = atBottom(list) && dom.get(root, "data-history") !== "true";
   }
 };
 
 const follow = (list, options, current) => {
-  const uid = options.uid || (options.own ? "own" : "");
+  const id = options.id || (options.own ? "own" : "");
 
-  if (!uid) {
+  if (!id) {
     groups.delete(list);
     return false;
   }
 
   const previous = groups.get(list);
   const passed = current - (previous?.start ?? current);
-  const result = previous?.uid === uid && passed >= 0 && passed < duration;
+  const result = previous?.id === id && passed >= 0 && passed < duration;
 
-  groups.set(list, { uid, start: result ? previous.start : current });
+  groups.set(list, { id, start: result ? previous.start : current });
 
   return result;
 };
@@ -53,6 +67,7 @@ const bottom = (root, list, form) => {
   dom.set(button, "data-shadow", "");
 
   dom.on(button, "click", () => {
+    root.dispatchEvent(new CustomEvent("chatting-latest"));
     list.scrollTo({ top: list.scrollHeight, behavior: "smooth" });
   });
   dom.on(list, "scroll", () => updateBottom(list));
@@ -75,22 +90,61 @@ const bottom = (root, list, form) => {
 };
 
 const update = (input, button) => {
-  button.hidden = !input.value.trim();
+  button.hidden =
+    !input.value.trim() && !Number(dom.get(input.form, "data-attachments"));
 };
 
-const listen = async (input) => {
-  const result = await voice([], input);
+export const regroup = (list) => {
+  const dates = new Set();
 
-  if (result.action === "none" || !result.text) {
-    return;
+  let previous;
+
+  for (const node of [...list.children]) {
+    if (node.matches(".chatting-system") && !records.has(node)) {
+      if (previous) previous.id = null;
+      continue;
+    }
+    const item = records.get(node);
+
+    if (!item) continue;
+    if (node.hidden) {
+      item.separator?.remove();
+      item.separator = null;
+      continue;
+    }
+    const date = clock.day(item.current);
+    const sameDay = previous?.date === date;
+    const follow =
+      !item.options.system &&
+      sameDay &&
+      previous.id === item.options.id &&
+      item.current - previous.start >= 0 &&
+      item.current - previous.start < duration;
+
+    if (follow) dom.set(node, "data-follow", "");
+    else dom.remove(node, "data-follow");
+    if (!sameDay) {
+      if (!item.separator) {
+        item.separator = dom.create("time");
+        item.separator.className = "chatting-date";
+        item.separator.dateTime = date;
+        item.separator.textContent = clock.label(item.current);
+      }
+      list.insertBefore(item.separator, node);
+      dates.add(item.separator);
+    } else {
+      item.separator?.remove();
+      item.separator = null;
+    }
+    previous = {
+      id: item.options.system ? null : item.options.id,
+      date,
+      start: follow ? previous.start : item.current
+    };
   }
-
-  const value = input.value.trim();
-
-  input.value = value ? `${value} ${result.text}` : result.text;
-
-  input.dispatchEvent(new Event("input", { bubbles: true }));
-  input.focus({ preventScroll: true });
+  dom.all(".chatting-date", list).forEach((node) => {
+    if (!dates.has(node)) node.remove();
+  });
 };
 
 const bind = (element) => {
@@ -103,39 +157,92 @@ const bind = (element) => {
   const input = dom.query(".chatting-input", form);
   const action = dom.query(".chatting-voice", form);
   const send = dom.query(".chatting-send", form);
+  const actions = send?.closest(".input-actions");
+  const clear = dom.create("button");
 
-  if (!form || !list || !input || !action || !send) {
+  if (!form || !list || !input || !send) {
     return;
   }
 
   bottom(element, list, form);
-  update(input, send);
+  const field = editor(input);
 
-  dom.on(input, "input", () => update(input, send));
-  dom.on(input, "keydown", (event) => {
-    if (event.key !== "Enter" || event.shiftKey || event.isComposing) {
+  clear.type = "button";
+  clear.className = "chatting-clear";
+  dom.set(clear, "data-icon", "trash");
+  dom.set(clear, "data-circle", "");
+  dom.set(clear, "data-response", "");
+  dom.set(clear, "data-tooltip", "chatting.emoji.clear");
+
+  actions?.prepend(clear);
+
+  const sync = () => {
+    update(input, send);
+
+    clear.hidden = !input.value;
+    clear.disabled = input.disabled || input.readOnly;
+  };
+
+  dom.on(clear, "click", () => {
+    if (!input.value) return;
+
+    const start = input.selectionStart;
+    const end = input.selectionEnd;
+
+    input.setSelectionRange(0, input.value.length);
+
+    if (!insert(input, "")) {
+      input.setSelectionRange(start, end);
+    }
+  });
+
+  sync();
+
+  dom.on(input, "input", sync);
+  dom.on(form, "chatting-attachments", sync);
+  dom.on(list, "chatting-regroup", () => regroup(list));
+
+  dom.on(field, "keydown", (event) => {
+    if (!enter(event)) {
       return;
     }
 
     event.preventDefault();
 
-    if (input.value.trim()) {
+    if (dom.has("wearable")) {
+      return;
+    }
+
+    if (!send.hidden) {
       send.click();
     }
   });
-  dom.on(action, "click", () => listen(input));
 
-  dom.on(form, "reset", () => queueMicrotask(() => update(input, send)));
+  dom.on(action, "click", () => listen(input, action));
+
+  dom.on(form, "reset", () => queueMicrotask(sync));
 
   bound.add(element);
 };
 
-export const append = (target, options = {}) => {
+export const append = (target, options = {}, scroll = true) => {
+  if (options.system) {
+    const notice = notices[options.system];
+
+    if (!notice || (notice.admin && !events.isAdmin())) return null;
+    return system(target, { ...options, ...notice, params: options, scroll });
+  }
   const list = target?.matches?.(".chatting-list")
     ? target
     : dom.query(".chatting-list", target);
 
-  if (!list || !options.text) {
+  if (
+    !list ||
+    (!options.text &&
+      !options.image &&
+      !options.audio &&
+      !options.attachments?.length)
+  ) {
     return null;
   }
 
@@ -150,7 +257,17 @@ export const append = (target, options = {}) => {
   text.className = "chatting-text";
   time.className = "chatting-time";
 
-  text.textContent = options.text;
+  emoji.render(text, options.text);
+  if (options.audio) {
+    const audio = dom.create("audio");
+
+    audio.className = "chatting-audio";
+    audio.controls = true;
+    audio.preload = "none";
+    audio.src = options.audio;
+    text.append(audio);
+  }
+  media(text, options);
   time.textContent = clock.format(current);
   time.dateTime = new Date(current).toISOString();
   time.title = clock.detail(current);
@@ -159,11 +276,19 @@ export const append = (target, options = {}) => {
     dom.set(message, "data-own", "");
   }
 
-  if (options.uid) {
-    registry.message(message, options.uid);
+  if (options.deleted) {
+    dom.set(message, "data-deleted", "");
+  }
 
-    if (events.isBlocked(options.uid)) {
-      if (!events.isAdmin()) {
+  if (options.url) {
+    registry.storedMessage(message, options.url);
+  }
+
+  if (options.id) {
+    registry.message(message, options.id);
+
+    if (options.blocked ?? events.isBlocked(options.id)) {
+      if (options.blocked === undefined && !events.isAdmin()) {
         return null;
       }
 
@@ -181,11 +306,15 @@ export const append = (target, options = {}) => {
     message.append(time);
   }
 
-  action(message, options);
+  if (!options.deleted) {
+    action(message, options);
+  }
+
+  records.set(message, { options, current });
 
   list.append(message);
 
-  if (stick || options.own) {
+  if (scroll && (stick || options.own)) {
     list.scrollTop = list.scrollHeight;
   }
 
@@ -193,6 +322,39 @@ export const append = (target, options = {}) => {
 
   return message;
 };
+
+export function system(target, options = {}) {
+  const list = target?.matches?.(".chatting-list")
+    ? target
+    : dom.query(".chatting-list", target);
+
+  if (!list || !options.text) return null;
+  const stick =
+    options.scroll === true || (options.scroll !== false && atBottom(list));
+  const node = dom.create("p");
+  const types = ["text", "mute", "info", "success", "warning", "error"];
+
+  node.className = "chatting-system";
+  dom.set(
+    node,
+    "data-type",
+    types.includes(options.type) ? options.type : "text"
+  );
+  if (options.bold) dom.set(node, "data-bold", "");
+  node.textContent = (i18n.message(options.text) || options.text).replace(
+    /\{(\w+)\}/g,
+    (match, key) => String(options.params?.[key] ?? match)
+  );
+  const last = list.lastElementChild;
+
+  list.insertBefore(node, last?.matches(".chatting-page") ? last : null);
+  if (options.time)
+    records.set(node, { options, current: clock.stamp(options.time) });
+  groups.delete(list);
+  if (stick) list.scrollTop = list.scrollHeight;
+  updateBottom(list);
+  return node;
+}
 
 export default function chatting(root = document) {
   dom.find(".chatting", root).forEach(bind);

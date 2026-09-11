@@ -6,6 +6,7 @@ import mount from "#common/mount";
 import overlay from "#common/overlay";
 import snap from "#common/sheet/snap";
 import swipe, { resolve } from "#common/swipe";
+import * as pointer from "#common/pointer";
 import vibrate from "#common/vibrate";
 import viewport from "#common/viewport";
 import fit from "#common/dialog/fit";
@@ -74,12 +75,16 @@ const action = (item, wearable) => {
 
   data.forEach((value) => dom.set(button, value, ""));
 
-  if (wearable && icon) {
+  if ((wearable || item.head) && icon) {
     dom.set(button, "data-circle", "");
     dom.set(button, "data-icon", icon);
   }
 
   button.append(text("span", "layer-label", key));
+  if (item.head) {
+    button.className = "layer-action";
+    dom.set(button, "data-tooltip", key);
+  }
   return button;
 };
 
@@ -166,20 +171,29 @@ const build = (type, options) => {
   validate();
   dom.on(body, "input", validate);
 
-  footer.append(...buttons);
+  const headed = actions.some((item) => item.head);
+
+  actions.forEach((item, index) => {
+    (item.head ? head : footer).append(buttons[index]);
+  });
 
   if (back) {
-    element.append(back);
+    if (headed) head.prepend(back);
+    else element.append(back);
   }
 
-  if (title || dialog) {
+  if (title || dialog || headed) {
     element.append(head);
   }
 
   element.append(body);
 
-  if (buttons.length) {
+  if (footer.childElementCount) {
     element.append(footer);
+  }
+
+  if (options.toolbar instanceof Node) {
+    element.append(options.toolbar);
   }
 
   wrap.append(element);
@@ -366,16 +380,10 @@ const dismiss = (element, options) => {
     return total ? Math.min(0.35, (size / total) * 0.35) : 0.35;
   };
 
-  const content =
-    ":is(.dialog-content, .layer-content) > " +
-    ":not([data-pan]), a, button:not([data-pan])";
-
-  const select = ":is(.dialog-title, .layer-title), " + "[data-pan] > *";
-
   const off = swipe(arrow, {
     target: element,
-    ignore: (event) =>
-      event.pointerType === "mouse" ? `${select}, ${content}` : content,
+    ignore: pointer.blocked,
+    scroll: true,
     length: () => length(element, axis, true),
     ratio,
     start: () => {
@@ -452,13 +460,39 @@ async function open(type, options) {
       }
 
       closed = true;
+      options.closing?.(value);
       off.forEach((remove) => remove());
 
       const dimming = release(smooth);
 
       if (smooth && dialog) {
         await fade(element, true);
+      } else if (
+        smooth &&
+        opening &&
+        !reduce.matches &&
+        type === "popover" &&
+        options.exit === "fade"
+      ) {
+        // 열리는 중에 닫아도 현재 크기를 유지한 채 사라집니다.
+        opening.pause();
+        await element
+          .animate(
+            { opacity: [getComputedStyle(element).opacity, 0] },
+            { duration: 160, easing: "ease-in", fill: "forwards" }
+          )
+          .finished.catch(() => {});
       } else if (smooth && opening && !reduce.matches) {
+        if (type === "popover" && options.anchor instanceof Element) {
+          // 전체화면 전환/리사이즈 후 복원된 좌표로 돌아갑니다.
+          const scale = origin(element, options.anchor);
+
+          opening.effect.setKeyframes([
+            { opacity: 0, transform: `scale(${scale})` },
+            { opacity: 1, transform: "scale(1)" }
+          ]);
+        }
+
         opening.reverse();
         await opening.finished.catch(() => {});
       }

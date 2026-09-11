@@ -2,7 +2,7 @@ import { user } from "#shared/route";
 
 import api from "#common/api";
 import device from "#common/device";
-import events from "#common/events";
+import * as events from "#common/events";
 
 const showPage = async (name) => {
   const header = name === "offline" ? "X-PWA-Cache" : `X-${name}`;
@@ -108,6 +108,6 @@ export default async function access(navigate = true, name) {
     return false;
   }
 
-  events();
+  await events.start();
   return true;
 }
