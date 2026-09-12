@@ -8,6 +8,7 @@ import edit from "#common/image";
 import sheet from "#common/sheet";
 import dialog from "#common/dialog";
 import toast from "#common/toast";
+import * as giphy from "#common/giphy";
 
 i18n.preload(
   "chatting.attach.limit",
@@ -54,6 +55,7 @@ export default function attachments(field) {
     if (at < 0) return;
     items.splice(at, 1);
     item.node.remove();
+    item.destroy?.();
     if (item.url) URL.revokeObjectURL(item.url);
     update();
   };
@@ -123,6 +125,7 @@ export default function attachments(field) {
         const confirmed = await dialog({
           title: "chatting.attach.description",
           content,
+          direction: "→",
           actions: [
             { text: "image.cancel", icon: "close", value: false },
             {
@@ -169,10 +172,20 @@ export default function attachments(field) {
     try {
       const result = await sheet({
         anchor,
+        back: true,
         title: "chatting.tools.image",
         content: root,
         stage: "full",
-        direction: "→"
+        direction: "→",
+        actions: [
+          {
+            text: "image.confirm",
+            icon: "check",
+            head: true,
+            value: true,
+            data: ["data-confirm"]
+          }
+        ]
       });
 
       if (result === "remove" && allowed()) remove(item);
@@ -187,7 +200,8 @@ export default function attachments(field) {
       toast({ text: "chatting.attach.limit", type: "warning" });
       return false;
     }
-    const sticker = value?.type === "ogq" ? rules.ogq(value) : null;
+    const sticker =
+      value?.type === "ogq" ? rules.ogq(value) : rules.giphy(value);
     const file = value instanceof Blob ? value : null;
 
     if (!sticker && (!file?.size || !rules.types.includes(file.type))) {
@@ -217,10 +231,19 @@ export default function attachments(field) {
     node.className = "chatting-attachment";
     image.classList.add("chatting-attachment-preview");
     if (sticker) {
-      image.src = rules.source(sticker);
-      image.alt = "OGQ";
-      image.draggable = false;
-      image.referrerPolicy = "no-referrer";
+      if (sticker.provider === "giphy") {
+        const media = dom.create("button");
+
+        media.type = "button";
+        media.className = "chatting-attachment-preview";
+        item.destroy = giphy.image(media, value, { preview: true });
+        node.append(media);
+      } else {
+        image.src = rules.source(sticker);
+        image.alt = "OGQ";
+        image.draggable = false;
+        image.referrerPolicy = "no-referrer";
+      }
     } else dom.on(image, "click", () => open(item, image));
     close.type = "button";
     close.className = "chatting-attachment-close";
@@ -232,7 +255,8 @@ export default function attachments(field) {
     dom.on(close, "click", () => {
       if (allowed()) remove(item);
     });
-    node.append(image, close);
+    if (sticker?.provider !== "giphy") node.append(image);
+    node.append(close);
     root.append(node);
     items.push(item);
     update();

@@ -33,5 +33,6 @@ export default async function listen(input, button) {
     cancel();
     dom.remove(button, "data-recording");
     dom.set(button, "data-icon", "voice");
+    input.dispatchEvent(new Event("chatting-viewport", { bubbles: true }));
   }
 }

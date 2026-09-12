@@ -446,6 +446,12 @@ async function open(type, options) {
   return new Promise((finish) => {
     let opening;
     let closed = false;
+    let removeHistory;
+    let settle;
+
+    const finished = new Promise((resolve) => {
+      settle = resolve;
+    });
 
     const off = [];
     const clearFocus = () => {
@@ -456,7 +462,7 @@ async function open(type, options) {
 
     const close = async (value = false, smooth = true) => {
       if (closed) {
-        return;
+        return finished;
       }
 
       closed = true;
@@ -508,7 +514,9 @@ async function open(type, options) {
       wrap.remove();
 
       clearFocus();
+      removeHistory?.();
       finish(value);
+      settle();
     };
 
     if (back) {
@@ -734,14 +742,15 @@ async function open(type, options) {
       off.push(dom.on(window, "resize", update));
     }
 
-    off.push(
-      history.add(() => {
+    removeHistory = history.add(
+      () => {
         if (locked) {
           return false;
         }
 
         return close(false);
-      })
+      },
+      options.route ? [type, ...options.route] : undefined
     );
 
     if (

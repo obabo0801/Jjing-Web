@@ -5,7 +5,7 @@ import identity from "#config/uid";
 import * as events from "#service/events";
 import store, { transform } from "#service/image";
 import * as profile from "#service/profile";
-import { clear, find } from "#service/profile/data";
+import * as data from "#service/profile/data";
 import rate from "#middleware/limit";
 import max from "#shared/upload";
 import string from "#shared/string";
@@ -40,33 +40,34 @@ const saveImage = async (uid, body, edit = null) => {
     return null;
   }
 
-  await run(
+  const result = await run(
     `
-    UPDATE draft
-    SET
-      image = ?,
-      avatar = ?,
-      time = datetime('now', '+9 hours')
-    WHERE uid = ?
+    UPDATE user SET draft = json_set(
+      draft, '$.image', ?, '$.avatar', ?,
+      '$.time', datetime('now', '+9 hours')
+    )
+    WHERE uid = ? AND draft IS NOT NULL
+      AND json_extract(draft, '$.time')
+        >= datetime('now', '+9 hours', '-15 minutes')
   `,
     [image.original, image.resizing, uid]
   );
 
-  return image;
+  return result.changes ? image : null;
 };
 
 router.post("/image", upload, async (req, res) => {
   const uid = identity(req);
-  const user = uid ? await find(uid) : null;
+  const user = uid ? await data.find(uid) : null;
 
-  await clear();
+  await data.clear();
 
   const draft = uid
     ? await get(
         `
           SELECT 1
-          FROM draft
-          WHERE uid = ?
+          FROM user
+          WHERE uid = ? AND draft IS NOT NULL
           `,
         [uid]
       )
@@ -103,7 +104,11 @@ router.post("/image/link/:token/use", async (req, res) => {
     return res.status(409).end();
   }
 
-  const draft = await get("SELECT 1 FROM draft WHERE uid = ?", [uid]);
+  await data.clear();
+  const draft = await get(
+    "SELECT 1 FROM user WHERE uid = ? AND draft IS NOT NULL",
+    [uid]
+  );
 
   if (!draft) {
     return res.status(409).end();

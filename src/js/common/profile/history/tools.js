@@ -54,6 +54,13 @@ export function create(change, types = {}, kind = "action") {
       icon,
       text,
       run: async (button) => {
+        if ((name === "search" || name === "date") && values[name]) {
+          values[name] = "";
+          dom.remove(button, "data-selected");
+          badge(button);
+          change();
+          return;
+        }
         const field = dom.create("div");
         const input = dom.create(name === kind ? "select" : "input");
 

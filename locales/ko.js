@@ -103,10 +103,7 @@ export default {
     send: "전송"
   },
 
-  legal: {
-    google: "Google 개인정보처리방침",
-    email: "메일 문의:"
-  },
+  legal: { google: "Google 개인정보처리방침", email: "메일 문의:" },
 
   terms: {
     title: "이용약관",
@@ -412,7 +409,7 @@ export default {
   },
 
   profile: {
-    uid: "UID",
+    id: "ID",
     protect: "보호 모드",
     unprotect: "보호 해제",
     copy: "UID 복사",
@@ -569,6 +566,34 @@ export default {
     date: "날짜별 조회",
     retry: "다시 불러오기",
     emoji: {
+      emoji: "이모지",
+      gif: "GIF",
+      sticker: "스티커",
+      kaomoji: "카오모지",
+      empty: "표시할 항목이 없습니다.",
+      retry: "다시 시도",
+      failed: "항목을 불러올 수 없습니다.",
+      removeRecent: "최근 사용 기록을 모두 삭제할까요?",
+      category: {
+        face: "얼굴",
+        people: "사람",
+        animal: "동물",
+        food: "음식",
+        activity: "활동",
+        object: "사물",
+        symbol: "기호",
+        flag: "깃발",
+        joy: "기쁨",
+        love: "사랑",
+        sad: "슬픔",
+        angry: "화남",
+        surprise: "놀람",
+        trending: "추천",
+        reaction: "반응",
+        laugh: "웃음",
+        celebration: "축하",
+        character: "캐릭터"
+      },
       recent: "최근",
       ogq: "OGQ",
       basic: "이모티콘",

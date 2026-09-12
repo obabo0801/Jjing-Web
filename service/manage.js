@@ -1,3 +1,4 @@
+import { publicId } from "#config/uid";
 import connect from "#db/connect";
 import * as path from "#config/path";
 import * as role from "#shared/role";
@@ -66,7 +67,7 @@ export default async function manage(viewer, uid, action, data = {}) {
       await run(
         `INSERT INTO authority (uid, actor, handler) VALUES (?, ?, ?)
         ON CONFLICT(uid) DO UPDATE SET actor = excluded.actor, handler = excluded.handler`,
-        [uid, actor.uid, actor.name || actor.uid]
+        [uid, actor.uid, actor.name || publicId(actor.uid)]
       );
     };
 
@@ -91,7 +92,7 @@ export default async function manage(viewer, uid, action, data = {}) {
             uid,
             data.enabled ? time : null,
             actor.uid,
-            actor.name || actor.uid,
+            actor.name || publicId(actor.uid),
             data.enabled
           ]
         );
@@ -162,7 +163,7 @@ export default async function manage(viewer, uid, action, data = {}) {
             action,
             data.reason,
             actor.uid,
-            actor.name || actor.uid,
+            actor.name || publicId(actor.uid),
             time,
             until
           ]
@@ -171,7 +172,14 @@ export default async function manage(viewer, uid, action, data = {}) {
         if (blocked) fail(409);
         await run(
           "INSERT INTO block (uid, ip, reason, actor, handler, time) VALUES (?, ?, ?, ?, ?, ?)",
-          [uid, user.ip, data.reason, actor.uid, actor.name || actor.uid, time]
+          [
+            uid,
+            user.ip,
+            data.reason,
+            actor.uid,
+            actor.name || publicId(actor.uid),
+            time
+          ]
         );
         await revoke();
         await record(run, user, actor, action, data.reason, time);

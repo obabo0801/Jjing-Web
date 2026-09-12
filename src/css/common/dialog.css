@@ -42,6 +42,7 @@ dialog[data-dialog] {
 
 .dialog-content {
   display: grid;
+  align-content: center;
   gap: 16px;
 
   overflow: visible;
@@ -51,7 +52,7 @@ dialog[data-dialog] {
   padding: 0px 16px 16px;
 
   color: var(--text);
-  text-align: left;
+  text-align: center;
   font-size: 1.2rem;
   white-space: pre-line;
   word-break: keep-all;
@@ -60,7 +61,7 @@ dialog[data-dialog] {
 }
 
 .dialog-content > span {
-  justify-self: start;
+  justify-self: center;
 
   min-width: 0;
   width: fit-content;

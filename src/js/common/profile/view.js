@@ -9,11 +9,24 @@ import mount from "#common/mount";
 import * as actions from "#common/profile/actions";
 import toolbar from "#common/toolbar";
 import * as storage from "#common/storage";
+import * as route from "#common/route";
 
 const opening = once();
 
+route.register("profile", (id) => {
+  if (!/^[a-f\d]{32}$/.test(id)) return false;
+
+  return view(undefined, dom.query(".chatting"), {
+    id,
+    online: dom.query(".online"),
+    hidden: storage.get(`chatting-hide:${id}`) === "true",
+    context: "chatting",
+    restore: true
+  });
+});
+
 const keys = [
-  "profile.uid",
+  "profile.id",
   "profile.protect",
   "profile.unprotect",
   "profile.email",
@@ -218,8 +231,17 @@ const content = (user, target, options, handlers) => {
   const rename = () => {
     const label = user.name || options.name || "";
     const number = options.number;
+    const count = Number.isSafeInteger(user.connections) ? user.connections : 0;
 
-    name.textContent = number ? `${label} (${number})` : label;
+    const numbers = number
+      ? [number]
+      : !options.online && count > 1
+        ? Array.from({ length: count }, (_, index) => index + 1)
+        : [];
+
+    name.textContent = [label, ...numbers.map((value) => `(${value})`)].join(
+      " "
+    );
   };
 
   const render = (value) => {
@@ -313,6 +335,8 @@ const content = (user, target, options, handlers) => {
 
 async function open(anchor, target, options) {
   const result = await request(options);
+
+  if (!result && options.restore) return false;
   const handlers = new Map();
   const user = result ?? {
     id: options.id || "",
@@ -326,11 +350,13 @@ async function open(anchor, target, options) {
   };
 
   const view = content(user, target, options, handlers);
+  const id = user.id;
 
   let value;
 
   try {
     value = await popover({
+      route: id ? ["profile", id] : undefined,
       anchor,
       back: true,
       content: view.root,

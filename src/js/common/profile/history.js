@@ -9,6 +9,15 @@ import { profile as path } from "#shared/route";
 import * as tools from "#common/profile/history/tools";
 import { actions } from "#shared/history";
 import progress from "#common/progress";
+import * as route from "#common/route";
+
+for (const type of ["chatting", "sanction"]) {
+  route.register(
+    `history-${type}`,
+    (id) => (/^[a-f\d]{32}$/.test(id) ? history(id, type) : false),
+    "drawer"
+  );
+}
 
 i18n.preload(
   "profile.chatHistory",
@@ -211,6 +220,7 @@ export default async function history(id, type) {
 
   try {
     await drawer({
+      route: [`history-${type}`, id],
       title:
         type === "chatting" ? "profile.chatHistory" : "profile.blockHistory",
       content: root,

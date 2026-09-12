@@ -122,7 +122,7 @@ export const read = async (id = "me", options = {}) => {
   }
 };
 
-export const presence = (id, state) => {
+export const presence = (id, state, connections) => {
   const target = key(id);
   const user = records.get(target);
 
@@ -130,7 +130,7 @@ export const presence = (id, state) => {
     return;
   }
 
-  remember(target, { ...user, state });
+  remember(target, { ...user, state, connections });
 };
 
 export const receiveLink = (token) => {

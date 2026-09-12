@@ -2,6 +2,7 @@ import sqlite3 from "sqlite3";
 import * as path from "#config/path";
 import * as chat from "#service/chatting";
 import * as history from "#shared/history";
+import { publicName } from "#config/uid";
 
 const invalid = () => {
   throw Object.assign(new Error("Invalid history query"), { status: 400 });
@@ -240,7 +241,7 @@ export const block = async (uid, query, sanctions = false) => {
 
     for (const { seq, kind, ...row } of rows) {
       if (items.length === limit) return { items, next, ...summary };
-      items.push(row);
+      items.push({ ...row, handler: publicName(row.handler) });
       next = sanctions
         ? Buffer.from(JSON.stringify([date, row.time, kind, seq])).toString(
             "base64url"

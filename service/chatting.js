@@ -1,12 +1,14 @@
 import { randomUUID } from "node:crypto";
-import { get, all, run } from "#db";
-import { publicId } from "#config/uid";
-import * as media from "#config/media";
-import * as role from "#shared/role";
-import * as rules from "#shared/chatting";
-import * as events from "#service/events";
-import { filters } from "#shared/history";
-import { read } from "#service/chatting/attachment";
+import { get, all, run } from "../db/index.js";
+import * as ids from "#config/uid";
+import * as media from "../config/media.js";
+import * as role from "../shared/role.js";
+import * as rules from "../shared/chatting.js";
+import * as events from "./events.js";
+import { filters } from "../shared/history.js";
+import { read } from "./chatting/attachment.js";
+import * as mentions from "../shared/mention.js";
+import * as push from "./push.js";
 
 const fail = (status) => {
   throw Object.assign(new Error("Chatting request rejected"), { status });
@@ -82,11 +84,12 @@ const message = (row, user) => {
   return {
     seq: row.seq,
     url: row.id,
-    id: row.public || publicId(row.uid),
+    id: row.public || ids.publicId(row.uid),
     name: row.name || "",
     avatar: media.resolve(row.avatar),
     ...(row.audio && { audio: media.resolve(row.audio) }),
     text: row.text,
+    mentioned: mentions.ids(row.text).includes(ids.publicId(user.uid)),
     ...(row.attachments && { attachments: read(row.attachments) }),
     ...(row.image && {
       image: media.resolve(row.image),
@@ -125,10 +128,18 @@ const integer = (value) => {
   return number;
 };
 
-export const restriction = (user) => ({
-  until: user.muted || null,
-  ...(user.notice ? JSON.parse(user.notice) : {})
-});
+export const restriction = (user) => {
+  const notice = user.notice ? JSON.parse(user.notice) : null;
+
+  return {
+    until: user.muted || null,
+    ...(notice && {
+      handler: ids.publicName(notice.handler),
+      reason: notice.reason || "",
+      seconds: notice.seconds
+    })
+  };
+};
 
 export const list = async (user, query = {}, uid) => {
   const { search } = filters(query);
@@ -285,8 +296,8 @@ export const save = async (
   return message(row, user);
 };
 
-export const deliver = (id, skip) =>
-  events.publish("chatting", async (client) => {
+export const deliver = async (id, skip) => {
+  await events.publish("chatting", async (client) => {
     if (client.uid === skip) return null;
     const user = await viewer(client.uid, client.ip, client.development);
     const row = await get(
@@ -296,6 +307,69 @@ export const deliver = (id, skip) =>
 
     return row ? message(row, user) : null;
   });
+  // 저장 성공과 알림 성공은 별개입니다.
+  await Promise.allSettled([notify(id)]);
+};
+
+export const suggest = async (query = "") => {
+  if (typeof query !== "string" || query.length > 80) fail(400);
+  const rows = await all(
+    `SELECT uid, id, name, avatar FROM user WHERE setup = 1 AND id IS NOT NULL
+      AND name IS NOT NULL
+      AND NOT ${blocked}
+      AND NOT EXISTS (SELECT 1 FROM sanction WHERE uid = user.uid
+        AND kicked > datetime('now', '+9 hours'))
+      ORDER BY name`
+  );
+
+  return {
+    items: mentions
+      .rank(
+        rows.map((user) => ({ ...user, label: user.name, value: user.id })),
+        query
+      )
+      .map(({ uid, id, name, avatar }) => ({
+        id,
+        name,
+        avatar: media.resolve(avatar),
+        state: events.state(uid)
+      }))
+  };
+};
+
+async function notify(id) {
+  if (!push.enabled) return;
+  const row = await get(`${select} WHERE chatting.id = ?`, [id]);
+
+  if (!row || row.deleted || row.system || row.blocked) return;
+  const ids = mentions.ids(row.text);
+
+  if (!ids.length) return;
+  const recipients = await all(
+    `SELECT uid, ip FROM user WHERE id IN (${ids.map(() => "?").join(",")})
+      AND uid <> ? AND setup = 1 AND NOT ${blocked}
+      AND NOT EXISTS (SELECT 1 FROM sanction WHERE uid = user.uid
+        AND kicked > datetime('now', '+9 hours'))`,
+    [...ids, row.uid]
+  );
+
+  await Promise.allSettled(
+    recipients.map(async (user) => {
+      if (events.viewing(user.uid)) return;
+      await viewer(user.uid, user.ip);
+      const rows = await all("SELECT endpoint, data FROM web WHERE uid = ?", [
+        user.uid
+      ]);
+
+      await push.send(rows, {
+        title: row.name || "Jjing",
+        body: mentions.plain(row.text).slice(0, 180),
+        url: `/?message=${id}`,
+        tag: `mention:${id}`
+      });
+    })
+  );
+}
 
 const removed = (id) =>
   events.publish("chatting-remove", async (client) => {

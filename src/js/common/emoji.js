@@ -1,6 +1,7 @@
 import * as dom from "#common/dom";
 import api from "#common/api";
 import * as route from "#shared/route";
+import * as mention from "#shared/mention";
 
 const entries = new Map();
 
@@ -24,7 +25,8 @@ let catalog = { groups: [], unavailable: false };
 let pending;
 let expires = 0;
 
-export const load = () => {
+export const load = (force = false) => {
+  if (force) expires = 0;
   if (Date.now() < expires) return Promise.resolve(catalog);
   pending ||= api(route.emoji, { signal: AbortSignal.timeout(6500) })
     .then((response) => {
@@ -67,7 +69,26 @@ export const fragment = (text, editable = false) => {
 
   let end = 0;
 
-  for (const match of text.matchAll(/\/[^/\s]{1,80}\//gu)) {
+  const tokens = [
+    ...text.matchAll(/\/[^/\s]{1,80}\//gu),
+    ...mention.matches(text)
+  ].sort((a, b) => a.index - b.index);
+
+  for (const match of tokens) {
+    if (match.index < end) continue;
+    if (match[2]) {
+      const node = dom.create("span");
+
+      node.className = "chatting-mention";
+      node.textContent = `@${match[1]}`;
+      if (editable) {
+        node.contentEditable = "false";
+        dom.set(node, "data-emoji", match[0]);
+      }
+      result.append(text.slice(end, match.index), node);
+      end = match.index + match[0].length;
+      continue;
+    }
     const item = entries.get(match[0]);
 
     if (!item) continue;
@@ -91,7 +112,7 @@ export const render = (target, value = "") => {
   const node = document.createTextNode(text);
 
   target.append(node);
-  if (!text.includes("/")) return;
+  if (!text.includes("/") && !mention.matches(text).length) return;
   if (entries.size) {
     node.replaceWith(fragment(text));
     return;

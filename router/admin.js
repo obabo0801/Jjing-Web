@@ -1,53 +1,19 @@
 import { raw, Router } from "express";
 
-import fcm, * as firebase from "#service/fcm";
-import store from "#service/image";
-import record from "#service/log/notify";
-import webpush, * as push from "#service/push";
-import { all, run } from "#db";
+import fcm, * as firebase from "../service/fcm.js";
+import store from "../service/image.js";
+import record from "../service/log/notify.js";
+import * as push from "../service/push.js";
+import { all, run } from "../db/index.js";
 
-import string from "#shared/string";
+import string from "../shared/string.js";
 
-import admin from "#middleware/admin";
+import admin from "../middleware/admin.js";
 
 const upload = raw({
   type: ["image/jpeg", "image/png", "image/webp"],
   limit: "5mb"
 });
-
-const sendWeb = async (rows, value) => {
-  let sent = 0;
-  let failed = 0;
-
-  await Promise.all(
-    rows.map(async (row) => {
-      try {
-        await webpush.sendNotification(
-          JSON.parse(row.data),
-          JSON.stringify(value),
-          { TTL: 300 }
-        );
-        sent += 1;
-      } catch (error) {
-        if ([404, 410].includes(error.statusCode)) {
-          await run(
-            `
-            DELETE FROM web
-            WHERE endpoint = ?
-          `,
-            [row.endpoint]
-          );
-
-          return;
-        }
-
-        failed += 1;
-      }
-    })
-  );
-
-  return { sent, failed };
-};
 
 const sendFcm = async (rows, value) => {
   let results;
@@ -168,7 +134,7 @@ router.post("/", async (req, res) => {
   const wear = devices.filter(({ device }) => device === "wearable");
 
   const [webResult, fcmResult] = await Promise.all([
-    sendWeb(web, value),
+    push.send(web, value),
     sendFcm(wear, native)
   ]);
   const sent = webResult.sent + fcmResult.sent;

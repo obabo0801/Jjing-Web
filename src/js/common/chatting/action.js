@@ -40,21 +40,6 @@ export const copyLink = async (id) => {
   }
 };
 
-const confirmRemove = async () => {
-  return dialog({
-    title: "chatting.removeTitle",
-    actions: [
-      { text: "dialog.cancel", value: false },
-      {
-        text: "dialog.confirm",
-        icon: "trash",
-        value: true,
-        data: ["data-danger"]
-      }
-    ]
-  });
-};
-
 const remove = async (id) => {
   try {
     if (!validId(id)) {
@@ -174,6 +159,23 @@ const preview = (message) => {
   return element;
 };
 
+const confirmRemove = async (message) => {
+  return dialog({
+    title: "chatting.removeTitle",
+    content: preview(message),
+    direction: "→",
+    actions: [
+      { text: "dialog.cancel", value: false },
+      {
+        text: "dialog.confirm",
+        icon: "trash",
+        value: true,
+        data: ["data-danger"]
+      }
+    ]
+  });
+};
+
 const content = (message, options) => {
   const element = dom.create("div");
   const items = [
@@ -257,7 +259,7 @@ const open = async (message, options) => {
     });
 
     if (value === "remove") {
-      const confirmed = await confirmRemove();
+      const confirmed = await confirmRemove(message);
 
       if (confirmed === true) {
         await remove(options.url);

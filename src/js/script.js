@@ -7,6 +7,7 @@ import history from "#common/chatting/history";
 import online from "#common/online";
 import toolbar from "#common/toolbar";
 import tools from "#common/chatting/toolbar";
+import * as route from "#common/route";
 
 import access from "#src/access";
 import * as pwa from "#src/pwa";
@@ -30,7 +31,9 @@ try {
       app.hidden = false;
 
       const chat = dom.query(".chatting", app);
-      const top = toolbar([{ icon: "user", text: "online.open", run: online }]);
+      const top = toolbar([
+        { icon: "users", text: "online.open", run: online }
+      ]);
 
       top.classList.add("chatting-toolbar");
       dom.set(top, "data-position", "top");
@@ -45,6 +48,7 @@ try {
       });
 
       tools(chat, history(chat, message));
+      await route.restore();
 
       const notify = dom.query("[data-notify]", app);
 

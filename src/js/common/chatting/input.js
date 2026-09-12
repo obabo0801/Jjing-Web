@@ -2,6 +2,11 @@ import * as dom from "#common/dom";
 import * as input from "#common/input";
 import * as emoji from "#common/emoji";
 import toast from "#common/toast";
+import progress from "#common/progress";
+import suggest from "#common/chatting/suggest";
+import * as i18n from "#common/i18n";
+
+i18n.preload("dialog.cancel");
 
 export const enter = (event) =>
   event.key === "Enter" &&
@@ -96,12 +101,34 @@ export default function editor(field) {
       view.append(caret);
     }
     view.toggleAttribute("data-empty", !field.value);
-    if (document.activeElement !== view) return;
     const range = document.createRange();
-    const selected = getSelection();
 
     range.setStart(...point(start));
     range.setEnd(...point(end));
+    if (document.activeElement !== view) {
+      if (
+        start !== end ||
+        field.disabled ||
+        field.readOnly ||
+        !field.form.closest(".chatting")?.hasAttribute("data-emotes")
+      )
+        return;
+      const caret = dom.create("span");
+
+      caret.className = "chatting-caret";
+      caret.contentEditable = "false";
+      dom.set(caret, "data-caret", "");
+      range.insertNode(caret);
+      const rect = caret.getBoundingClientRect();
+      const bounds = view.getBoundingClientRect();
+
+      if (rect.bottom > bounds.bottom)
+        view.scrollTop += rect.bottom - bounds.bottom;
+      else if (rect.top < bounds.top) view.scrollTop += rect.top - bounds.top;
+      return;
+    }
+    const selected = getSelection();
+
     selected.removeAllRanges();
     selected.addRange(range);
   };
@@ -137,7 +164,11 @@ export default function editor(field) {
     if (field.maxLength >= 0 && next.length > field.maxLength) return false;
     remember(previous);
 
-    if (focus) {
+    if (
+      focus &&
+      !dom.has("wearable") &&
+      !field.form.closest(".chatting")?.hasAttribute("data-emotes")
+    ) {
       view.focus({ preventScroll: true });
     }
 
@@ -154,6 +185,7 @@ export default function editor(field) {
 
     field.value = value;
     view.toggleAttribute("data-empty", !value);
+    selection();
     notify();
   };
 
@@ -210,7 +242,14 @@ export default function editor(field) {
   });
 
   dom.on(view, "blur", () => {
-    if (!composing) selection();
+    if (composing) return;
+    selection();
+    paint();
+  });
+
+  dom.on(view, "focus", () => dom.query(".chatting-caret", view)?.remove());
+  dom.on(field.form, "chatting-state", () => {
+    if (!composing && document.activeElement !== view) paint();
   });
 
   dom.on(view, "beforeinput", (event) => {
@@ -337,5 +376,106 @@ export default function editor(field) {
   emoji.load().then(() => {
     if (!composing && view.isConnected) paint();
   });
+  const release = suggest(field, view);
+
+  dom.on(window, "chatting-stop", release, { once: true });
   return view;
+}
+
+export function controls(field, root, send) {
+  const form = field.form;
+  const voice = dom.query(".chatting-voice", root);
+  const actions = dom.query(".input-actions", root);
+  const clear = dom.create("button");
+  const count = dom.create("output");
+  const busy = progress({ type: "circular", value: 25, show: false });
+  const off = [];
+
+  root.classList.add("input-compose");
+  clear.type = "button";
+  clear.className = "chatting-clear";
+  dom.set(clear, "data-icon", "trash");
+  dom.set(clear, "data-circle", "");
+  dom.set(clear, "data-action", "clear");
+  dom.set(clear, "data-tooltip", "chatting.emoji.clear");
+  actions.insertBefore(clear, voice || send);
+  count.className = "input-count";
+  root.append(count);
+  send.append(busy.element);
+  dom.set(send, "data-action", "send");
+  if (voice) dom.set(voice, "data-action", "voice");
+  const sync = () => {
+    const state = dom.get(form, "data-send") || "idle";
+    const pending = state !== "idle";
+    const filled = Boolean(field.value.trim());
+    const attached = Number(dom.get(form, "data-attachments")) > 0;
+    const icon = state === "success" ? "check" : "send";
+
+    send.hidden = !filled && !attached && !pending;
+    if (voice) voice.hidden = filled || attached || pending;
+    clear.hidden = !field.value;
+    clear.disabled = field.disabled || field.readOnly || pending;
+    send.disabled =
+      field.disabled ||
+      field.readOnly ||
+      state === "success" ||
+      (state === "sending" && !form.hasAttribute("data-cancel"));
+    dom.set(send, "data-send", state);
+    if (dom.get(send, "data-icon") !== icon) dom.set(send, "data-icon", icon);
+    dom.set(
+      send,
+      "data-tooltip",
+      form.hasAttribute("data-cancel") ? "dialog.cancel" : "chatting.send"
+    );
+    busy.element.hidden = state !== "sending";
+    count.hidden =
+      field.maxLength < 0 || field.value.length < field.maxLength * 0.9;
+    count.value = `${field.value.length} / ${field.maxLength}`;
+  };
+
+  off.push(
+    dom.on(actions, "pointerdown", (event) => {
+      if (event.target.closest("button")) event.preventDefault();
+    })
+  );
+
+  off.push(
+    dom.on(actions, "click", (event) => {
+      if (!event.target.closest(".chatting-clear")) return;
+      field.setSelectionRange(0, field.value.length);
+      input.insert(field, "");
+    })
+  );
+
+  off.push(
+    dom.on(
+      send,
+      "click",
+      (event) => {
+        if (dom.get(form, "data-send") !== "sending") return;
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        form.dispatchEvent(new Event("chatting-cancel"));
+      },
+      true
+    )
+  );
+  off.push(dom.on(field, "input", sync));
+  off.push(dom.on(form, "chatting-attachments", sync));
+  off.push(dom.on(form, "chatting-state", sync));
+  off.push(dom.on(form, "reset", () => queueMicrotask(sync)));
+  const observer = new MutationObserver(sync);
+
+  observer.observe(field, {
+    attributes: true,
+    attributeFilter: ["disabled", "readonly", "maxlength"]
+  });
+  sync();
+  return () => {
+    off.forEach((remove) => remove());
+    observer.disconnect();
+    clear.remove();
+    count.remove();
+    busy.destroy();
+  };
 }

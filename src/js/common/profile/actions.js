@@ -156,7 +156,7 @@ const block = async (user) => {
     : await profile.block(user.id, input.value.trim());
 
   if (!result.ok) {
-    await dialog({ title: "profile.saveError" });
+    await dialog({ title: "profile.saveError", direction: "→" });
     return;
   }
   await profile.read(user.id, { fresh: true });
@@ -224,7 +224,7 @@ const sanction = async (user, action) => {
             );
 
             if (!result.ok) {
-              await dialog({ title: "profile.saveError" });
+              await dialog({ title: "profile.saveError", direction: "→" });
               return false;
             }
             await profile.read(user.id, { fresh: true });
@@ -247,7 +247,7 @@ export const manage = (user, target, options, handlers, opening) => {
   const element = dom.create("section");
   const info = dom.create("div");
   const fields = group(
-    label("profile.uid", details.uid, { short: true }),
+    label("profile.id", user.id, { short: true }),
     label("profile.email", details.email),
     ...(details.date || details.userIp || details.time || details.accessIp
       ? [line({ type: "dotted", text: "profile.access", icon: "info" })]
@@ -278,7 +278,7 @@ export const manage = (user, target, options, handlers, opening) => {
         ? [
             label("profile.blockReason", user.block?.reason),
             label("profile.blockTime", user.block?.time, { date: true }),
-            label("profile.handler", user.block?.handler || user.block?.actor)
+            label("profile.handler", user.block?.handler)
           ]
         : [
             item(handlers, {

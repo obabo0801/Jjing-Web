@@ -2,6 +2,13 @@ import * as dom from "#common/dom";
 import * as i18n from "#common/i18n";
 import api from "#common/api";
 import drawer from "#common/drawer";
+import * as navigation from "#common/route";
+
+navigation.register(
+  "reports",
+  (id) => (!id || /^[a-f\d]{32}$/.test(id) ? inbox(id || undefined) : false),
+  "drawer"
+);
 import mount from "#common/mount";
 import events from "#common/events";
 import once from "#common/once";
@@ -195,6 +202,7 @@ export default function inbox(id) {
 
     try {
       await drawer({
+        route: ["reports", typeof id === "string" ? id : ""],
         title: id ? "profile.reportHistory" : "report.inbox",
         content: root,
         back: true,

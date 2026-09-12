@@ -1,3 +1,4 @@
+import { publicId } from "#config/uid";
 export const schema = `
   CREATE TABLE IF NOT EXISTS audit.block (
     uid TEXT NOT NULL,
@@ -32,7 +33,7 @@ export default (run, user, actor, action, reason, time) =>
       action,
       reason,
       actor.uid,
-      actor.name || actor.uid,
+      actor.name || publicId(actor.uid),
       time
     ]
   );

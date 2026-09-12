@@ -1,9 +1,9 @@
-import * as dom from "#common/dom";
-import * as i18n from "#common/i18n";
-import progress from "#common/progress";
-import sound from "#common/sound";
-import swipe from "#common/swipe";
-import vibrate from "#common/vibrate";
+import * as dom from "./dom.js";
+import * as i18n from "./i18n.js";
+import progress from "./progress.js";
+import sound from "./sound.js";
+import swipe from "./swipe.js";
+import vibrate from "./vibrate.js";
 
 const icons = Object.freeze({
   error: "error",
@@ -24,6 +24,8 @@ const signals = Object.freeze({
 const reduce = matchMedia("(prefers-reduced-motion: reduce)");
 
 let stack;
+
+const seen = new Set();
 
 export const raise = () => {
   if (!stack?.isConnected) {
@@ -134,6 +136,11 @@ const loadImage = (target, options) => {
 };
 
 export default function toast(options = {}) {
+  if (options.id) {
+    if (seen.has(options.id)) return;
+    seen.add(options.id);
+    if (seen.size > 100) seen.delete(seen.values().next().value);
+  }
   if (typeof options === "string") {
     options = { text: options };
   }

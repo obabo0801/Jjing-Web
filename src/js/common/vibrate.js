@@ -126,6 +126,10 @@ export function play(value = 50) {
     return false;
   }
 
+  if (navigator.userActivation?.hasBeenActive === false) {
+    return false;
+  }
+
   const pattern = durations(value);
 
   if (!pattern.some(Boolean)) {
@@ -146,6 +150,10 @@ export function stop() {
   clearTimeout(timer);
 
   if (typeof navigator === "undefined" || !("vibrate" in navigator)) {
+    return false;
+  }
+
+  if (navigator.userActivation?.hasBeenActive === false) {
     return false;
   }
 

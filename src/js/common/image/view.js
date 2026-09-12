@@ -3,6 +3,17 @@ import * as dom from "#common/dom";
 import popover from "#common/popover";
 import double from "#common/image/double";
 import * as theme from "#common/theme";
+import * as route from "#common/route";
+import * as images from "#shared/image";
+import * as giphy from "#common/giphy";
+
+route.register("image", async (id) => {
+  const source = id.startsWith("giphy-")
+    ? await giphy.resolve(id.slice(6))
+    : images.source(id);
+
+  return source ? view(source, undefined, "", id) : false;
+});
 
 const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
 
@@ -14,7 +25,12 @@ const midpoint = ([first, second]) => ({
   y: (first.y + second.y) / 2
 });
 
-export default async function view(source, anchor, icon = "") {
+export default async function view(
+  source,
+  anchor,
+  icon = "",
+  id = images.identify(source, location.origin)
+) {
   if (!source && !icon) {
     return false;
   }
@@ -404,6 +420,7 @@ export default async function view(source, anchor, icon = "") {
 
   try {
     return await popover({
+      route: id ? ["image", id] : undefined,
       anchor,
       content: root,
       fullscreen: true,

@@ -126,6 +126,13 @@ export const resolve = async (user, items = []) => {
   const result = [];
 
   for (const value of items) {
+    if (value?.provider === "giphy") {
+      const item = rules.giphy(value);
+
+      if (!item) fail(400);
+      result.push(item);
+      continue;
+    }
     if (value?.type === "ogq") {
       const item = await accept(value);
 

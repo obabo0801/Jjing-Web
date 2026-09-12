@@ -3,7 +3,7 @@ import { Router } from "express";
 import { get, run } from "#db";
 import identity from "#config/uid";
 import * as media from "#config/media";
-import { clear, find } from "#service/profile/data";
+import * as profile from "#service/profile/data";
 import * as consent from "#shared/consent";
 import string from "#shared/string";
 import * as events from "#service/events";
@@ -27,7 +27,7 @@ router.get("/name", async (req, res) => {
     return res.json({ available: false });
   }
 
-  await clear();
+  await profile.clear();
 
   const used = await get(
     `
@@ -39,8 +39,8 @@ router.get("/name", async (req, res) => {
         AND uid <> ?
     ) OR EXISTS (
       SELECT 1
-      FROM draft
-      WHERE name = ? COLLATE NOCASE
+      FROM user
+      WHERE json_extract(draft, '$.name') = ? COLLATE NOCASE
         AND uid <> ?
     )
   `,
@@ -67,7 +67,7 @@ router.patch("/", async (req, res) => {
     return res.status(412).end();
   }
 
-  await clear();
+  await profile.clear();
 
   const used = await get(
     `
@@ -88,16 +88,18 @@ router.patch("/", async (req, res) => {
   try {
     result = await run(
       `
-      INSERT INTO draft (uid, name, email, time)
-      VALUES (?, ?, ?, datetime('now', '+9 hours'))
-      ON CONFLICT(uid) DO UPDATE SET
-        name = excluded.name,
-        email = excluded.email,
-        image = NULL,
-        avatar = NULL,
-        time = excluded.time
+      UPDATE user SET draft = json_object(
+        'name', ?, 'email', ?, 'time', datetime('now', '+9 hours')
+      )
+      WHERE uid = ? AND NOT EXISTS (
+        SELECT 1 FROM user AS other
+        WHERE other.uid <> user.uid AND (
+          other.name = ? COLLATE NOCASE
+          OR json_extract(other.draft, '$.name') = ? COLLATE NOCASE
+        )
+      )
     `,
-      [uid, name, email]
+      [name, email, uid, name, name]
     );
   } catch (error) {
     if (error.code === "SQLITE_CONSTRAINT") {
@@ -111,7 +113,7 @@ router.patch("/", async (req, res) => {
     return res.status(409).end();
   }
 
-  const user = await find(uid);
+  const user = await profile.find(uid);
 
   res.json({ name, email, avatar: media.resolve(user.avatar) });
 });
@@ -133,42 +135,37 @@ router.post("/complete", async (req, res) => {
     return res.status(400).end();
   }
 
-  await clear();
+  await profile.clear();
 
   let result;
 
   try {
     result = await run(
       `
-      WITH profile AS (
-        SELECT name, email, image, avatar
-        FROM draft
-        WHERE uid = ?
-      )
       UPDATE user
       SET
-        name = (SELECT name FROM profile),
-        email = (SELECT email FROM profile),
+        name = json_extract(draft, '$.name'),
+        email = json_extract(draft, '$.email'),
         image = CASE ?
           WHEN 'clear' THEN NULL
-          WHEN 'draft' THEN (SELECT image FROM profile)
+          WHEN 'draft' THEN json_extract(draft, '$.image')
           ELSE image
         END,
         avatar = CASE ?
           WHEN 'clear' THEN NULL
-          WHEN 'draft' THEN (SELECT avatar FROM profile)
+          WHEN 'draft' THEN json_extract(draft, '$.avatar')
           ELSE avatar
         END,
         setup = 1,
-        consent = ?
-      WHERE uid = ?
-        AND EXISTS (SELECT 1 FROM profile)
-        AND (? <> 'draft' OR EXISTS (
-          SELECT 1 FROM profile WHERE image IS NOT NULL AND avatar IS NOT NULL
+        consent = ?,
+        draft = NULL
+      WHERE uid = ? AND draft IS NOT NULL
+        AND (? <> 'draft' OR (
+          json_extract(draft, '$.image') IS NOT NULL
+          AND json_extract(draft, '$.avatar') IS NOT NULL
         ))
     `,
       [
-        uid,
         image,
         image,
         JSON.stringify({
@@ -192,7 +189,6 @@ router.post("/complete", async (req, res) => {
     return res.status(409).end();
   }
 
-  await run("DELETE FROM draft WHERE uid = ?", [uid]);
   events.broadcast("online");
 
   res.status(204).end();

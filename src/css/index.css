@@ -12,6 +12,12 @@
   padding: 8dvw;
 }
 
+.app:has(.chatting[data-keyboard]),
+.wearable .app:has(.chatting[data-emotes]) {
+  align-content: start;
+  min-height: var(--chatting-page-height, 100dvh);
+}
+
 .communication-test {
   display: grid;
   gap: 8px;

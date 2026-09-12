@@ -289,7 +289,7 @@ self.addEventListener("push", (event) => {
     }
   }
 
-  const { title, body, image, url } = data;
+  const { title, body, image, url, tag } = data;
 
   event.waitUntil(
     Promise.all([
@@ -297,6 +297,7 @@ self.addEventListener("push", (event) => {
         body,
         icon: "/icons/icon-192.png",
         ...(image && { image }),
+        ...(tag && { tag }),
         data: { url }
       }),
       sendToast(data)

@@ -2,6 +2,7 @@ import { Router } from "express";
 
 import { get } from "#db";
 import identity from "#config/uid";
+import * as ids from "#config/uid";
 import * as media from "#config/media";
 import * as events from "#service/events";
 import recent from "#service/log/recent";
@@ -37,8 +38,9 @@ router.get("/:id", async (req, res) => {
     avatar: media.resolve(user.avatar),
     self,
     state: events.state(user.uid),
+    connections: events.connections(user.uid),
     time: access?.time || user.date,
-    manage
+    ...(manage && { manage: true })
   };
 
   if (self) {
@@ -47,12 +49,15 @@ router.get("/:id", async (req, res) => {
 
   if (manage) {
     const blocked = await get(
-      "SELECT reason, time, actor, handler FROM block WHERE uid = ? OR ip = ? ORDER BY time DESC, rowid DESC LIMIT 1",
+      "SELECT reason, time, handler FROM block WHERE uid = ? OR ip = ? ORDER BY time DESC, rowid DESC LIMIT 1",
       [user.uid, user.ip]
     );
 
     result.blocked = Boolean(blocked);
-    result.block = blocked || null;
+    result.block = blocked
+      ? { ...blocked, handler: ids.publicName(blocked.handler) }
+      : null;
+
     result.sanction =
       (await get(
         `SELECT count,
@@ -65,7 +70,6 @@ router.get("/:id", async (req, res) => {
 
   if (manage || (self && role.staff(viewer.role))) {
     result.details = {
-      uid: user.uid,
       email: user.email || "",
       userIp: user.initial || "",
       accessIp: user.ip,
@@ -77,12 +81,13 @@ router.get("/:id", async (req, res) => {
     };
     if (manage && viewer.role === role.root) {
       const authority = await get(
-        "SELECT memo, time, actor, handler FROM authority WHERE uid = ?",
+        "SELECT memo, time, handler FROM authority WHERE uid = ?",
         [user.uid]
       );
 
       result.authority = {
         ...authority,
+        handler: ids.publicName(authority?.handler),
         enabled: user.role === role.admin,
         activity: null
       };

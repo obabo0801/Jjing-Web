@@ -1,16 +1,16 @@
-import * as dom from "#common/dom";
-import * as i18n from "#common/i18n";
-import * as emoji from "#common/emoji";
-import editor, { enter } from "#common/chatting/input";
-import action from "#common/chatting/action";
-import profile from "#common/chatting/profile";
-import * as registry from "#common/chatting/registry";
-import * as clock from "#common/chatting/time";
-import * as events from "#common/events";
-import listen from "#common/chatting/voice";
-import media from "#common/chatting/media";
-import { notices } from "#shared/chatting";
-import { insert } from "#common/input";
+import * as dom from "./dom.js";
+import * as i18n from "./i18n.js";
+import * as emoji from "./emoji.js";
+import editor, { enter, controls } from "./chatting/input.js";
+import * as css from "./css.js";
+import action from "./chatting/action.js";
+import profile from "./chatting/profile.js";
+import * as registry from "./chatting/registry.js";
+import * as clock from "./chatting/time.js";
+import * as events from "./events.js";
+import listen from "./chatting/voice.js";
+import media from "./chatting/media.js";
+import { notices } from "../../../shared/chatting.js";
 
 i18n.preload(
   "chatting.tools.image",
@@ -73,7 +73,7 @@ const bottom = (root, list, form) => {
   dom.on(list, "scroll", () => updateBottom(list));
 
   const place = () => {
-    root.style.setProperty("--chatting-form", `${form.offsetHeight}px`);
+    css.set(root, { "--chatting-form": `${form.offsetHeight}px` });
   };
 
   place();
@@ -87,11 +87,6 @@ const bottom = (root, list, form) => {
 
   root.append(button);
   updateBottom(list);
-};
-
-const update = (input, button) => {
-  button.hidden =
-    !input.value.trim() && !Number(dom.get(input.form, "data-attachments"));
 };
 
 export const regroup = (list) => {
@@ -157,8 +152,6 @@ const bind = (element) => {
   const input = dom.query(".chatting-input", form);
   const action = dom.query(".chatting-voice", form);
   const send = dom.query(".chatting-send", form);
-  const actions = send?.closest(".input-actions");
-  const clear = dom.create("button");
 
   if (!form || !list || !input || !send) {
     return;
@@ -167,43 +160,12 @@ const bind = (element) => {
   bottom(element, list, form);
   const field = editor(input);
 
-  clear.type = "button";
-  clear.className = "chatting-clear";
-  dom.set(clear, "data-icon", "trash");
-  dom.set(clear, "data-circle", "");
-  dom.set(clear, "data-response", "");
-  dom.set(clear, "data-tooltip", "chatting.emoji.clear");
+  controls(input, input.closest(".input"), send);
 
-  actions?.prepend(clear);
-
-  const sync = () => {
-    update(input, send);
-
-    clear.hidden = !input.value;
-    clear.disabled = input.disabled || input.readOnly;
-  };
-
-  dom.on(clear, "click", () => {
-    if (!input.value) return;
-
-    const start = input.selectionStart;
-    const end = input.selectionEnd;
-
-    input.setSelectionRange(0, input.value.length);
-
-    if (!insert(input, "")) {
-      input.setSelectionRange(start, end);
-    }
-  });
-
-  sync();
-
-  dom.on(input, "input", sync);
-  dom.on(form, "chatting-attachments", sync);
   dom.on(list, "chatting-regroup", () => regroup(list));
 
   dom.on(field, "keydown", (event) => {
-    if (!enter(event)) {
+    if (event.defaultPrevented || !enter(event)) {
       return;
     }
 
@@ -219,8 +181,6 @@ const bind = (element) => {
   });
 
   dom.on(action, "click", () => listen(input, action));
-
-  dom.on(form, "reset", () => queueMicrotask(sync));
 
   bound.add(element);
 };
@@ -271,6 +231,8 @@ export const append = (target, options = {}, scroll = true) => {
   time.textContent = clock.format(current);
   time.dateTime = new Date(current).toISOString();
   time.title = clock.detail(current);
+
+  if (options.mentioned) dom.set(message, "data-mentioned", "");
 
   if (options.own) {
     dom.set(message, "data-own", "");

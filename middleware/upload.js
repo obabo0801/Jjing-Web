@@ -2,8 +2,11 @@ import express from "express";
 
 import * as path from "#config/path";
 import { routes } from "#config/media";
+import media from "#middleware/media";
 
 const router = express.Router();
+
+router.use(media);
 
 const options = {
   dotfiles: "deny",

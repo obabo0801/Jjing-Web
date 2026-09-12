@@ -48,11 +48,13 @@ export default `
   CREATE TABLE IF NOT EXISTS user (
     uid TEXT PRIMARY KEY,
     id TEXT,
+    session TEXT,
     name TEXT,
     email TEXT,
     image TEXT,
     avatar TEXT,
     consent TEXT,
+    draft TEXT CHECK (draft IS NULL OR json_valid(draft)),
     setup INTEGER NOT NULL DEFAULT 0
       CHECK (setup IN (0, 1)),
     role INTEGER NOT NULL DEFAULT 0
@@ -72,16 +74,6 @@ export default `
     handler TEXT,
     log INTEGER NOT NULL DEFAULT 0
       CHECK (log IN (0, 1)),
-    time TEXT NOT NULL
-      DEFAULT (datetime('now', '+9 hours'))
-  );
-
-  CREATE TABLE IF NOT EXISTS draft (
-    uid TEXT PRIMARY KEY,
-    name TEXT NOT NULL COLLATE NOCASE,
-    email TEXT NOT NULL,
-    image TEXT,
-    avatar TEXT,
     time TEXT NOT NULL
       DEFAULT (datetime('now', '+9 hours'))
   );
@@ -133,8 +125,12 @@ export default `
     WHERE name IS NOT NULL
       AND trim(name) <> '';
 
-  CREATE UNIQUE INDEX IF NOT EXISTS draft_name
-    ON draft (name COLLATE NOCASE);
+  CREATE UNIQUE INDEX IF NOT EXISTS user_draft_name
+    ON user (json_extract(draft, '$.name') COLLATE NOCASE)
+    WHERE draft IS NOT NULL;
+
+  CREATE UNIQUE INDEX IF NOT EXISTS user_id ON user (id);
+  CREATE UNIQUE INDEX IF NOT EXISTS user_session ON user (session);
 
   CREATE INDEX IF NOT EXISTS block_uid
     ON block (uid);

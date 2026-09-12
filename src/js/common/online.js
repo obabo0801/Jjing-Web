@@ -12,9 +12,12 @@ import profile from "#common/profile/view";
 import mount from "#common/mount";
 import toast from "#common/toast";
 import once from "#common/once";
+import * as route from "#common/route";
 import { events as path } from "#shared/route";
 
 const opening = once();
+
+route.register("online", (id) => (id === "" ? online() : false));
 const size = 50;
 
 i18n.preload(
@@ -169,7 +172,7 @@ export default function online(anchor) {
             element.className = "group-item";
             button.type = "button";
             dom.set(button, "data-response", "");
-            picture.className = "online-avatar";
+            picture.className = "avatar-wrap";
             status.className = "profile-status";
             name.className = "online-name";
             picture.append(media.root, status);
@@ -306,35 +309,39 @@ export default function online(anchor) {
     }
 
     async function filter() {
-      const field = dom.create("div");
-      const input = dom.create("input");
+      if (search) search = "";
+      else {
+        const field = dom.create("div");
+        const input = dom.create("input");
 
-      field.className = "input";
-      input.type = "search";
-      input.value = search;
-      input.maxLength = 100;
-      input.enterKeyHint = "search";
-      dom.set(input, "data-control", "");
-      dom.set(input, "data-i18n-placeholder", "search.placeholder");
-      field.append(input);
-      const result = await dialog({
-        title: "online.search",
-        content: field,
-        actions: [
-          { text: "profile.cancel", icon: "close", value: false },
-          { text: "image.reset", icon: "reload", value: "reset" },
-          {
-            text: "profile.confirm",
-            icon: "check",
-            value: true,
-            submit: true,
-            data: ["data-confirm"]
-          }
-        ]
-      });
+        field.className = "input";
+        input.type = "search";
+        input.value = search;
+        input.maxLength = 100;
+        input.enterKeyHint = "search";
+        dom.set(input, "data-control", "");
+        dom.set(input, "data-i18n-placeholder", "search.placeholder");
+        field.append(input);
+        const result = await dialog({
+          title: "online.search",
+          content: field,
+          direction: "→",
+          actions: [
+            { text: "profile.cancel", icon: "close", value: false },
+            { text: "image.reset", icon: "reload", value: "reset" },
+            {
+              text: "profile.confirm",
+              icon: "check",
+              value: true,
+              submit: true,
+              data: ["data-confirm"]
+            }
+          ]
+        });
 
-      if (!active || (result !== true && result !== "reset")) return;
-      search = result === "reset" ? "" : input.value.trim();
+        if (!active || (result !== true && result !== "reset")) return;
+        search = result === "reset" ? "" : input.value.trim();
+      }
       if (search) dom.set(tools.children[0], "data-selected", "");
       else dom.remove(tools.children[0], "data-selected");
       limit = size;
@@ -347,6 +354,7 @@ export default function online(anchor) {
 
     try {
       await popover({
+        route: ["online", ""],
         anchor,
         title: "online.open",
         content: root,

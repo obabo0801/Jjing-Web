@@ -4,6 +4,7 @@ import * as dom from "#common/dom";
 import api from "#common/api";
 import * as i18n from "#common/i18n";
 import init from "#src/init";
+import * as route from "#common/route";
 import upload from "#common/upload";
 import inbox from "#common/report/inbox";
 
@@ -47,7 +48,8 @@ const start = async () => {
     const form = dom.query(".admin-form");
     const output = dom.query(".admin-result");
 
-    dom.on(dom.query(".admin-reports"), "click", inbox);
+    dom.on(dom.query(".admin-reports"), "click", () => inbox());
+    await route.restore();
 
     dom.on(form, "submit", async (event) => {
       event.preventDefault();

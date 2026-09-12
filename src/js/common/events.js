@@ -1,12 +1,14 @@
-import * as role from "#shared/role";
-import { events as path } from "#shared/route";
+import * as storage from "#common/storage";
+import { events as path } from "../../../shared/route.js";
 
-import * as dom from "#common/dom";
-import api from "#common/api";
-import * as registry from "#common/chatting/registry";
-import * as profile from "#common/profile";
-import * as i18n from "#common/i18n";
-import dialog from "#common/dialog";
+import * as dom from "./dom.js";
+import api from "./api.js";
+import * as registry from "./chatting/registry.js";
+import * as profile from "./profile.js";
+import * as i18n from "./i18n.js";
+import dialog from "./dialog.js";
+import toast from "./toast.js";
+import { plain } from "../../../shared/mention.js";
 
 i18n.preload(
   "chatting.kickTitle",
@@ -19,7 +21,7 @@ i18n.preload(
 );
 
 let source;
-let value = role.user;
+let value = false;
 let stopped = false;
 let session;
 let tab;
@@ -77,28 +79,36 @@ export const start = () => {
     if (!globalThis.crypto?.randomUUID) return events();
     let id = crypto.randomUUID();
 
-    if (navigator.locks?.request) {
-      try {
-        const saved = sessionStorage.getItem("events-tab");
+    try {
+      const saved = storage.get("tab", null, "session");
 
-        if (/^[\da-f]{8}(-[\da-f]{4}){3}-[\da-f]{12}$/i.test(saved)) id = saved;
-      } catch {}
+      if (/^[\da-f]{8}(-[\da-f]{4}){3}-[\da-f]{12}$/i.test(saved)) {
+        id = saved;
+      }
+    } catch {}
+
+    if (navigator.locks?.request) {
       // 복제한 탭은 다른 탭이 사용 중인 식별값을 이어받지 않습니다.
       if (!(await reserve(id))) {
         id = crypto.randomUUID();
-        if (!(await reserve(id))) id = crypto.randomUUID();
+
+        if (!(await reserve(id))) {
+          id = crypto.randomUUID();
+        }
       }
     }
+
     tab = id;
+
     try {
-      sessionStorage.setItem("events-tab", tab);
+      storage.set("tab", tab, "session");
     } catch {}
     return events();
   })();
   return starting;
 };
 
-export const isAdmin = () => role.staff(value);
+export const isAdmin = () => value;
 export const isBlocked = (id) => blocks.has(id);
 
 const data = (event) => {
@@ -112,16 +122,16 @@ const data = (event) => {
 const presence = (event) => {
   const value = data(event);
 
-  profile.presence(value.id, value.state);
+  profile.presence(value.id, value.state, value.connections);
 };
 
 let touched = 0;
 
-const activity = () => {
+const activity = (force = false, engaged = true) => {
   if (stopped || paused || !session) return;
   const now = Date.now();
 
-  if (now - touched < 60_000) {
+  if (force !== true && now - touched < 30_000) {
     return;
   }
 
@@ -131,7 +141,8 @@ const activity = () => {
 
   api(path, {
     method: "POST",
-    data: { session: active },
+    data: { session: active, visible: !document.hidden, active: engaged },
+    keepalive: true,
     signal: AbortSignal.timeout(10_000)
   }).then((result) => {
     if (current !== source || active !== session || stopped || paused) return;
@@ -216,6 +227,7 @@ const restrict = async (event) => {
   const result = await dialog({
     title: `chatting.${key}Title`,
     content,
+    direction: "→",
     locked: true,
     actions: [
       {
@@ -232,6 +244,12 @@ const restrict = async (event) => {
 
 const watch = () => {
   dom.on(window, "pagehide", (event) => {
+    if (session)
+      api(path, {
+        method: "POST",
+        data: { session, visible: false },
+        keepalive: true
+      });
     suspend();
     if (!event.persisted) release?.();
   });
@@ -250,8 +268,8 @@ const watch = () => {
   dom.on(document, "visibilitychange", () => {
     if (document.visibilityState === "visible") {
       check(true);
-      activity();
     }
+    activity(true);
   });
 };
 
@@ -311,20 +329,21 @@ export default function events() {
 
   stream.addEventListener("ready", (event) => {
     const payload = data(event);
-    const next = Number(payload.role);
+    const next = payload.admin === true;
 
     session = payload.session;
     touched = 0;
+    activity(true);
     const previous = value;
 
-    value = role.staff(next) ? next : role.user;
+    value = next;
     if (previous !== value) profile.reset();
   });
 
   stream.addEventListener("role", (event) => {
-    const next = Number(data(event).role);
+    const next = data(event).admin === true;
 
-    value = role.staff(next) ? next : role.user;
+    value = next;
     profile.reset();
   });
 
@@ -343,6 +362,28 @@ export default function events() {
       .forEach((element) => dom.remove(element, "data-blocked"));
   });
   stream.addEventListener("presence", presence);
+  stream.addEventListener("heartbeat", () => activity(false, false));
+  stream.addEventListener("chatting", (event) => {
+    const item = data(event);
+
+    if (
+      !item.mentioned ||
+      item.own ||
+      item.blocked ||
+      document.hidden ||
+      blocks.has(item.id) ||
+      !item.url ||
+      typeof item.text !== "string"
+    )
+      return;
+    toast({
+      type: "notify",
+      id: `mention:${item.url}`,
+      title: item.name,
+      text: plain(item.text),
+      url: `/?message=${encodeURIComponent(item.url)}`
+    });
+  });
   stream.addEventListener("chatting-remove", removed);
   stream.addEventListener("profile-image", (event) => {
     profile.receiveLink(data(event).token);

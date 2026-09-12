@@ -5,6 +5,7 @@ import * as profile from "#service/profile";
 import identity from "#config/uid";
 
 import string from "#shared/string";
+import * as location from "#shared/location";
 
 import * as admin from "#middleware/admin";
 
@@ -35,9 +36,23 @@ const normal = (res, name) => {
   return send(res, name);
 };
 
+const manage = async (req, res) => {
+  if (!(await admin.allowed(req))) return error(res);
+  res.set("Cache-Control", "private, no-store");
+  return send(res, "admin");
+};
+
 export const router = Router();
 
 router.get("/", (_, res) => normal(res, "index"));
+
+router.use((req, res, next) => {
+  const name = location.page(req.originalUrl);
+
+  if (!["GET", "HEAD"].includes(req.method) || !name) return next();
+  if (name === "admin") return manage(req, res);
+  return normal(res, "index");
+});
 
 router.get("/image", (req, res) => {
   const token = string(req.query.token).trim();
@@ -55,15 +70,7 @@ router.get("/terms", (_, res) => normal(res, "terms"));
 
 router.get("/privacy", (_, res) => normal(res, "privacy"));
 
-router.get("/admin", async (req, res) => {
-  if (!(await admin.allowed(req))) {
-    return error(res);
-  }
-
-  res.set("Cache-Control", "private, no-store");
-
-  return send(res, "admin");
-});
+router.get("/admin", manage);
 
 router.get("/maint", (req, res) => {
   if (req.get("x-maint") !== "true") {

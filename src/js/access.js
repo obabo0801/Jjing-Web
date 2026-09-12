@@ -1,3 +1,4 @@
+import * as storage from "#common/storage";
 import { user } from "#shared/route";
 
 import api from "#common/api";
@@ -43,7 +44,7 @@ export default async function access(navigate = true, name) {
   let recent = false;
 
   try {
-    const last = Number(sessionStorage.getItem(key));
+    const last = Number(storage.get(key, null, "session"));
 
     recent = now - last < 60_000;
   } catch {}
@@ -97,7 +98,7 @@ export default async function access(navigate = true, name) {
   }
 
   try {
-    sessionStorage.setItem(key, String(now));
+    storage.set(key, now, "session");
   } catch {}
 
   if (!session.data?.valid) {

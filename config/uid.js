@@ -6,8 +6,11 @@ export const key = "7f4a9c2e";
 export const publicId = (uid) =>
   createHash("sha256").update(`profile:${uid}`).digest("hex").slice(0, 32);
 
-export default (req) => {
-  const value = req.signedCookies?.[key];
+// 이전 기록에서 이름 대신 저장한 UID도 응답에 포함하지 않습니다.
+export const publicName = (value) =>
+  typeof value === "string" &&
+  /^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/i.test(value)
+    ? publicId(value)
+    : value || "";
 
-  return typeof value === "string" ? value : "";
-};
+export default (req) => req.uid || "";

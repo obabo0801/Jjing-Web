@@ -159,7 +159,12 @@ const finish = async (user, picture, agreement, close) => {
         active = false;
       },
       actions: [
-        { text: "setup.revise", value: false },
+        {
+          text: "setup.revise",
+          icon: "close",
+          value: false,
+          data: ["data-neutral"]
+        },
         {
           text: "setup.complete",
           icon: "check",
@@ -299,6 +304,7 @@ export default async function editor(user, ready) {
     return await dialog({
       title: "setup.title",
       content: form,
+      direction: "→",
       locked: true,
       ready: (element) => {
         element.tabIndex = -1;

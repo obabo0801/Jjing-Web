@@ -4,6 +4,7 @@ import data, { css } from "#build/data";
 import html from "#build/html";
 import output from "#build/output";
 import proxy from "#build/proxy";
+import pages from "#build/pages";
 
 export default defineConfig(({ command, mode }) => {
   const env = loadEnv(mode, ".", "");
@@ -12,7 +13,7 @@ export default defineConfig(({ command, mode }) => {
   return {
     ...output,
     css: command === "build" ? { postcss: { plugins: [css] } } : undefined,
-    plugins: [data, html],
+    plugins: [data, html, pages],
     server: { host: true, port: 5173, proxy: api }
   };
 });

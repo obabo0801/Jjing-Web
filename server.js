@@ -10,12 +10,14 @@ import assets from "#assets";
 import upload from "#upload";
 import error from "#error";
 import router from "#router";
+import session from "#middleware/session";
 
 const server = express();
 const port = process.env.PORT;
 
 server.set("trust proxy", "loopback");
 server.use(cookie(secret));
+server.use(session);
 server.use(express.json());
 server.use(block);
 server.use(maint);

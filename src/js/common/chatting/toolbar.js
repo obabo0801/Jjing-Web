@@ -27,7 +27,7 @@ export default function tools(root, history) {
   const field = input.closest(".input");
   const toggle = dom.create("button");
   const entries = [
-    ["smile", "emoji", (button) => emoji(input, button, history.attach)],
+    ["smile", "emoji", () => emoji(input, history.attach)],
     ["image", "image", (button) => image(button, history.image)],
     ["edit", "draw", (button) => draw(button, history.image)],
     ["voice", "stt", (button) => stt(button, input, history.audio)],
@@ -46,7 +46,6 @@ export default function tools(root, history) {
   toggle.type = "button";
   dom.set(toggle, "data-icon", "plus");
   dom.set(toggle, "data-circle", "");
-  dom.set(toggle, "data-response", "");
   dom.set(toggle, "data-tooltip", "chatting.tools.open");
   menu.classList.add("chatting-toolbar");
   dom.set(menu, "data-position", "bottom");
@@ -54,7 +53,7 @@ export default function tools(root, history) {
     dom.set(menu.children[index], "data-circle", "");
     dom.set(menu.children[index], "data-tooltip", `chatting.tools.${name}`);
   });
-  field.prepend(toggle);
+  dom.query(".input-actions", field).prepend(toggle);
 
   const attached = dom.query(".chatting-attachments", form);
 
@@ -64,6 +63,10 @@ export default function tools(root, history) {
     field.before(menu);
   }
   const off = dom.on(toggle, "click", () => {
+    if (root.hasAttribute("data-emotes")) {
+      form.dispatchEvent(new Event("chatting-emotes-close"));
+      return;
+    }
     const opened = dom.get(form, "data-expanded") === "true";
     const stick = atBottom(list);
 
@@ -85,8 +88,13 @@ export default function tools(root, history) {
     attributeFilter: ["disabled", "readonly"]
   });
 
+  const preserve = dom.on(menu, "pointerdown", (event) => {
+    if (event.target.closest("button")) event.preventDefault();
+  });
+
   update();
   return () => {
+    preserve();
     off();
     observer.disconnect();
     toggle.remove();

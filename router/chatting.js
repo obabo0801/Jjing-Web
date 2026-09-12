@@ -1,13 +1,13 @@
 import { Router, raw } from "express";
-import identity from "#config/uid";
-import address from "#config/ip";
-import limit from "#middleware/limit";
-import * as chatting from "#service/chatting";
-import store from "#service/image";
-import audio from "#service/audio";
-import maximum from "#shared/upload";
-import * as attachment from "#service/chatting/attachment";
-import * as rules from "#shared/attachment";
+import identity from "../config/uid.js";
+import address from "../config/ip.js";
+import limit from "../middleware/limit.js";
+import * as chatting from "../service/chatting.js";
+import store from "../service/image.js";
+import audio from "../service/audio.js";
+import maximum from "../shared/upload.js";
+import * as attachment from "../service/chatting/attachment.js";
+import * as rules from "../shared/attachment.js";
 
 const router = Router();
 const allowed = limit(30);
@@ -28,6 +28,10 @@ router.use(async (req, res, next) => {
 
 router.get("/", async (req, res) => {
   res.json(await chatting.list(req.chatUser, req.query));
+});
+
+router.get("/mentions", async (req, res) => {
+  res.json(await chatting.suggest(req.query.q));
 });
 
 router.get("/:id", async (req, res) => {

@@ -398,6 +398,17 @@ GOOGLE_APPLICATION_CREDENTIALS=./json
 `STT`를 비워두면 Google Cloud Speech는<br>
 활성화되지 않음
 
+### GIPHY
+
+GIF·스티커 패널에서 사용하는 GIPHY API 키:
+
+```env
+VITE_GIPHY_API_KEY=
+```
+
+브라우저가 GIPHY API를 직접 호출하므로 이 키는 빌드 결과에 포함됩니다.<br>
+키를 변경하면 개발 서버를 다시 시작하거나 운영 빌드를 다시 생성합니다.
+
 ### Web Push
 
 Web Push를 사용하려면 다음 값을 설정
