@@ -43,9 +43,8 @@ const reveal = (target, keypad) => {
     return;
   }
 
-  const overflow = dom.root.style.overflow;
+  dom.set(dom.root, "data-keypad-reveal", "");
 
-  dom.root.style.overflow = "auto";
   target.scrollIntoView({ behavior: "auto", block: "nearest", inline: "nearest" });
 
   const bottom = target.getBoundingClientRect().bottom;
@@ -55,11 +54,7 @@ const reveal = (target, keypad) => {
     dom.scroller.scrollTop += bottom - top + 12;
   }
 
-  if (overflow) {
-    dom.root.style.overflow = overflow;
-  } else {
-    dom.root.style.removeProperty("overflow");
-  }
+  dom.remove(dom.root, "data-keypad-reveal");
 };
 
 const write = (input, value) => {
