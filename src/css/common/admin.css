@@ -1,0 +1,66 @@
+.admin-pages {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+}
+
+.admin-pages > button {
+  min-width: 0;
+  min-height: 44px;
+  padding: 8px;
+  border: 0;
+  font-size: 0.875rem;
+}
+
+.admin-pages > output {
+  color: var(--mute);
+  font-size: 0.875rem;
+  white-space: nowrap;
+}
+
+.table-wrap:has(> .admin-table) {
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+.admin-table {
+  table-layout: auto;
+  width: max-content;
+  min-width: 100%;
+  font-size: 0.875rem;
+}
+
+.admin-table th,
+.admin-table td {
+  min-width: max-content;
+  padding: 8px 12px;
+
+  overflow-wrap: normal;
+  word-break: normal;
+  text-wrap: nowrap;
+  white-space: nowrap;
+}
+
+.admin-table th:first-child,
+.admin-table td:first-child {
+  position: sticky;
+  inset-inline-start: 0;
+  z-index: 1;
+
+  background: var(--background);
+}
+
+.admin-table th:first-child {
+  z-index: 2;
+  background: var(--surface);
+}
+
+:is(.small, .wearable) .admin-table {
+  font-size: 0.75rem;
+}
+
+:is(.small, .wearable) .admin-table th,
+:is(.small, .wearable) .admin-table td {
+  padding: 6px 8px;
+}

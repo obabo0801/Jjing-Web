@@ -9,11 +9,26 @@ import mount from "#common/mount";
 import * as actions from "#common/profile/actions";
 import toolbar from "#common/toolbar";
 import * as storage from "#common/storage";
+import * as route from "#common/route";
+import * as names from "#common/profile/name";
+import editor from "#common/profile/editor";
 
 const opening = once();
 
+route.register("profile", (id) => {
+  if (!/^[a-f\d]{32}$/.test(id)) return false;
+
+  return view(undefined, dom.query(".chatting"), {
+    id,
+    online: dom.query(".online"),
+    hidden: storage.get(`chatting-hide:${id}`) === "true",
+    context: "chatting",
+    restore: true
+  });
+});
+
 const keys = [
-  "profile.uid",
+  "profile.id",
   "profile.protect",
   "profile.unprotect",
   "profile.email",
@@ -216,24 +231,29 @@ const content = (user, target, options, handlers) => {
   dom.set(media.root, "data-response", "");
 
   const rename = () => {
-    const label = user.name || options.name || "";
+    const label = names.label(user);
     const number = options.number;
 
     name.textContent = number ? `${label} (${number})` : label;
+    names.mark(name, user.verified);
   };
 
   const render = (value) => {
     const changed =
+      user.receiving?.message !== value.receiving?.message ||
       user.self !== value.self ||
       Boolean(user.manage && user.details) !==
         Boolean(value.manage && value.details);
 
     user = { ...value };
+    time.hidden = user.self;
     media.set(user.avatar || options.avatar || "");
     rename();
     id.textContent = user.id?.slice(0, 8) || "";
 
     const next = JSON.stringify([
+      user.receiving,
+      user.state,
       user.self,
       user.manage,
       user.details,
@@ -270,7 +290,9 @@ const content = (user, target, options, handlers) => {
     const whisper = dom.query("[data-whisper]", root);
 
     if (whisper) {
-      whisper.hidden = user.state === "offline";
+      whisper.hidden =
+        !["online", "away"].includes(user.state) ||
+        user.receiving?.whisper === false;
     }
     protect();
   };
@@ -285,6 +307,12 @@ const content = (user, target, options, handlers) => {
   picture.append(media.root, status);
   head.append(picture, name, id, time);
   root.append(head);
+  const own = user.self && user.verified ? editor(user) : null;
+
+  if (own) {
+    picture.replaceWith(own.picture);
+    head.after(own.root);
+  }
 
   const segment = tabs(options);
 
@@ -307,12 +335,28 @@ const content = (user, target, options, handlers) => {
     profile.bind(root, user.id, render);
   }
 
+  const member = actions.member(user, options.room, handlers);
+
+  root.append(member.root);
   protect();
-  return { root, tools, off: dom.on(options.online, "online-update", rename) };
+  const off = dom.on(options.online, "online-update", rename);
+
+  return {
+    root,
+    tools,
+    own,
+    off: () => {
+      off();
+      member.off();
+      own?.destroy();
+    }
+  };
 };
 
 async function open(anchor, target, options) {
   const result = await request(options);
+
+  if (!result && options.restore) return false;
   const handlers = new Map();
   const user = result ?? {
     id: options.id || "",
@@ -326,11 +370,15 @@ async function open(anchor, target, options) {
   };
 
   const view = content(user, target, options, handlers);
+  const id = user.id;
 
   let value;
 
   try {
     value = await popover({
+      route: id ? ["profile", id] : undefined,
+      actions: view.own ? [view.own.action] : [],
+      ready: view.own?.ready,
       anchor,
       back: true,
       content: view.root,

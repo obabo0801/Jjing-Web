@@ -1,10 +1,10 @@
-import * as route from "#shared/route";
+import * as route from "../../shared/route.js";
 
-import * as dom from "#common/dom";
-import toast from "#common/toast";
+import * as dom from "./common/dom.js";
+import toast from "./common/toast.js";
 
-export { notify } from "#common/push";
-export { default as sync } from "#common/sync";
+export { notify } from "./common/push.js";
+export { default as sync } from "./common/sync.js";
 
 export async function load() {
   if (!import.meta.env.PROD || !("serviceWorker" in navigator)) {
@@ -23,8 +23,8 @@ export async function load() {
       return;
     }
 
-    const { title, body, image, url } = event.data.data;
-    const options = { title, text: body, image, url };
+    const { title, body, image, url, tag } = event.data.data;
+    const options = { title, text: body, image, url, id: tag };
 
     toast({ type: "notify", ...options });
   });

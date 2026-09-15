@@ -1,15 +1,9 @@
-import * as dom from "#common/dom";
-
 import * as route from "#shared/route";
+import * as dom from "#common/dom";
 import api from "#common/api";
 
 export const supported = (registration) =>
-  Boolean(
-    registration &&
-    !dom.has("wearable") &&
-    "Notification" in window &&
-    "PushManager" in window
-  );
+  Boolean(registration && "Notification" in window && "PushManager" in window);
 
 const authorize = async () => {
   if (Notification.permission !== "default") {
@@ -42,13 +36,18 @@ export default async function push(enable, registration) {
 
   try {
     if (!enable) {
-      const removed = await unsubscribe(registration);
+      const subscription = await registration.pushManager.getSubscription();
 
-      if (removed) {
-        return false;
-      }
+      if (!subscription) return false;
+      const result = await refresh(subscription);
 
-      return await active(registration);
+      if (!result.ok) return null;
+      const saved = await api(`${route.push}/devices/${result.data.id}`, {
+        method: "PATCH",
+        data: { active: false }
+      });
+
+      return saved.ok ? false : null;
     }
 
     if (!(await authorize())) {
@@ -57,7 +56,7 @@ export default async function push(enable, registration) {
 
     return await subscribe(registration);
   } catch {
-    return enabled(registration);
+    return null;
   }
 }
 
@@ -68,8 +67,9 @@ const decodeKey = (value) => {
   return Uint8Array.from(atob(base64), (character) => character.charCodeAt(0));
 };
 
-const refresh = (subscription) =>
-  api(route.push, { method: "PUT", data: { subscription } });
+export function refresh(subscription) {
+  return api(route.push, { method: "PUT", data: { subscription } });
+}
 
 export async function active(registration) {
   if (
@@ -84,13 +84,7 @@ export async function active(registration) {
   const subscription = await registration.pushManager.getSubscription();
 
   if (!subscription) {
-    const saved = await api(route.push);
-
-    if (!saved.data?.subscribed) {
-      return false;
-    }
-
-    return subscribe(registration);
+    return false;
   }
 
   const result = await refresh(subscription);
@@ -99,7 +93,7 @@ export async function active(registration) {
     await subscription.unsubscribe().catch(() => false);
   }
 
-  return result.ok;
+  return result.ok && result.data?.active && result.data?.connected;
 }
 
 export async function subscribe(registration) {
@@ -133,7 +127,12 @@ export async function subscribe(registration) {
     const result = await refresh(saved);
 
     if (result.ok) {
-      return true;
+      const enabled = await api(`${route.push}/devices/${result.data.id}`, {
+        method: "PATCH",
+        data: { active: true, connected: true }
+      });
+
+      return enabled.ok;
     }
 
     if (result.status !== 404) {
@@ -152,7 +151,14 @@ export async function subscribe(registration) {
 
   const result = await api(route.push, {
     method: "POST",
-    data: { subscription }
+    data: {
+      subscription,
+      device: dom.has("wearable")
+        ? "wearable"
+        : dom.has("mobile")
+          ? "mobile"
+          : "desktop"
+    }
   });
 
   return result.ok;

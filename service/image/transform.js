@@ -1,4 +1,5 @@
 import sharp from "sharp";
+import { bounds } from "#shared/image";
 
 const maxFrames = 120;
 
@@ -46,22 +47,26 @@ export const transform = async (data, value, quality) => {
   const sourceHeight = Math.round(decoded.info.height / pages);
 
   if (shape === "original") {
-    const ratio = Math.min(1, 1024 / Math.max(sourceWidth, sourceHeight));
+    const rotated = bounds(sourceWidth, sourceHeight, angle);
+    const ratio = Math.min(1, 1024 / Math.max(rotated.width, rotated.height));
 
-    width = Math.max(1, Math.round(sourceWidth * ratio));
-    height = Math.max(1, Math.round(sourceHeight * ratio));
+    width = Math.max(1, Math.round(rotated.width * ratio));
+    height = Math.max(1, Math.round(rotated.height * ratio));
     if (width * height * pages > maxPixels) return null;
   }
   const radians = (angle * Math.PI) / 180;
   const horizontal = Math.abs(Math.cos(radians));
   const vertical = Math.abs(Math.sin(radians));
+  const rotated = bounds(sourceWidth, sourceHeight, angle);
   const cover =
-    shape === "circle"
-      ? Math.max(width / sourceWidth, height / sourceHeight)
-      : Math.max(
-          (width * horizontal + height * vertical) / sourceWidth,
-          (width * vertical + height * horizontal) / sourceHeight
-        );
+    shape === "original"
+      ? Math.max(width / rotated.width, height / rotated.height)
+      : shape === "circle"
+        ? Math.max(width / sourceWidth, height / sourceHeight)
+        : Math.max(
+            (width * horizontal + height * vertical) / sourceWidth,
+            (width * vertical + height * horizontal) / sourceHeight
+          );
   const zoom = cover * scale;
   const resizedWidth = Math.ceil(sourceWidth * zoom);
   const resizedHeight = Math.ceil(sourceHeight * zoom);

@@ -54,6 +54,7 @@ export default function label(
     copy.type = "button";
     copy.className = "label-copy";
     dom.set(copy, "data-icon", "copy");
+    dom.set(copy, "data-color", "");
     dom.set(copy, "data-response", "");
     dom.set(copy, "data-tooltip", "profile.copy");
     dom.on(copy, "click", async () => {

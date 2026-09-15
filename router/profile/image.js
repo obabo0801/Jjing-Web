@@ -5,10 +5,11 @@ import identity from "#config/uid";
 import * as events from "#service/events";
 import store, { transform } from "#service/image";
 import * as profile from "#service/profile";
-import { clear, find } from "#service/profile/data";
+import * as data from "#service/profile/data";
 import rate from "#middleware/limit";
 import max from "#shared/upload";
 import string from "#shared/string";
+import account from "#middleware/account";
 
 const router = Router();
 
@@ -27,7 +28,7 @@ const readEdit = (req) => {
   }
 };
 
-const saveImage = async (uid, body, edit = null) => {
+const saveImage = async (uid, body, edit = null, token = "") => {
   const image = await store(body, "users", {
     width: 256,
     height: 256,
@@ -39,34 +40,38 @@ const saveImage = async (uid, body, edit = null) => {
   if (!image) {
     return null;
   }
+  for (const file of [image.original, image.resizing])
+    await run("INSERT OR IGNORE INTO profile_file VALUES (?, ?)", [uid, file]);
 
-  await run(
+  const result = await run(
     `
-    UPDATE draft
-    SET
-      image = ?,
-      avatar = ?,
-      time = datetime('now', '+9 hours')
-    WHERE uid = ?
+    UPDATE user SET draft = json_set(
+      draft, '$.image', ?, '$.avatar', ?,
+      '$.time', datetime('now', '+9 hours')
+    )
+    WHERE uid = ? AND draft IS NOT NULL AND deletion IS NULL AND erased = 0
+      AND json_extract(draft, '$.token') = ?
+      AND json_extract(draft, '$.time')
+        >= datetime('now', '+9 hours', '-15 minutes')
   `,
-    [image.original, image.resizing, uid]
+    [image.original, image.resizing, uid, token]
   );
 
-  return image;
+  return result.changes ? image : null;
 };
 
-router.post("/image", upload, async (req, res) => {
+router.post("/image", account, upload, async (req, res) => {
   const uid = identity(req);
-  const user = uid ? await find(uid) : null;
+  const user = uid ? await data.find(uid) : null;
 
-  await clear();
+  await data.clear();
 
   const draft = uid
     ? await get(
         `
           SELECT 1
-          FROM draft
-          WHERE uid = ?
+          FROM user
+          WHERE uid = ? AND draft IS NOT NULL
           `,
         [uid]
       )
@@ -80,7 +85,12 @@ router.post("/image", upload, async (req, res) => {
     return res.status(400).end();
   }
 
-  const image = await saveImage(uid, req.body, readEdit(req));
+  const image = await saveImage(
+    uid,
+    req.body,
+    readEdit(req),
+    req.get("x-profile-draft")
+  );
 
   if (!image) {
     return res.status(415).end();
@@ -89,7 +99,7 @@ router.post("/image", upload, async (req, res) => {
   res.json({ image: image.original, avatar: image.resizing });
 });
 
-router.post("/image/link/:token/use", async (req, res) => {
+router.post("/image/link/:token/use", account, async (req, res) => {
   const uid = identity(req);
   const value = string(req.params.token).trim();
   const item = profile.get(value);
@@ -103,13 +113,17 @@ router.post("/image/link/:token/use", async (req, res) => {
     return res.status(409).end();
   }
 
-  const draft = await get("SELECT 1 FROM draft WHERE uid = ?", [uid]);
+  await data.clear();
+  const draft = await get(
+    "SELECT 1 FROM user WHERE uid = ? AND draft IS NOT NULL",
+    [uid]
+  );
 
   if (!draft) {
     return res.status(409).end();
   }
 
-  const image = await saveImage(uid, item.file);
+  const image = await saveImage(uid, item.file, null, string(req.body?.token));
 
   if (!image) {
     return res.status(415).end();
@@ -133,7 +147,7 @@ router.get("/image/link/:token", (req, res) => {
   res.send(item.file);
 });
 
-router.post("/image/link", async (req, res) => {
+router.post("/image/link", account, async (req, res) => {
   const uid = identity(req);
 
   if (!uid) {

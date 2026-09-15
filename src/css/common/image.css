@@ -405,31 +405,21 @@ button:is(.image-view-full, .image-view-back) {
 .small:not(.wearable)
   dialog:has(> .layer-content > .image-editor)
   > .layer-head {
-  grid-template-columns: 32px minmax(0, 1fr) 32px;
   padding-block: max(4px, env(safe-area-inset-top)) 4px;
 }
 
 .small:not(.wearable)
   dialog:has(> .layer-content > .image-editor)
-  > .layer-head
   > :is(.layer-back, .layer-action) {
+  flex-basis: 32px;
   width: 32px;
   min-height: 32px;
   height: 32px;
-}
-
-.small:not(.wearable) .image-tools > .toolbar > button {
-  min-height: 32px;
-  padding-block: 2px;
+  margin-block-end: -48px;
 }
 
 .small:not(.wearable) .image-tools > .toolbar > button > span {
   font-size: 0.625rem;
-}
-
-.small:not(.wearable) .image-tools > .toolbar > button > .icon {
-  width: 14px;
-  height: 14px;
 }
 
 .small:not(.wearable) .image-value {

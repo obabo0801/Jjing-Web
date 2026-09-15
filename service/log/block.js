@@ -1,3 +1,4 @@
+import { publicId } from "#config/uid";
 export const schema = `
   CREATE TABLE IF NOT EXISTS audit.block (
     uid TEXT NOT NULL,
@@ -6,7 +7,8 @@ export const schema = `
     reason TEXT,
     actor TEXT NOT NULL,
     handler TEXT NOT NULL,
-    time TEXT NOT NULL
+    time TEXT NOT NULL,
+    snapshot TEXT
   );
   CREATE INDEX IF NOT EXISTS audit.block_uid ON block (uid, time);
 
@@ -17,22 +19,24 @@ export const schema = `
     actor TEXT NOT NULL,
     handler TEXT NOT NULL,
     time TEXT NOT NULL,
-    until TEXT
+    until TEXT,
+    snapshot TEXT
   );
   CREATE INDEX IF NOT EXISTS audit.sanction_uid ON sanction (uid, time);
 `;
 
-export default (run, user, actor, action, reason, time) =>
+export default (run, user, actor, action, reason, time, snapshot) =>
   run(
-    `INSERT INTO audit.block (uid, ip, action, reason, actor, handler, time)
-   VALUES (?, ?, ?, ?, ?, ?, ?)`,
+    `INSERT INTO audit.block (uid, ip, action, reason, actor, handler, time, snapshot)
+   VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       user.uid,
       user.ip,
       action,
       reason,
       actor.uid,
-      actor.name || actor.uid,
-      time
+      actor.name || publicId(actor.uid),
+      time,
+      snapshot
     ]
   );

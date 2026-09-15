@@ -1,7 +1,7 @@
-import { publicId } from "#config/uid";
+import { publicId } from "../config/uid.js";
 import { randomUUID } from "node:crypto";
-import { all } from "#db";
-import * as media from "#config/media";
+import { all } from "../db/index.js";
+import * as media from "../config/media.js";
 
 const clients = new Map();
 const contexts = new WeakMap();
@@ -39,20 +39,34 @@ export const broadcast = (type, data) => {
   if (type === "profile-update") broadcast("online");
 };
 
+export const connections = (uid) =>
+  [...(clients.get(uid)?.responses || [])].filter(
+    (response) => !response.writableEnded && !response.destroyed
+  ).length;
+
 const update = (uid, item) => {
   const state = current(item);
+  const count = connections(uid);
 
-  if (item.state === state) {
+  if (item.state === state && item.count === count) {
     return;
   }
 
   item.state = state;
-  broadcast("presence", { id: publicId(uid), state });
+  item.count = count;
+  broadcast("presence", { id: publicId(uid), state, connections: count });
 };
 
 export const state = (uid) => current(clients.get(uid));
 
-export const touch = (uid, session) => {
+export const viewing = (uid) =>
+  [...(clients.get(uid)?.responses || [])].some((response) => {
+    const context = contexts.get(response);
+
+    return context?.visible && Date.now() - context.seen < 90_000;
+  });
+
+export const touch = (uid, session, visible, active = true) => {
   const item = clients.get(uid);
 
   if (!item) {
@@ -63,6 +77,11 @@ export const touch = (uid, session) => {
     const context = contexts.get(response);
 
     if (context.session !== session) continue;
+    if (typeof visible === "boolean") {
+      context.visible = visible;
+      context.seen = Date.now();
+    }
+    if (visible === false || active === false) return true;
     context.active = Date.now();
     if (context.state !== "online") {
       context.state = "online";
@@ -81,8 +100,8 @@ export const list = async () => {
   for (let start = 0; start < ids.length; start += 256) {
     const keys = ids.slice(start, start + 256);
     const rows = await all(
-      `SELECT uid, id, name, avatar, role FROM user
-        WHERE uid IN (${keys.map(() => "?").join(",")}) AND setup = 1
+      `SELECT uid, id, name, avatar, role, google FROM user
+        WHERE uid IN (${keys.map(() => "?").join(",")})
         AND NOT EXISTS (SELECT 1 FROM block
           WHERE block.uid = user.uid OR block.ip = user.ip)
         AND NOT EXISTS (SELECT 1 FROM sanction WHERE uid = user.uid
@@ -106,7 +125,8 @@ export const list = async () => {
         session: context.tab.id,
         order: context.tab.order,
         id: user.id || publicId(uid),
-        name: user.name || "",
+        name: user.google ? user.name || "" : "",
+        verified: Boolean(user.google),
         avatar: media.resolve(user.avatar),
         group: user.role < 0 ? "admin" : "user",
         state: status(context)
@@ -216,12 +236,7 @@ export const connect = (user, response) => {
 
   response.once?.("close", close);
   response.once?.("error", close);
-  write(response, "ready", {
-    id: publicId(user.uid),
-    session: context.session,
-    role: user.role,
-    state: current(item)
-  });
+  write(response, "ready", { session: context.session, admin: user.role < 0 });
   update(user.uid, item);
   broadcast("online");
   return close;

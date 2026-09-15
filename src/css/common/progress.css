@@ -4,6 +4,11 @@
   --progress: 0%;
 }
 
+button .progress {
+  --focus: currentColor;
+  --bar: color-mix(in srgb, currentColor 20%, transparent);
+}
+
 .progress[data-progress="linear"] {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
@@ -44,18 +49,23 @@
   width: 48px;
   aspect-ratio: 1;
   border-radius: 50%;
-
-  background: conic-gradient(var(--focus) var(--progress), var(--bar) 0);
 }
 
-.progress[data-progress="circular"] .progress-track {
+.progress[data-progress="circular"]::before {
+  content: "";
   position: absolute;
-  inset: 6px;
-
-  border-radius: 50%;
-  background: var(--background);
+  inset: 0;
+  border-radius: inherit;
+  background: conic-gradient(var(--focus) var(--progress), var(--bar) 0);
+  mask: radial-gradient(
+    farthest-side,
+    transparent calc(100% - 6px),
+    #000 calc(100% - 5.5px)
+  );
+  pointer-events: none;
 }
 
+.progress[data-progress="circular"] .progress-track,
 .progress[data-progress="circular"] .progress-fill {
   display: none;
 }

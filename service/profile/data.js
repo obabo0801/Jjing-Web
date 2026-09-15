@@ -2,8 +2,9 @@ import { get, run } from "#db";
 
 export const clear = () =>
   run(`
-    DELETE FROM draft
-    WHERE time < datetime('now', '+9 hours', '-15 minutes')
+    UPDATE user SET draft = NULL
+    WHERE json_extract(draft, '$.time')
+      < datetime('now', '+9 hours', '-15 minutes')
   `);
 
 export const find = (uid) =>
@@ -15,8 +16,11 @@ export const find = (uid) =>
       id,
       name,
       email,
+      google,
+      renamed,
       image,
       avatar,
+      settings,
       setup,
       role,
       ip,

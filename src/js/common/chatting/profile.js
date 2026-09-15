@@ -2,6 +2,7 @@ import * as dom from "#common/dom";
 import * as profile from "#common/profile";
 import avatar from "#common/avatar";
 import show from "#common/profile/view";
+import * as names from "#common/profile/name";
 
 export default function chattingProfile(target, options) {
   const root = dom.create("div");
@@ -20,7 +21,7 @@ export default function chattingProfile(target, options) {
   root.append(picture.root);
 
   const render = (user) => {
-    name.textContent = user.name || options.name || "";
+    name.textContent = names.label(user);
     picture.set(user.avatar || options.avatar || "");
 
     if (name.textContent && !name.isConnected) {

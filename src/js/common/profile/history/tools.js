@@ -18,7 +18,11 @@ i18n.preload(
 
 export const append = (list, entries, render) => {
   for (const entry of entries) {
-    const day = time.day(entry.time);
+    let day = "";
+
+    try {
+      if (entry.time) day = time.day(entry.time);
+    } catch {}
 
     let section = list.lastElementChild;
 
@@ -30,9 +34,10 @@ export const append = (list, entries, render) => {
       section.className = "history-day";
       dom.set(section, "data-date", day);
       heading.className = "history-date";
-      heading.textContent = time.label(`${day} 00:00:00`);
+      if (day) heading.textContent = time.label(`${day} 00:00:00`);
       records.className = "profile-section";
-      section.append(heading, records);
+      if (day) section.append(heading);
+      section.append(records);
       list.append(section);
     }
     section.lastElementChild.append(render(entry));
@@ -54,6 +59,13 @@ export function create(change, types = {}, kind = "action") {
       icon,
       text,
       run: async (button) => {
+        if ((name === "search" || name === "date") && values[name]) {
+          values[name] = "";
+          dom.remove(button, "data-selected");
+          badge(button);
+          change();
+          return;
+        }
         const field = dom.create("div");
         const input = dom.create(name === kind ? "select" : "input");
 

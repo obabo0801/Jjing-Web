@@ -30,7 +30,7 @@ export default {
   enforce: "pre",
   transformIndexHtml: rename,
   transform(code, id) {
-    if (/\.js(\?|$)/.test(id)) {
+    if (/\.js(\?|$)|\.html\?raw$/.test(id)) {
       return rename(code);
     }
   }

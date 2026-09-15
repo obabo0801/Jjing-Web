@@ -1,14 +1,17 @@
 .toasts {
   position: fixed;
+  position-anchor: none;
   inset: auto;
-  inset-block-start: max(16px, env(safe-area-inset-top));
-  inset-inline-start: 50%;
+  inset-block-start: calc(
+    var(--toast-top, 0px) + max(16px, env(safe-area-inset-top))
+  );
+  inset-inline-start: var(--toast-left, 50%);
   z-index: 1100;
 
   display: grid;
   gap: 8px;
 
-  width: min(calc(100% - 32px), 40rem);
+  width: min(calc(var(--toast-width, 100vw) - 32px), 40rem);
   margin: 0;
   padding: 0;
   border: 0;
@@ -181,10 +184,6 @@
   --bar: color-mix(in srgb, currentColor 20%, transparent);
 
   animation: toast-loading 800ms linear infinite;
-}
-
-.toast-media > .progress[data-progress="circular"] .progress-track {
-  background: var(--toast-color);
 }
 
 .toast-image {

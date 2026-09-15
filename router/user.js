@@ -8,33 +8,26 @@ import address from "#config/ip";
 import access from "#service/log/access";
 import { usage } from "#shared/route";
 import { get, run } from "#db";
-import identity, { key, publicId } from "#config/uid";
+import identity from "#config/uid";
+import * as ids from "#config/uid";
+import * as session from "#service/session";
 
 import string from "#shared/string";
 
 import limit from "#middleware/limit";
+import google from "#router/google";
+import settings from "#router/settings";
 
 const router = Router();
+
+router.use(google);
+router.use("/settings", settings);
 const allowed = limit(120);
-const cookie = {
-  httpOnly: true,
-  sameSite: "lax",
-  secure: process.env.NODE_ENV === "production",
-  signed: true,
-  maxAge: 365 * 24 * 60 * 60 * 1000
-};
-
 const clear = {
-  httpOnly: cookie.httpOnly,
-  sameSite: cookie.sameSite,
-  secure: cookie.secure,
+  httpOnly: session.cookie.httpOnly,
+  sameSite: session.cookie.sameSite,
+  secure: session.cookie.secure,
   path: "/"
-};
-
-const remember = (res, uid) => {
-  if (uid) {
-    res.cookie(key, uid, cookie);
-  }
 };
 
 const status = (value) => {
@@ -50,7 +43,8 @@ router.get(usage, (req, res) => {
 });
 
 router.delete("/", (_, res) => {
-  res.clearCookie(key, clear);
+  res.clearCookie(ids.key, clear);
+  res.clearCookie(session.anonymous, clear);
   res.status(204).end();
 });
 
@@ -132,12 +126,12 @@ router.post("/", async (req, res) => {
   );
 
   if (kicked) {
-    remember(res, uid);
+    await session.remember(res, uid);
     return res.status(403).json(kicked);
   }
 
   if (blocked) {
-    remember(res, uid);
+    await session.remember(res, uid);
 
     const first = await run(
       `
@@ -165,7 +159,7 @@ router.post("/", async (req, res) => {
       INSERT INTO user (uid, id, role, ip, initial, lang)
       VALUES (?, ?, ?, ?, ?, ?)
     `,
-      [uid, publicId(uid), role.user, ip, ip, lang]
+      [uid, ids.publicId(uid), role.user, ip, ip, lang]
     );
   } else if (user.ip !== ip || user.lang !== lang) {
     await run(
@@ -180,8 +174,8 @@ router.post("/", async (req, res) => {
     );
   }
 
-  remember(res, uid);
-  res.json({ id: publicId(uid) });
+  await session.remember(res, uid);
+  res.json({ id: ids.publicId(uid) });
 });
 
 export default router;

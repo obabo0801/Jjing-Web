@@ -114,3 +114,25 @@
     transition: none;
   }
 }
+
+.toggle-label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+}
+
+.toggle-action {
+  display: grid;
+  place-items: center;
+}
+
+.toggle-action > .icon {
+  width: 1.5rem;
+  height: 1.5rem;
+}
+
+.group.toggle-content {
+  gap: 0;
+}

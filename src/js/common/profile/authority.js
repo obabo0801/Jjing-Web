@@ -33,10 +33,12 @@ export default function authority(user) {
 
   row.className = "group-item";
   root.className = "toggle";
+  dom.set(root, "data-route", user.id);
   head.className = "toggle-head";
   button.className = "toggle-button";
   button.type = "button";
   dom.set(button, "data-icon", "setting");
+  dom.set(button, "data-color", "");
   dom.set(button, "data-response", "");
   title.textContent = i18n.message("profile.authority");
   dom.set(title, "data-i18n", "profile.authority");
@@ -179,7 +181,7 @@ export default function authority(user) {
       ...[
         memo,
         label("profile.granted", authority.time, { date: true }),
-        label("profile.handler", authority.handler || authority.actor),
+        label("profile.handler", authority.handler),
         label("profile.activity", summary)
       ].filter(Boolean)
     );

@@ -9,10 +9,8 @@
 </h1>
 
 <p align="center">
-    <img src="https://github.com/user-attachments/assets/c4f849a2-839f-4ec1-9f3c-2b837e8518f7" width="16%">
+  <img src="https://github.com/user-attachments/assets/c4f849a2-839f-4ec1-9f3c-2b837e8518f7" width="16%">
 </p>
-
-
 
 <p align="center">
   <strong>Node.js</strong>
@@ -219,7 +217,6 @@ TTS 및 음성 인식 기능을 제공합니다.
 
 ## 🚀 설치
 
-
 ```bash
 git clone git@github.com:obabo0801/Jjing-Web.git
 cd Jjing-Web
@@ -292,27 +289,64 @@ TTS=
 STT=
 GOOGLE_APPLICATION_CREDENTIALS=
 
+GOOGLE_CLIENT_ID=
+GOOGLE_CLIENT_SECRET=
+GOOGLE_REDIRECT_URI=http://localhost:5173/api/04f8996d/google/callback
+
 VAPID_PUBLIC_KEY=
 VAPID_PRIVATE_KEY=
 VAPID_SUBJECT=mailto:YOUR_EMAIL
 ```
 
+### Google 로그인
+
+Google Cloud Console에서 OAuth 클라이언트를<br>
+`웹 애플리케이션`으로 만들고,<br>
+`GOOGLE_REDIRECT_URI`에 설정한 주소를<br>
+승인된 리디렉션 URI에 각각 등록합니다.<br>
+동의 화면이 테스트 상태라면<br>
+로그인할 계정을 테스트 사용자에 추가합니다.
+
+로컬과 운영을 함께 사용하려면<br>
+콜백 주소를 쉼표 또는 줄바꿈으로 구분합니다.<br>
+로그인을 시작한 사이트에 해당하는 주소를<br>
+자동으로 선택합니다.<br>
+`example.com`은 실제 서비스 도메인으로 바꿉니다.
+
+```env
+GOOGLE_REDIRECT_URI="http://localhost:5173/api/04f8996d/google/callback
+https://example.com/api/04f8996d/google/callback"
+```
+
+주소를 하나만 설정하는<br>
+기존 방식도 사용할 수 있습니다.<br>
+Vite proxy의 내부 서버 주소가 아니라<br>
+브라우저에서 접속하는 주소를 등록합니다.<br>
+목록에 없는 사이트에서는 로그인을 시작하지 않으며,<br>
+운영 주소는 HTTPS를 사용합니다.
+
+`GOOGLE_CLIENT_SECRET`은 서버에만 설정하며<br>
+`VITE_` 접두사를 붙이지 않습니다.<br>
+설정을 바꾼 뒤 서버를 다시 시작합니다.<br>
+음성 기능의 Google Cloud 설정과는 별개입니다.
+
 ### 서버
 
-- 🔹 `PORT`
-서버에서 사용할 포트  
-- 🔹 `NODE_ENV`  
-실행 환경. 생략하면 `production`  
-로컬 HTTP 개발은 `development`  
-- 🔹 `MAINTENANCE`  
-서비스 점검 모드  
-- 🔹 `COOKIE_SECRET`  
-사용자 쿠키 서명에 사용하는 필수 비밀값  
+- 🔹 `PORT`<br>
+  서버에서 사용할 포트
+- 🔹 `NODE_ENV`<br>
+  실행 환경. 생략하면 `production`<br>
+  로컬 HTTP 개발은 `development`
+- 🔹 `MAINTENANCE`<br>
+  서비스 점검 모드
+- 🔹 `COOKIE_SECRET`<br>
+  사용자 쿠키 서명에 사용하는 필수 비밀값
 
 운영 환경에서는 `NODE_ENV`를 생략합니다.<br>
-서버와 Vite 배포 빌드의 기본값이 모두 `production`이므로<br>
-공용 `.env`에 `NODE_ENV=production`을<br>
-넣어 발생하는 Vite 경고를 피할 수 있습니다.
+서버와 Vite 배포 빌드의 기본값이 모두<br>
+`production`이므로 공용 `.env`에<br>
+`NODE_ENV=production`을 넣어 발생하는<br>
+Vite 경고를 피할 수 있습니다.
 
 개발 환경 예시
 
@@ -336,8 +370,10 @@ MAINTENANCE=true
 COOKIE_SECRET=YOUR_SECRET
 ```
 
-비어 있으면 DB 초기화 전에 서버 시작을 중단합니다.<br>
-운영 환경에서는 HTTPS와 Secure 쿠키를 사용합니다.
+비어 있으면 DB 초기화 전에<br>
+서버 시작을 중단합니다.<br>
+운영 환경에서는 HTTPS와<br>
+Secure 쿠키를 사용합니다.
 
 기존 secret을 유지하면<br>
 정상 서명된 사용자 쿠키도 유지됩니다.<br>
@@ -397,6 +433,20 @@ GOOGLE_APPLICATION_CREDENTIALS=./json
 
 `STT`를 비워두면 Google Cloud Speech는<br>
 활성화되지 않음
+
+### GIPHY
+
+GIF·스티커 패널에서 사용하는<br>
+GIPHY API 키:
+
+```env
+VITE_GIPHY_API_KEY=
+```
+
+브라우저가 GIPHY API를 직접 호출하므로<br>
+이 키는 빌드 결과에 포함됩니다.<br>
+키를 변경하면 개발 서버를 다시 시작하거나<br>
+운영 빌드를 다시 생성합니다.
 
 ### Web Push
 
@@ -461,215 +511,4 @@ DB 시작 순서는 `db/index.js`에서 확인합니다.
 | :--- | :--- | :--- |
 | **`config/`** | 서버 설정과<br>기반 도우미 | 환경·경로·hash·HTML 매핑,<br>UID·IP·접속 환경 판독 |
 | **`service/`** | 서버 기능 실행 | 이미지, 관리, 실시간 접속,<br>음성, 알림, 번역, 로그 |
-| **`db/`** | 서비스 DB 준비와<br>쿼리 실행 | 연결, 스키마, 기존 DB 보정 |
-| **`shared/`** | 서버·브라우저<br>공용 규칙 | 문자열 도우미, 권한, API 경로,<br>동의 버전, 업로드 제한 |
-| **`build/`** | Vite 전용 코드 | data-\*·HTML 변환,<br>빌드 입출력, 개발 프록시 |
-| **`locales/`** | 여러 언어의 번역 내용 | 언어별 번역 파일 |
-| **`middleware/`** | 요청 확인 및 접근 처리 | 사용자 및 페이지 접근 관리 |
-| **`public/`** | 그대로 제공되는 파일 | PWA 파일 및 아이콘 |
-| **`router/`** | 서버 요청 연결 | API와 페이지 요청 처리 |
-| **`src/`** | 웹 화면 소스 | HTML, JavaScript, CSS |
-| **`data/`** | 실행 중 생성되는 데이터 | 데이터 및 업로드 관리 |
-
-`#shared/*`는 서버와 브라우저가 함께 사용하며,<br>
-DOM·Node 전용 API에 의존하지 않습니다.<br>
-`#build/*`는 Vite에서만 사용합니다.<br>
-`config/html.js`는 서버와 빌드가 공유하는<br>
-HTML 매핑 파일명 설정입니다.<br>
-공용 규칙은 `shared`, 빌드 방식은 `build`,<br>
-페이지의 실행 순서는<br>
-`src/js`의 각 진입점에서 확인합니다.
-
-### 브라우저 초기화와 DOM 적용
-
-각 HTML이 불러오는 `src/js`의 진입점에서<br>
-`#src/init`을 호출합니다.<br>
-`init()`은 로딩 표시를 만들고<br>
-장치·테마·공통 이벤트를 준비한 뒤<br>
-최초 `mount()`를 실행합니다.<br>
-같은 페이지에서 다시 호출해도 중복 실행하지 않으며,<br>
-반환된 로딩 요소를 제거하는 시점은<br>
-각 진입점이 결정합니다.
-
-| 새로 추가하는 처리 | 위치와 기준 |
-| :--- | :--- |
-| 페이지 공통 시작 작업,<br>document·window의 공통 이벤트 등록 | `src/js/init.js`에서<br>한 번 호출 |
-| select·stepper·toggle·<br>picker·keypad의 공통 이벤트 | 각 모듈의 `listen()`을<br>`init`에서 호출 |
-| 새 DOM의 요소 생성·이벤트 연결·<br>표시값 준비 | `src/js/common/mount.js`에서<br>컴포넌트에 `root` 전달 |
-| 로그인 확인·프로필 설정·<br>페이지별 요청과 화면 연결 | `script.js`, `admin.js` 등<br>해당 진입점 |
-
-레이어를 열거나 내용을 교체할 때는<br>
-`init()`이 아니라 `mount(content)`를 사용합니다.<br>
-`mount`는 전달한 요소 자체와<br>
-내부 요소를 함께 처리합니다.<br>
-DOM 전체를 다시 찾지 않으며,<br>
-중복 생성·이벤트 연결은 각 컴포넌트의<br>
-기존 `WeakSet`·`WeakMap` 등으로 막습니다.<br>
-요소별 관찰·크기 측정처럼<br>
-해당 요소가 있어야 가능한 처리는<br>
-컴포넌트에 남깁니다.<br>
-`mount` 전체를 한 번만 실행하도록 막으면<br>
-나중에 추가된 요소를 놓치므로 그렇게 하지 않습니다.<br>
-아이콘의 DOM 감시와 번역 처리,<br>
-테마 선택 UI의 구성은 기존 방식을 유지합니다.<br>
-`common`에서 상위 초기화 코드나<br>
-`ui`를 다시 import하지 않습니다.
-
-`select`의 기본 메뉴는 버튼 기준으로 떠서 표시하며<br>
-주변 배치를 바꾸지 않습니다.<br>
-바깥 `.select`에 `data-expand`를 붙이면<br>
-기존처럼 내부에서 펼쳐집니다.<br>
-wearable에서는 `data-expand` 여부와 관계없이<br>
-전체화면으로 열고, 왼쪽 스와이프로 닫습니다.<br>
-값과 `input`·`change` 이벤트는<br>
-원본 `<select>`를 사용합니다.
-
-### 빌드와 hash를 찾는 기준
-
-개발은 `HTML → src/js 진입점`으로 실행하고<br>
-`/api`·업로드 요청만 `build/proxy.js`를 통해<br>
-Express로 전달합니다.<br>
-배포는 `vite.config.js`<br>
-`→ build/output.js의 HTML 목록`<br>
-`→ data-* 변환·Vite 번들`<br>
-`→ build/html.js의 HTML 이름 변경·매핑 생성`<br>
-순서입니다.<br>
-서버는 `config/pages.js`에서 매핑을 한 번 읽고<br>
-`middleware/page.js`에서 해당 HTML을 보냅니다.<br>
-다시 빌드해 배포했다면 서버도 재시작해야<br>
-새 매핑을 읽습니다.
-
-| 대상 | 수정할 위치 | 정리 기준 |
-| :--- | :--- | :--- |
-| JS·CSS·이미지<br>자산 파일명 | `build/output.js` | 유지: Vite의 내용 기반 파일명과<br>장기 캐시 연결 |
-| HTML 파일명·<br>페이지 매핑 | `build/html.js`,<br>`config/html.js`,<br>`config/pages.js` | 유지: 서버의 페이지 연결 방식과<br>함께 사용 |
-| HTML·JS·CSS의<br>`data-*` | `build/data.js` | 단순화 고려: 정규식이<br>문자열·속성명 전체를 바꾸므로<br>세 형식의 일치 검증 필요 |
-| API 접두사·응답 키 | `shared/route.js` | 유지: 빌드 때 생성하지 않는<br>고정 통신 규칙 |
-| 업로드 경로 | `config/media.js` | 유지: 이전 경로와<br>현재 URL의 호환 처리 포함 |
-| 번역 키·언어 파일명 | `router/i18n.js`,<br>`src/js/common/i18n.js` | 단순화 고려: 빌드가 아닌<br>요청 시 hash 처리 |
-
-hash와 Base64는 접근 권한을 대신하지 않습니다.<br>
-서버 권한·쿠키·요청 검증은 별도로 유지합니다.<br>
-현재 단계에서는<br>
-기존 URL·hash 값·응답 형식을 바꾸지 않습니다.<br>
-Node의 SHA-256은 `config/hash.js`를 사용하고<br>
-브라우저 번역 키는 Web Crypto를 사용합니다.<br>
-두 환경을 억지로 하나의 모듈로 합치지 않습니다.<br>
-`public/service-work.js`와<br>
-`public/manifest.json`은 위 변환을 거치지 않고<br>
-그대로 복사됩니다.<br>
-개발 서버 프록시나 Vite preview는<br>
-Express의 권한·페이지 라우팅 검증을<br>
-대신하지 않습니다.
-
-### CSS를 찾는 기준
-
-각 HTML은 `src/css/style.css` 다음에<br>
-필요한 페이지 CSS를 연결합니다.
-
-| 수정할 화면 | 위치 |
-| :--- | :--- |
-| 테마·기본 요소·동적으로 열리는<br>공통 컴포넌트 | `src/css/common/`<br>(`style.css`에서 순서대로 로드) |
-| 메인 화면·첫 방문 안내 | `src/css/index.css` |
-| QR 링크로 접속한<br>이미지 업로드 페이지 | `src/css/image.css` |
-| 이용약관·개인정보 처리방침 | `src/css/legal.css` |
-| 오류·오프라인·차단·점검 안내 | `src/css/state.css` |
-
-`common/image.css`는 이미지 선택·조절·뷰어,<br>
-`common/setup.css`는<br>
-공용 프로필 생성·동의·확인 화면입니다.<br>
-페이지 전용 CSS와 구분합니다.<br>
-공통 CSS의 import 순서는<br>
-레이어·group 등의 덮어쓰기 순서이므로<br>
-이름순으로 재정렬하지 않습니다.<br>
-JS가 나중에 만드는 DOM과 사용 예정 컴포넌트도 있어<br>
-HTML에 없다는 이유만으로<br>
-selector를 삭제하지 않습니다.
-
-### PWA와 알림
-
-| 수정할 처리 | 위치 |
-| :--- | :--- |
-| Worker 등록, 설치·온라인 이벤트,<br>전면 알림 toast 연결 | `src/js/pwa.js` |
-| 알림 지원 여부·권한·구독 확인·<br>구독·해제, 직접 알림 표시 | `src/js/common/push.js` |
-| 실패한 API 요청 저장,<br>Background Sync 또는 메시지 요청 | `src/js/common/sync.js` |
-| 오프라인 응답·캐시 준비, 큐 재전송,<br>Push 수신·알림 클릭 | `public/service-work.js` |
-
-페이지는 `pwa.load()`로 등록 정보를 받고<br>
-`push(enable, registration)`에 전달합니다.<br>
-공용 Push 코드는<br>
-상위 `pwa.js`를 import하지 않습니다.<br>
-사용 예정 API인 `pwa.notify()`와 `pwa.sync()`는<br>
-같은 호출 방식으로 유지하며<br>
-각각 공용 모듈의 함수를 내보냅니다.
-
-`notify()`는 활성 Worker와 알림 권한이 없거나<br>
-표시가 실패하면 `false`를 반환합니다.<br>
-Worker 준비를 무기한 기다리지는 않습니다.<br>
-`sync()`는 직접 처리한 요청의 Response를 반환하고,<br>
-네트워크 오류·5xx 응답으로 큐에 저장한 요청은<br>
-`null`을 반환합니다.<br>
-큐 저장 실패는 오류로 전달하며,<br>
-Worker 미준비·동기화 예약 실패만으로<br>
-저장한 요청을 다시 추가하지 않습니다.<br>
-남은 큐는 이후 동기화 이벤트나<br>
-메시지에서 처리합니다.<br>
-Worker 안에서 겹친 동기화는 같은 작업을 공유합니다.<br>
-서버 처리 후 응답이 유실되거나<br>
-Worker가 종료되는 경우까지<br>
-정확히 한 번의 처리를 보장하지는 않으므로,<br>
-중복 처리가 위험한 API에 연결할 때는<br>
-서버의 요청 식별·중복 방지도 필요합니다.
-
-Worker는 기존 classic script와<br>
-`/service-work.js`, 범위 `/`를 유지합니다.<br>
-IndexedDB는 `sync` 버전 `1`의 `requests`,<br>
-캐시는 `offline`, 재전송 태그는 `api-sync`입니다.<br>
-페이지에서 `offline`·`sync` 메시지를 보내고<br>
-Worker는 `notify` 메시지를 보냅니다.<br>
-이 이름과 큐 데이터 형식은<br>
-양쪽 코드가 함께 사용하는 규칙입니다.<br>
-Worker는 Vite 모듈과 별도로 제공되므로<br>
-`#common/*`를 import하지 않습니다.<br>
-IndexedDB 열기 코드의 중복을 없애기 위해<br>
-Worker 형식이나 배포 경로를 바꾸지는 않았습니다.
-
-### 서버 기능을 찾는 기준
-
-기본 요청 흐름은<br>
-`server.js → middleware → router`<br>
-`→ service → DB·파일·외부 API`입니다.<br>
-라우터의 단순 조회·저장은<br>
-기존처럼 `#db`를 바로 사용합니다.<br>
-별도의 서비스 wrapper를 추가하지 않습니다.<br>
-`service`는 `#service/*`로 가져오며,<br>
-라우터·미들웨어·화면 코드를<br>
-다시 import하지 않습니다.
-
-| 수정할 기능 | 실행 코드 |
-| :--- | :--- |
-| 이미지 변환·<br>원본과 축소본 저장 | `service/image.js` |
-| 프로필 이미지 QR 링크<br>생성·만료 | `service/profile.js` |
-| 관리자 권한·차단·차단 해제 | `service/manage.js` |
-| SSE 전송·접속 상태 | `service/events.js` |
-| 음성 합성·캐시 | `service/tts.js` |
-| 음성 인식 / 녹음 파일 저장 | `service/speech.js` /<br>`service/stt.js` |
-| Firebase / 브라우저 푸시 연동 | `service/fcm.js` /<br>`service/push.js` |
-| 번역 파일 로딩 | `service/locale.js` |
-| 날짜별 로그 연결 / 기록·조회 | `service/log/index.js` /<br>`service/log/` 내부 파일 |
-
-`#service/log`는 로그 폴더의<br>
-`index.js`를 가리킵니다.<br>
-실제 로그 저장 위치는 기존 `data/log/` 그대로입니다.<br>
-요청·응답 형식은 `router`,<br>
-실제 처리 방식은 위 표의 `service`,<br>
-저장 구조는 `db`에서 확인합니다.
-
----
-
-## 📬 문의
-
-기타 문의는 아래 연락처로 부탁드립니다.
-
-- **이메일** [obabo0801@gmail.com](mailto:obabo0801@gmail.com)
-- **디스코드** `unjongjjing`
+| **`db/`** | 서비스 DB 준비와<br>쿼리 실행 | 연결, 스키마, 기존 DB 보정

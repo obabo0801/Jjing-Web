@@ -1,377 +1,203 @@
 import * as dom from "#common/dom";
-import dialog from "#common/dialog";
-import drawer from "#common/drawer";
 import * as i18n from "#common/i18n";
 import * as profile from "#common/profile";
-import toast from "#common/toast";
-import consent from "#common/profile/consent";
+import * as consent from "#shared/consent";
+import * as login from "#common/login";
 import portrait from "#common/profile/image";
+import toast from "#common/toast";
+import label from "#common/profile/label";
+import dialog from "#common/dialog";
 
-const keys = [
-  "setup.title",
+i18n.preload(
+  "profile.own",
+  "profile.delete",
+  "profile.email",
+  "profile.nameLimit",
   "setup.name",
-  "setup.required",
-  "setup.optional",
-  "setup.namePlaceholder",
-  "setup.nameChecking",
-  "setup.nameAvailable",
-  "setup.nameUnavailable",
   "setup.nameInvalid",
-  "setup.nameCheckError",
-  "setup.email",
-  "setup.emailPlaceholder",
-  "setup.emailAvailable",
-  "setup.emailInvalid",
-  "setup.next",
-  "image.select",
-  "image.title",
-  "image.loadError",
-  "image.camera",
-  "image.gallery",
-  "image.phone",
-  "image.scan",
-  "image.sizeError",
-  "image.reset",
-  "image.clear",
-  "image.save",
-  "setup.review",
-  "setup.finish",
-  "setup.revise",
-  "setup.complete",
+  "setup.nameUnavailable",
   "setup.saveError",
-  "setup.uploadError"
-];
+  "setup.uploadError",
+  "image.save",
+  "image.sizeError",
+  "login.logout"
+);
 
-i18n.preload(...keys);
-
-const validName = (value) => /^[\p{L}\p{N} _-]{2,20}$/u.test(value);
-
-const validEmail = (value) =>
-  !value || (value.length <= 254 && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value));
-
-const text = (tag, name, key) => {
-  const element = dom.create(tag);
-
-  element.className = name;
-  element.textContent = i18n.message(key) || key;
-  dom.set(element, "data-i18n", key);
-
-  return element;
-};
-
-const step = (current) => {
-  const element = dom.create("small");
-
-  element.className = "setup-step";
-  element.textContent = `${current} / 2`;
-
-  return element;
-};
-
-const field = (name, type = "text") => {
-  const root = dom.create("div");
-  const label = dom.create("label");
-  const title = text("span", "label-key", `setup.${name}`);
-  const required = text(
-    "small",
-    "setup-field-state",
-    name === "name" ? "setup.required" : "setup.optional"
-  );
-  const control = dom.create("span");
+export default function editor(user) {
+  const root = dom.create("section");
+  const group = dom.create("div");
+  const account = dom.create("div");
   const input = dom.create("input");
-  const status = dom.create("small");
 
-  root.className = "setup-field";
-  label.className = "label";
-  control.className = "input";
-  status.className = "setup-status";
-  input.type = type;
-  input.name = name;
-  input.required = name === "name";
-  input.autocomplete = name;
-  input.enterKeyHint = name === "name" ? "next" : "done";
+  let save = dom.create("button");
 
-  if (name === "name") {
-    input.minLength = 2;
-    input.maxLength = 20;
-  } else {
-    input.maxLength = 254;
-  }
+  let picture = portrait(user.avatar, user.image || user.avatar);
+  let current = user;
+  let active = true;
+  let busy = false;
 
+  root.className = "profile-section profile-own";
+  group.className = "group";
+  account.className = "group";
+  input.value = user.name || "";
+  input.maxLength = Math.max(20, input.value.length);
+  input.autocomplete = "nickname";
   dom.set(input, "data-control", "");
-  dom.set(input, "data-i18n-placeholder", `setup.${name}Placeholder`);
-  const heading = dom.create("span");
+  const field = label("setup.name", input.value);
+  const value = dom.query(".label-value", field);
+  const change = dom.create("button");
 
-  heading.className = "setup-field-title";
+  change.type = "button";
+  change.className = "label-value";
+  change.textContent = input.value;
+  dom.set(change, "data-response", "");
+  value.replaceWith(change);
+  dom.on(change, "click", async () => {
+    const content = dom.create("div");
 
-  heading.append(title, required);
-  label.append(heading, control);
-  control.append(input);
-  root.append(label, status);
-
-  return { root, input, status };
-};
-
-const state = (element, key, value) => {
-  element.textContent = i18n.message(key) || key;
-  dom.set(element, "data-state", value);
-};
-
-const finish = async (user, picture, agreement, close) => {
-  const root = dom.create("div");
-  const details = dom.create("div");
-  const progress = step(2);
-  const notice = text("p", "", "setup.finish");
-
-  root.className = "setup-profile";
-  details.className = "group";
-  dom.set(root, "data-pan", "");
-
-  for (const key of ["name", "email"]) {
-    if (!user[key]) continue;
-
-    const item = dom.create("div");
-    const label = dom.create("div");
-    const title = text("span", "label-key", `setup.${key}`);
-    const value = dom.create("span");
-
-    item.className = "group-item";
-    label.className = "label";
-    value.className = "label-value";
-    value.textContent = user[key];
-    label.append(title, value);
-    item.append(label);
-    details.append(item);
-  }
-
-  root.append(progress, notice, picture.preview(), details);
-
-  let active = true;
-
-  try {
-    return await drawer({
-      back: true,
-      title: "setup.review",
-      content: root,
-      side: "right",
-      direction: "→",
-      closing: () => {
-        active = false;
-      },
+    content.className = "input";
+    input.value = change.textContent;
+    content.append(input);
+    const accepted = await dialog({
+      title: "setup.name",
+      content,
+      direction: "\u2192",
       actions: [
-        { text: "setup.revise", value: false },
-        {
-          text: "setup.complete",
-          icon: "check",
-          data: ["data-confirm"],
-          close: false,
-          run: async ({ button, close: end }) => {
-            button.disabled = true;
-            picture.busy(true);
-            dom.set(button, "data-icon", "throbber");
-
-            const file = picture.file();
-            const uploaded = file
-              ? await profile.uploadAvatar(file)
-              : { ok: true };
-
-            if (!active) return false;
-
-            const saved = uploaded.ok
-              ? await profile.complete(
-                  agreement.value(),
-                  file === null ? null : file ? "draft" : "keep"
-                )
-              : uploaded;
-
-            if (!active) return false;
-
-            if (saved.ok) {
-              await close(true);
-              await end(true);
-              return false;
-            }
-
-            toast({
-              type: "error",
-              title:
-                saved.status === 412
-                  ? "setup.consent.error"
-                  : uploaded.status === 413
-                    ? "image.sizeError"
-                    : uploaded.ok
-                      ? "setup.saveError"
-                      : "setup.uploadError"
-            });
-            button.disabled = false;
-            picture.busy(false);
-            dom.set(button, "data-icon", "check");
-
-            return false;
-          }
-        }
+        { text: "profile.cancel", value: false },
+        { text: "profile.confirm", submit: true, value: true }
       ]
     });
-  } finally {
-    active = false;
-    picture.busy(false);
+
+    if (accepted) change.textContent = input.value.trim();
+    else input.value = change.textContent;
+    update();
+  });
+  group.append(field, label("profile.email", user.email));
+  for (const [key, icon, run] of [
+    ["login.logout", "logout", login.logout],
+    ["profile.delete", "trash", login.remove]
+  ]) {
+    const row = dom.create("div");
+    const button = dom.create("button");
+    const text = dom.create("span");
+
+    row.className = "group-item";
+    button.type = "button";
+    text.textContent = i18n.message(key);
+    dom.set(text, "data-i18n", key);
+    dom.set(button, "data-icon", icon);
+    if (key === "login.logout") dom.set(button, "data-color", "");
+    dom.set(button, "data-response", "");
+    if (key === "profile.delete") dom.set(row, "data-danger", "");
+    dom.on(button, "click", run);
+    button.append(text);
+    row.append(button);
+    account.append(row);
   }
-};
+  root.append(group, account);
+  function update() {
+    const changed =
+      input.value.trim() !== current.name || picture.file() !== undefined;
 
-export default async function editor(user, ready) {
-  const form = dom.create("div");
-  const progress = step(1);
-  const picture = portrait(user.avatar, user.image || user.avatar);
-  const name = field("name");
-  const email = field("email", "email");
-  const agreement = consent();
+    save.disabled = busy || !changed;
+  }
 
-  form.className = "setup-form";
-  form.append(progress, picture.root, name.root, email.root, agreement.root);
-  name.input.value = user.name || "";
-  email.input.value = user.email || "";
+  const submit = async () => {
+    if (busy || save.disabled) return;
+    const name = input.value.trim();
 
-  let available = false;
-  let timer;
-  let version = 0;
-  let active = true;
-
-  const refresh = () =>
-    form.dispatchEvent(new Event("input", { bubbles: true }));
-
-  dom.on(name.input, "input", () => {
-    clearTimeout(timer);
-    available = false;
-
-    const value = name.input.value.trim();
-    const rev = ++version;
-
-    if (!validName(value)) {
-      state(name.status, "setup.nameInvalid", "error");
+    if (name !== current.name && !/^[\p{L}\p{N} _-]{2,20}$/u.test(name)) {
+      toast({ title: "setup.nameInvalid", type: "error" });
       return;
     }
+    busy = true;
+    input.disabled = true;
+    picture.busy(true);
+    dom.set(save, "data-icon", "throbber");
+    update();
+    try {
+      const agreement = { terms: consent.terms, privacy: consent.privacy };
+      const draft = await profile.save({ name, consent: agreement });
 
-    state(name.status, "setup.nameChecking", "mute");
-    timer = setTimeout(async () => {
-      const result = await profile
-        .checkName(value)
-        .catch(() => ({ ok: false }));
-
-      if (rev !== version) {
+      if (!draft.ok) {
+        toast({
+          type: "error",
+          title:
+            draft.status === 429
+              ? "profile.nameLimit"
+              : draft.status === 409
+                ? "setup.nameUnavailable"
+                : "setup.saveError"
+        });
         return;
       }
+      if (!active) return;
+      const file = picture.file();
+      const upload = file
+        ? await profile.uploadAvatar(file, draft.data.token)
+        : { ok: true };
 
-      if (!result.ok) {
-        state(name.status, "setup.nameCheckError", "error");
-        refresh();
+      if (!active) return;
+      if (!upload.ok) {
+        toast({
+          type: "error",
+          title: upload.status === 413 ? "image.sizeError" : "setup.uploadError"
+        });
         return;
       }
-
-      available = result.data?.available === true;
-
-      state(
-        name.status,
-        available ? "setup.nameAvailable" : "setup.nameUnavailable",
-        available ? "success" : "error"
+      const result = await profile.complete(
+        agreement,
+        file === null ? "clear" : file ? "draft" : "keep",
+        draft.data.token
       );
-      refresh();
-    }, 300);
-  });
 
-  dom.on(email.input, "input", () => {
-    const value = email.input.value.trim();
-    const valid = validEmail(value);
+      if (!active) return;
+      if (!result.ok) {
+        toast({ type: "error", title: "setup.saveError" });
+        return;
+      }
+      current = profile.value();
+      const next = portrait(current.avatar, current.image || current.avatar);
 
-    if (!value) {
-      email.status.textContent = "";
-      dom.remove(email.status, "data-state");
-      return;
+      picture.root.replaceWith(next.root);
+      picture.destroy();
+      picture = next;
+      input.value = current.name || "";
+      change.textContent = input.value;
+      dom.on(picture.root, "input", update);
+    } catch {
+      if (active) toast({ type: "error", title: "setup.saveError" });
+    } finally {
+      busy = false;
+      if (active) {
+        input.disabled = false;
+        picture.busy(false);
+        dom.set(save, "data-icon", "check");
+        update();
+      }
     }
+  };
 
-    state(
-      email.status,
-      valid ? "setup.emailAvailable" : "setup.emailInvalid",
-      valid ? "success" : "error"
-    );
-  });
-
-  try {
-    return await dialog({
-      title: "setup.title",
-      content: form,
-      locked: true,
-      ready: (element) => {
-        element.tabIndex = -1;
-        element.focus({ preventScroll: true });
-        ready?.();
-
-        if (name.input.value) {
-          name.input.dispatchEvent(new Event("input", { bubbles: true }));
-        }
-
-        if (email.input.value) {
-          email.input.dispatchEvent(new Event("input", { bubbles: true }));
-        }
-      },
-      actions: [
-        {
-          text: "setup.next",
-          submit: true,
-          icon: "arrow",
-          data: ["data-confirm"],
-          close: false,
-          disabled: () =>
-            !validName(name.input.value.trim()) ||
-            !available ||
-            !validEmail(email.input.value.trim()) ||
-            !agreement.valid(),
-          run: async ({ close }) => {
-            if (
-              !available ||
-              !validName(name.input.value.trim()) ||
-              !validEmail(email.input.value.trim()) ||
-              !agreement.valid()
-            ) {
-              return false;
-            }
-
-            const saved = await profile.save({
-              name: name.input.value.trim(),
-              email: email.input.value.trim(),
-              consent: agreement.value()
-            });
-
-            if (!active) return false;
-
-            if (!saved.ok) {
-              if (saved.status === 409) {
-                available = false;
-                state(name.status, "setup.nameUnavailable", "error");
-                refresh();
-              } else {
-                toast({
-                  type: "error",
-                  title:
-                    saved.status === 412
-                      ? "setup.consent.error"
-                      : "setup.saveError"
-                });
-              }
-
-              return false;
-            }
-
-            await finish(saved.data, picture, agreement, close);
-
-            return false;
-          }
-        }
-      ]
-    });
-  } finally {
-    active = false;
-    version += 1;
-    clearTimeout(timer);
-    picture.destroy();
-  }
+  dom.on(picture.root, "input", update);
+  update();
+  return {
+    root,
+    picture: picture.root,
+    action: {
+      head: true,
+      icon: "check",
+      text: "image.save",
+      close: false,
+      disabled: () => save.disabled,
+      run: submit
+    },
+    ready: (element) => {
+      save = dom.query(".layer-action", element);
+      update();
+    },
+    destroy: () => {
+      active = false;
+      picture.destroy();
+    }
+  };
 }

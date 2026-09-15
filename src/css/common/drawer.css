@@ -9,6 +9,10 @@ dialog[data-drawer] {
   border: 0;
 }
 
+dialog[data-drawer][open]:has(.chatting.direct) {
+  overflow: hidden;
+}
+
 dialog[data-drawer][data-side="left"] {
   inset-inline-start: 0;
   inset-inline-end: auto;

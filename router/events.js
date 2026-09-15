@@ -1,10 +1,10 @@
 import { Router } from "express";
 
-import * as events from "#service/events";
-import address from "#config/ip";
-import { get } from "#db";
-import identity from "#config/uid";
-import { viewer } from "#service/chatting";
+import * as events from "../service/events.js";
+import address from "../config/ip.js";
+import { get } from "../db/index.js";
+import identity from "../config/uid.js";
+import { viewer } from "../service/chatting.js";
 
 const router = Router();
 
@@ -18,6 +18,7 @@ const find = async (req) => {
         SELECT user.uid, user.role
         FROM user
         WHERE user.uid = ?
+          AND user.deletion IS NULL AND user.erased = 0
           AND NOT EXISTS (
             SELECT 1
             FROM block
@@ -41,7 +42,7 @@ router.post("/", async (req, res) => {
 
   if (
     typeof req.body?.session !== "string" ||
-    !events.touch(user.uid, req.body.session)
+    !events.touch(user.uid, req.body.session, req.body.visible, req.body.active)
   )
     return res.status(409).end();
   res.status(204).end();

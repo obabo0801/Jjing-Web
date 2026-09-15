@@ -1,7 +1,16 @@
 import * as dom from "#common/dom";
+import * as css from "#common/css";
 import { get, set } from "#common/storage";
 
 export const modes = ["system", "light", "dark", "black"];
+export const brightness = (value = get("brightness", 100)) => {
+  const level = Math.max(70, Math.min(100, Number(value) || 100));
+
+  if (!set("brightness", level)) return false;
+  css.set(dom.root, { "--brightness": `${level}%` });
+  sync();
+  return true;
+};
 const scheme = matchMedia("(prefers-color-scheme: dark)");
 const colors = new Map();
 
@@ -9,7 +18,7 @@ let listening = false;
 let background;
 let selected;
 
-const sync = () => {
+function sync() {
   let meta = dom.query('meta[name="theme-color"]');
 
   if (!meta) {
@@ -37,7 +46,7 @@ const sync = () => {
       : target;
 
   dom.set(meta, "content", color);
-};
+}
 
 const apply = () => {
   const value =
@@ -71,8 +80,9 @@ export default function theme(mode) {
     mode = fallback;
   }
 
+  if (!set("theme", mode) && selected) return selected;
   selected = mode;
-  set("theme", selected);
+  brightness();
 
   if (!listening) {
     dom.on(scheme, "change", apply);

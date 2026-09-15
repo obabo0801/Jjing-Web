@@ -122,7 +122,7 @@ export const read = async (id = "me", options = {}) => {
   }
 };
 
-export const presence = (id, state) => {
+export const presence = (id, state, connections) => {
   const target = key(id);
   const user = records.get(target);
 
@@ -130,7 +130,7 @@ export const presence = (id, state) => {
     return;
   }
 
-  remember(target, { ...user, state });
+  remember(target, { ...user, state, connections });
 };
 
 export const receiveLink = (token) => {
@@ -159,7 +159,8 @@ export const checkName = (name) =>
 
 export const save = (data) => api(path, { method: "PATCH", data });
 
-export const uploadAvatar = (file) => upload(`${path}/image`, file);
+export const uploadAvatar = (file, token) =>
+  upload(`${path}/image`, file, { headers: { "X-Profile-Draft": token } });
 
 export const imageLink = () => api(`${path}/image/link`, { method: "POST" });
 
@@ -224,10 +225,10 @@ export const reset = () => {
   return Promise.all([...ids].map((id) => read(id, { fresh: true })));
 };
 
-export const complete = async (consent, image = "keep") => {
+export const complete = async (consent, image = "keep", token) => {
   const result = await api(`${path}/complete`, {
     method: "POST",
-    data: { consent, image }
+    data: { consent, image, token }
   });
 
   if (result.ok) {

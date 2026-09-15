@@ -1,4 +1,5 @@
 import * as dom from "#common/dom";
+import * as css from "#common/css";
 import sound from "#common/sound";
 
 const bound = new WeakSet();
@@ -16,11 +17,11 @@ const paint = (input) => {
   const thumb = dom.query(".range-thumb", container);
 
   if (fill) {
-    fill.style.width = `${percent}%`;
+    css.set(fill, { width: `${percent}%` });
   }
 
   if (thumb) {
-    thumb.style.insetInlineStart = `${percent}%`;
+    css.set(thumb, { "inset-inline-start": `${percent}%` });
   }
 };
 

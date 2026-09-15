@@ -8,6 +8,11 @@
   pointer-events: none;
 }
 
+[data-icon][data-circle] > .icon {
+  width: 50%;
+  height: 50%;
+}
+
 svg.icon {
   fill: none;
   stroke: currentColor;
@@ -25,6 +30,12 @@ img.icon {
   object-fit: contain;
 }
 
+.icon-mask {
+  background-color: currentColor;
+  -webkit-mask: var(--icon-image) center / contain no-repeat;
+  mask: var(--icon-image) center / contain no-repeat;
+}
+
 .icon-text {
   display: inline-flex;
   align-items: center;
@@ -34,6 +45,7 @@ img.icon {
 [data-icon] {
   display: inline-flex;
   align-items: center;
+  gap: 8px;
 }
 
 [data-icon][data-image] > .icon {
@@ -78,4 +90,12 @@ img.icon {
   [data-icon~="throbber"] > .icon {
     animation: none;
   }
+}
+
+svg.icon-color {
+  fill: none;
+  stroke: none;
+  stroke-width: 1;
+  stroke-linecap: butt;
+  stroke-linejoin: miter;
 }

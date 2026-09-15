@@ -13,6 +13,7 @@ export default function line({ type = "solid", text = "", icon = "" } = {}) {
 
   if (icon) {
     dom.set(element, "data-icon", icon);
+    dom.set(element, "data-color", "");
   }
 
   if (text) {

@@ -1,0 +1,136 @@
+.chatting.direct {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+}
+
+.chatting.direct .chatting-text {
+  font-size: 1.25rem;
+}
+
+.wearable .chatting.direct .chatting-text {
+  font-size: 1.25rem;
+}
+
+.messenger-footer {
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
+  display: flex;
+  flex: none;
+  justify-content: end;
+  margin-block-start: auto;
+  padding: 16px;
+  padding-bottom: max(16px, env(safe-area-inset-bottom));
+}
+
+.messenger-footer > button {
+  border: 0;
+}
+
+.room-owner {
+  margin-inline-start: auto;
+  color: var(--focus);
+  font-size: 0.75rem;
+  white-space: nowrap;
+}
+
+.chatting.direct[data-viewport] {
+  height: 100%;
+  min-height: 0;
+}
+
+.direct .chatting-list > button {
+  flex: none;
+}
+
+.input-actions > .whisper-target {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  height: 40px;
+  min-height: 40px;
+  padding: 4px;
+  color: var(--focus);
+  font-size: 0.75rem;
+}
+
+.whisper-target > span:not(.icon) {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.whisper-label {
+  color: var(--focus);
+  font-size: 0.75rem;
+}
+
+.chatting[data-chatting] .chatting-message[data-private="whisper"] {
+  background: color-mix(in srgb, var(--focus) 8%, var(--background));
+}
+
+.chatting.inbox-list {
+  display: block;
+  min-height: 0;
+  max-height: none;
+  border: 0;
+}
+
+.chatting.inbox-list[data-chatting] .message-preview {
+  grid-template-columns: auto auto minmax(0, 1fr) auto;
+  grid-template-areas:
+    "profile time . badge"
+    "text text text badge";
+  justify-content: start;
+  text-align: start;
+
+  background-color: var(--canvas);
+}
+
+.inbox-list .chatting-profile {
+  justify-self: start;
+  justify-content: start;
+}
+
+.inbox-list .chatting-avatar {
+  background: var(--background);
+}
+
+.inbox-list .chatting-time {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  justify-self: start;
+}
+
+.inbox-list .chatting-time > [data-icon] {
+  display: inline-flex;
+  flex: none;
+}
+
+.inbox-list .chatting-time > [data-icon] > .icon {
+  width: 0.875rem;
+  height: 0.875rem;
+  margin: 0;
+}
+
+.inbox-list .message-preview > .chatting-text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--mute);
+  font-size: 1rem;
+}
+
+.message-preview > .toolbar-badge {
+  position: static;
+  grid-area: badge;
+  text-align: center;
+}
+
+.chatting-message[data-private="whisper"] {
+  cursor: pointer;
+}

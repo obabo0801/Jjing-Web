@@ -1,9 +1,11 @@
+import { publicId } from "#config/uid";
 import connect from "#db/connect";
 import * as path from "#config/path";
 import * as role from "#shared/role";
 import { now } from "#service/log";
 import record, { schema } from "#service/log/block";
 import { system } from "#service/chatting";
+import * as history from "#service/history";
 
 const fail = (status) => {
   throw Object.assign(new Error("Management request rejected"), { status });
@@ -20,7 +22,7 @@ export default async function manage(viewer, uid, action, data = {}) {
     data = { ...data, reason: data.reason.trim() };
   }
   // 공용 DB 연결과 트랜잭션이 섞이지 않도록 요청별 연결을 사용합니다.
-  const { db, run, get, exec } = connect(path.data("service.db"));
+  const { db, run, get, all, exec } = connect(path.data("service.db"));
   const time = now();
 
   let transaction = false;
@@ -66,7 +68,7 @@ export default async function manage(viewer, uid, action, data = {}) {
       await run(
         `INSERT INTO authority (uid, actor, handler) VALUES (?, ?, ?)
         ON CONFLICT(uid) DO UPDATE SET actor = excluded.actor, handler = excluded.handler`,
-        [uid, actor.uid, actor.name || actor.uid]
+        [uid, actor.uid, actor.name || publicId(actor.uid)]
       );
     };
 
@@ -91,7 +93,7 @@ export default async function manage(viewer, uid, action, data = {}) {
             uid,
             data.enabled ? time : null,
             actor.uid,
-            actor.name || actor.uid,
+            actor.name || publicId(actor.uid),
             data.enabled
           ]
         );
@@ -104,6 +106,16 @@ export default async function manage(viewer, uid, action, data = {}) {
       }
     } else {
       await exec(schema);
+      for (const table of ["block", "sanction"]) {
+        const columns = await all(`PRAGMA audit.table_info(${table})`);
+
+        if (!columns.some((column) => column.name === "snapshot"))
+          await exec(`ALTER TABLE audit.${table} ADD COLUMN snapshot TEXT`);
+      }
+      const snapshot = JSON.stringify(
+        await history.capture({ get, all }, { uid })
+      );
+
       if (["mute", "kick", "unkick"].includes(action)) {
         if (blocked) fail(409);
         const current = await get("SELECT * FROM sanction WHERE uid = ?", [
@@ -155,26 +167,34 @@ export default async function manage(viewer, uid, action, data = {}) {
           await run("UPDATE sanction SET kicked = NULL WHERE uid = ?", [uid]);
         }
         await run(
-          `INSERT INTO audit.sanction(uid,action,reason,actor,handler,time,until)
-          VALUES(?,?,?,?,?,?,?)`,
+          `INSERT INTO audit.sanction(uid,action,reason,actor,handler,time,until,snapshot)
+          VALUES(?,?,?,?,?,?,?,?)`,
           [
             uid,
             action,
             data.reason,
             actor.uid,
-            actor.name || actor.uid,
+            actor.name || publicId(actor.uid),
             time,
-            until
+            until,
+            snapshot
           ]
         );
       } else if (action === "block") {
         if (blocked) fail(409);
         await run(
           "INSERT INTO block (uid, ip, reason, actor, handler, time) VALUES (?, ?, ?, ?, ?, ?)",
-          [uid, user.ip, data.reason, actor.uid, actor.name || actor.uid, time]
+          [
+            uid,
+            user.ip,
+            data.reason,
+            actor.uid,
+            actor.name || publicId(actor.uid),
+            time
+          ]
         );
         await revoke();
-        await record(run, user, actor, action, data.reason, time);
+        await record(run, user, actor, action, data.reason, time, snapshot);
       } else if (action === "unblock") {
         if (blocked?.uid && blocked.uid !== uid) fail(409);
         if (blocked) {
@@ -186,7 +206,7 @@ export default async function manage(viewer, uid, action, data = {}) {
           )
             fail(409);
           await revoke();
-          await record(run, user, actor, action, data.reason, time);
+          await record(run, user, actor, action, data.reason, time, snapshot);
           await run(
             "DELETE FROM block WHERE uid = ? OR (uid IS NULL AND ip = ?)",
             [uid, user.ip]

@@ -7,8 +7,18 @@ import { deliver } from "#service/chatting";
 import * as role from "#shared/role";
 import string from "#shared/string";
 import { resolve } from "#service/profile/data";
+import * as evidence from "#service/evidence";
 
 const router = Router();
+
+router.get("/:id/evidence", admin, async (req, res) => {
+  res.set("Cache-Control", "private, no-store");
+  if (req.user.role !== role.root) return res.status(403).end();
+  const user = await resolve(string(req.params.id).trim());
+
+  if (!user) return res.status(404).end();
+  return res.json({ items: await evidence.read(user.uid) });
+});
 
 router.post("/:id/sanction", admin, async (req, res) => {
   const { action, reason } = req.body || {};
@@ -90,7 +100,7 @@ router.delete("/:id/block", admin, async (req, res) => {
   }
   events.broadcast("chatting-unblock", { id: user.id });
   if (current.message) await deliver(current.message.url);
-  events.send(uid, "role", { role: current.role });
+  events.send(uid, "role", { admin: role.staff(current.role) });
   events.broadcast("profile-update", { id: user.id });
   res.status(204).end();
 });
@@ -122,8 +132,7 @@ router.patch("/:id/authority", admin, async (req, res) => {
     if (error.status) return res.status(error.status).end();
     throw error;
   }
-  if (enabled !== undefined)
-    events.send(uid, "role", { role: enabled ? role.admin : role.user });
+  if (enabled !== undefined) events.send(uid, "role", { admin: enabled });
   events.broadcast("profile-update", { id: user.id });
   res.status(204).end();
 });

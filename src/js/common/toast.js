@@ -1,9 +1,20 @@
-import * as dom from "#common/dom";
-import * as i18n from "#common/i18n";
-import progress from "#common/progress";
-import sound from "#common/sound";
-import swipe from "#common/swipe";
-import vibrate from "#common/vibrate";
+import * as dom from "./dom.js";
+import * as css from "./css.js";
+import viewport from "./viewport.js";
+import * as i18n from "./i18n.js";
+import progress from "./progress.js";
+import sound from "./sound.js";
+import swipe from "./swipe.js";
+import vibrate from "./vibrate.js";
+import * as emoji from "#common/emoji";
+import summary from "#common/chatting/summary";
+
+const render = (element, value) => {
+  element.replaceChildren();
+  emoji.render(element, value);
+};
+
+i18n.register("data-i18n-emoji", render);
 
 const icons = Object.freeze({
   error: "error",
@@ -24,6 +35,33 @@ const signals = Object.freeze({
 const reduce = matchMedia("(prefers-reduced-motion: reduce)");
 
 let stack;
+let placement;
+
+const place = () => {
+  cancelAnimationFrame(placement);
+  placement = requestAnimationFrame(() => {
+    if (!stack?.isConnected) return;
+    const view = window.visualViewport;
+    const { width } = viewport();
+
+    css.set(stack, {
+      "--toast-top": `${view?.offsetTop ?? 0}px`,
+      "--toast-left": `${(view?.offsetLeft ?? 0) + width / 2}px`,
+      "--toast-width": `${width}px`
+    });
+  });
+};
+
+const observe = (listen) => {
+  const method = listen ? "addEventListener" : "removeEventListener";
+
+  for (const target of [window, window.visualViewport]) {
+    target?.[method]("resize", place);
+    target?.[method]("scroll", place);
+  }
+};
+
+const seen = new Set();
 
 export const raise = () => {
   if (!stack?.isConnected) {
@@ -35,6 +73,7 @@ export const raise = () => {
   }
 
   stack.showPopover();
+  place();
 };
 
 const host = () => {
@@ -44,6 +83,7 @@ const host = () => {
 
     dom.set(stack, "popover", "manual");
     dom.body.append(stack);
+    observe(true);
   }
 
   raise();
@@ -59,8 +99,13 @@ const createText = (tag, name, value) => {
   const element = dom.create(tag);
 
   element.className = name;
-  element.textContent = i18n.message(value) || value;
-  dom.set(element, "data-i18n", value);
+  if (name === "toast-text") {
+    render(element, i18n.message(value) || value);
+    dom.set(element, "data-i18n-emoji", value);
+  } else {
+    element.textContent = i18n.message(value) || value;
+    dom.set(element, "data-i18n", value);
+  }
 
   return element;
 };
@@ -134,6 +179,11 @@ const loadImage = (target, options) => {
 };
 
 export default function toast(options = {}) {
+  if (options.id) {
+    if (seen.has(options.id)) return;
+    seen.add(options.id);
+    if (seen.size > 100) seen.delete(seen.values().next().value);
+  }
   if (typeof options === "string") {
     options = { text: options };
   }
@@ -150,11 +200,11 @@ export default function toast(options = {}) {
     dom.set(element, "data-background", "");
 
     if (options.background) {
-      element.style.setProperty("--toast-color", options.background);
+      css.set(element, { "--toast-color": options.background });
     }
 
     if (options.color) {
-      element.style.setProperty("--toast-text", options.color);
+      css.set(element, { "--toast-text": options.color });
     }
   }
 
@@ -169,7 +219,7 @@ export default function toast(options = {}) {
   content.className = "toast-content";
 
   const title = createText("h3", "toast-title", options.title);
-  const text = createText("p", "toast-text", options.text);
+  const text = createText("p", "toast-text", summary(options));
 
   if (title) {
     content.append(title);
@@ -198,7 +248,7 @@ export default function toast(options = {}) {
   const effect = options.sound ?? defaultSound;
   const vibration = options.vibration ?? defaultVibration;
 
-  if (url) {
+  if (url || options.run) {
     dom.set(element, "data-url", "");
 
     dom.on(element, "click", (event) => {
@@ -206,7 +256,8 @@ export default function toast(options = {}) {
         return;
       }
 
-      location.assign(url);
+      if (options.run) Promise.resolve(options.run()).catch(() => {});
+      else location.assign(url);
     });
   }
 
@@ -214,7 +265,7 @@ export default function toast(options = {}) {
   i18n.translate().catch(() => false);
 
   if (effect) {
-    sound.play(effect);
+    sound.play(effect, { channel: type === "notify" ? "notify" : "system" });
   }
 
   if (vibration) {
@@ -239,6 +290,7 @@ export default function toast(options = {}) {
       await wait(element);
     }
 
+    css.remove(element);
     element.remove();
 
     if (stack && !stack.children.length) {
@@ -246,6 +298,9 @@ export default function toast(options = {}) {
         stack.hidePopover();
       }
 
+      observe(false);
+      cancelAnimationFrame(placement);
+      css.remove(stack);
       stack.remove();
       stack = undefined;
     }

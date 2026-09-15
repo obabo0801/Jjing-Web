@@ -11,6 +11,7 @@ export default function avatar(source = "", tag = "div") {
   image.className = "avatar-image";
   image.alt = "";
   image.draggable = false;
+  image.referrerPolicy = "no-referrer";
 
   if (tag === "button") {
     root.type = "button";

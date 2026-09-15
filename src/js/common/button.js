@@ -21,14 +21,19 @@ export default function button() {
     true
   );
 
-  on(document, "click", (event) => {
-    const button = event.target.closest?.("button:enabled[data-response]");
+  on(
+    document,
+    "click",
+    (event) => {
+      const button = event.target.closest?.("button:enabled[data-response]");
 
-    if (!button) {
-      return;
-    }
+      if (!button) {
+        return;
+      }
 
-    sound.play("click");
-    vibrate.play("click");
-  });
+      sound.play("click");
+      vibrate.play("click");
+    },
+    true
+  );
 }

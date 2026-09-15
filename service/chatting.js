@@ -1,12 +1,16 @@
 import { randomUUID } from "node:crypto";
-import { get, all, run } from "#db";
-import { publicId } from "#config/uid";
-import * as media from "#config/media";
-import * as role from "#shared/role";
-import * as rules from "#shared/chatting";
-import * as events from "#service/events";
-import { filters } from "#shared/history";
-import { read } from "#service/chatting/attachment";
+import { get, all, run } from "../db/index.js";
+import * as ids from "#config/uid";
+import * as media from "../config/media.js";
+import * as role from "../shared/role.js";
+import * as rules from "../shared/chatting.js";
+import * as events from "./events.js";
+import { filters } from "../shared/history.js";
+import { read } from "./chatting/attachment.js";
+import * as mentions from "../shared/mention.js";
+import * as push from "./push.js";
+import * as settings from "#shared/settings";
+import { locale } from "#service/locale";
 
 const fail = (status) => {
   throw Object.assign(new Error("Chatting request rejected"), { status });
@@ -17,7 +21,8 @@ export const viewer = async (uid, ip, development = false) => {
     `SELECT uid, role,
       (SELECT muted FROM sanction WHERE uid = user.uid) AS muted,
       (SELECT notice FROM sanction WHERE uid = user.uid) AS notice
-      FROM user WHERE uid = ? AND setup = 1
+      FROM user WHERE uid = ?
+      AND deletion IS NULL AND erased = 0
       AND NOT EXISTS (SELECT 1 FROM block WHERE uid = user.uid OR ip = ?)
       AND NOT EXISTS (SELECT 1 FROM sanction WHERE uid = user.uid
         AND kicked > datetime('now', '+9 hours'))`,
@@ -39,10 +44,11 @@ const blocked = `EXISTS (
 )`;
 
 const select = `SELECT chatting.*, user.id AS public, user.name, user.avatar,
+  user.google,
   user.role AS author_role, ${blocked} AS blocked
   FROM chatting LEFT JOIN user ON user.uid = chatting.uid`;
 
-const visible = (user) => {
+export const visible = (user) => {
   const deleted = user.role === role.root ? "1" : "chatting.deleted IS NULL";
 
   const access = role.staff(user.role)
@@ -82,11 +88,12 @@ const message = (row, user) => {
   return {
     seq: row.seq,
     url: row.id,
-    id: row.public || publicId(row.uid),
-    name: row.name || "",
+    id: row.public || ids.publicId(row.uid),
+    name: row.google ? row.name || "" : "",
     avatar: media.resolve(row.avatar),
     ...(row.audio && { audio: media.resolve(row.audio) }),
     text: row.text,
+    mentioned: mentions.ids(row.text).includes(ids.publicId(user.uid)),
     ...(row.attachments && { attachments: read(row.attachments) }),
     ...(row.image && {
       image: media.resolve(row.image),
@@ -125,10 +132,18 @@ const integer = (value) => {
   return number;
 };
 
-export const restriction = (user) => ({
-  until: user.muted || null,
-  ...(user.notice ? JSON.parse(user.notice) : {})
-});
+export const restriction = (user) => {
+  const notice = user.notice ? JSON.parse(user.notice) : null;
+
+  return {
+    until: user.muted || null,
+    ...(notice && {
+      handler: ids.publicName(notice.handler),
+      reason: notice.reason || "",
+      seconds: notice.seconds
+    })
+  };
+};
 
 export const list = async (user, query = {}, uid) => {
   const { search } = filters(query);
@@ -208,6 +223,41 @@ export const list = async (user, query = {}, uid) => {
   };
 };
 
+export const recent = async (user, query = {}) => {
+  const high = (await get("SELECT COALESCE(MAX(seq), 0) AS seq FROM chatting"))
+    .seq;
+
+  const conditions = [
+    visible(user),
+    "chatting.seq <= ?",
+    "chatting.time >= datetime('now', '+9 hours', '-30 minutes')"
+  ];
+  const params = [high];
+
+  if (query.before !== undefined && query.after !== undefined) fail(400);
+  for (const key of ["before", "after"]) {
+    if (query[key] === undefined) continue;
+    conditions.push(`chatting.seq ${key === "before" ? "<" : ">"} ?`);
+    params.push(integer(query[key]));
+  }
+  const rows = await all(
+    `${select} WHERE ${conditions.join(" AND ")}
+      ORDER BY chatting.seq DESC LIMIT ?`,
+    [...params, rules.maximum + 1]
+  );
+  const page = rows.slice(0, rules.maximum);
+
+  return {
+    messages: page.reverse().map((row) => message(row, user)),
+    muted: user.muted || null,
+    restriction: restriction(user),
+    history: false,
+    more: false,
+    next: rows.length > rules.maximum ? page[0].seq : null,
+    cursor: high
+  };
+};
+
 export const around = async (user, id) => {
   if (!rules.validId(id)) fail(400);
   const row = await get(
@@ -263,7 +313,7 @@ export const save = async (
   const id = randomUUID();
   const result = await run(
     `INSERT INTO chatting (id, uid, text, image, preview, audio, attachments)
-      SELECT ?, uid, ?, ?, ?, ?, ? FROM user WHERE uid = ? AND setup = 1
+      SELECT ?, uid, ?, ?, ?, ?, ? FROM user WHERE uid = ?
         AND NOT EXISTS (SELECT 1 FROM block WHERE uid = user.uid OR ip = ?)
         AND NOT EXISTS (SELECT 1 FROM sanction WHERE uid = user.uid
           AND (muted > datetime('now', '+9 hours') OR kicked > datetime('now', '+9 hours')))`,
@@ -285,8 +335,8 @@ export const save = async (
   return message(row, user);
 };
 
-export const deliver = (id, skip) =>
-  events.publish("chatting", async (client) => {
+export const deliver = async (id, skip) => {
+  await events.publish("chatting", async (client) => {
     if (client.uid === skip) return null;
     const user = await viewer(client.uid, client.ip, client.development);
     const row = await get(
@@ -296,6 +346,95 @@ export const deliver = (id, skip) =>
 
     return row ? message(row, user) : null;
   });
+  // 저장 성공과 알림 성공은 별개입니다.
+  await Promise.allSettled([notify(id)]);
+};
+
+export const suggest = async (query = "", lang = "ko") => {
+  if (typeof query !== "string" || query.length > 80) fail(400);
+  const anonymous =
+    (locale(lang) || locale("ko"))?.["profile.anonymous"] || "{id}";
+
+  const rows = await all(
+    `SELECT uid, id, CASE WHEN google IS NOT NULL THEN name END AS name,
+      avatar, google FROM user WHERE id IS NOT NULL
+      AND NOT ${blocked}
+      AND NOT EXISTS (SELECT 1 FROM sanction WHERE uid = user.uid
+        AND kicked > datetime('now', '+9 hours'))
+      ORDER BY name`
+  );
+
+  return {
+    items: mentions
+      .rank(
+        rows
+          .filter((user) => events.state(user.uid) !== "offline")
+          .map((user) => ({
+            ...user,
+            label: user.name || anonymous.replace("{id}", user.id.slice(0, 8)),
+            value: user.id
+          })),
+        query
+      )
+      .map(({ uid, id, name, avatar, google }) => ({
+        id,
+        name: name || "",
+        verified: Boolean(google),
+        avatar: media.resolve(avatar),
+        state: events.state(uid)
+      }))
+  };
+};
+
+async function notify(id) {
+  if (!push.enabled) return;
+  const row = await get(`${select} WHERE chatting.id = ?`, [id]);
+
+  if (!row || row.deleted || row.system || row.blocked) return;
+  const ids = mentions.ids(row.text);
+
+  const recipients = await all(
+    `SELECT uid, id, ip, lang, settings FROM user WHERE
+      (id IN (${ids.length ? ids.map(() => "?").join(",") : "NULL"})
+        OR json_extract(settings, '$.chat') = 1)
+      AND uid <> ? AND NOT ${blocked}
+      AND NOT EXISTS (SELECT 1 FROM sanction WHERE uid = user.uid
+        AND kicked > datetime('now', '+9 hours'))`,
+    [...ids, row.uid]
+  );
+
+  await Promise.allSettled(
+    recipients.map(async (user) => {
+      if (
+        !settings.allows(
+          settings.read(user.settings),
+          ids.includes(user.id),
+          true
+        )
+      )
+        return;
+      if (events.viewing(user.uid)) return;
+      await viewer(user.uid, user.ip);
+      const rows = await all(
+        "SELECT endpoint, data FROM web WHERE uid = ? AND active = 1 AND connected = 1",
+        [user.uid]
+      );
+
+      const anonymous =
+        (locale(user.lang) || locale("ko"))?.["profile.anonymous"] || "{id}";
+
+      await push.send(rows, {
+        title:
+          row.google && row.name
+            ? row.name
+            : anonymous.replace("{id}", row.public.slice(0, 8)),
+        body: mentions.plain(row.text).slice(0, 180),
+        url: `/?message=${id}`,
+        tag: `mention:${id}`
+      });
+    })
+  );
+}
 
 const removed = (id) =>
   events.publish("chatting-remove", async (client) => {

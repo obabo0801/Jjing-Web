@@ -21,7 +21,7 @@ export default function toolbar(items = []) {
 
   root.className = "toolbar";
 
-  for (const { icon, text, run, disabled = false } of items) {
+  for (const { icon, text, run, disabled = false, color = false } of items) {
     const button = dom.create("button");
     const label = dom.create("span");
 
@@ -30,6 +30,7 @@ export default function toolbar(items = []) {
     label.textContent = i18n.message(text);
     i18n.preload(text);
     dom.set(button, "data-icon", icon);
+    button.toggleAttribute("data-color", color);
     dom.set(button, "data-response", "");
     dom.set(label, "data-i18n", text);
     button.append(label);

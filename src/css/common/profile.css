@@ -113,7 +113,28 @@
 }
 
 .profile-name {
+  display: inline-flex;
+  align-items: center;
   font-size: 1.5rem;
+}
+
+.profile-verified {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: 1rem;
+  height: 1rem;
+  margin-inline-start: 0.3rem;
+  border-radius: 50%;
+  background: var(--focus);
+  color: var(--canvas);
+  vertical-align: middle;
+}
+
+.profile-verified > .icon {
+  width: 0.75rem;
+  height: 0.75rem;
 }
 
 .profile-head > .profile-id,
@@ -144,7 +165,9 @@
 }
 
 .profile-section,
-.profile-details {
+.profile-details,
+.history-record,
+.history-handling {
   display: grid;
   gap: 16px;
 }
@@ -160,8 +183,102 @@
   animation: history-show 180ms ease-out;
 }
 
-:is(.profile-records, .report) .group[data-deleted] {
-  opacity: 0.5;
+.history-record {
+  padding: 16px;
+}
+
+.history-record-head {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+
+.history-conversation,
+.history-handling {
+  min-width: 0;
+}
+
+.history-record :is(h3, h4, p) {
+  margin: 0;
+}
+
+.history-record h3 {
+  font-size: 1rem;
+}
+
+.history-record-time {
+  color: var(--mute);
+  font-size: 0.8125rem;
+}
+
+.history-record button {
+  border: 0;
+}
+
+.history-record-head[data-kind="chatting"] > h3 {
+  color: var(--focus);
+}
+
+.history-record-head:is([data-kind="report"], [data-kind="mute"]) > h3 {
+  color: var(--warning);
+}
+
+.history-record-head:is([data-kind="kick"], [data-kind="block"]) > h3 {
+  color: var(--error);
+}
+
+.history-record-head:is([data-kind="unkick"], [data-kind="unblock"]) > h3 {
+  color: var(--success);
+}
+
+.history-record h4 {
+  font-size: 0.875rem;
+}
+
+.chatting.history-conversation {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 0;
+  max-height: none;
+  border: 0;
+  background: transparent;
+  overflow: visible;
+}
+
+.chatting.history-conversation .chatting-message[data-target] {
+  background: color-mix(in srgb, var(--warning) 16%, var(--surface));
+}
+
+.history-media {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 8rem), 1fr));
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.history-media :is(button, img, audio) {
+  width: 100%;
+  min-width: 0;
+}
+
+.history-media img {
+  max-height: 16rem;
+  object-fit: contain;
+}
+
+.history-media > button {
+  height: auto;
+  padding: 8px;
+}
+
+.history-handling {
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+}
+
+:is(.small, .wearable) .history-record {
+  padding: 12px;
 }
 
 .history-status > .progress {
@@ -219,14 +336,6 @@
   color: var(--text);
 }
 
-.profile .label {
-  border: 0;
-  border-radius: 0;
-
-  -webkit-user-select: none;
-  user-select: none;
-}
-
 .profile .line {
   -webkit-user-select: none;
   user-select: none;
@@ -250,31 +359,6 @@ p.profile-id {
   overflow-wrap: anywhere;
   -webkit-user-select: text;
   user-select: text;
-}
-
-.profile-next {
-  margin-inline-start: auto;
-}
-
-.profile .group-item > button > span:not(.profile-next) {
-  min-width: 0;
-}
-
-.profile .toggle-head {
-  border: 0;
-  border-radius: 0;
-}
-
-.profile .switch {
-  border: 0;
-  border-radius: 0;
-
-  background: transparent;
-}
-
-.profile-next > .icon {
-  width: 1.25rem;
-  height: 1.25rem;
 }
 
 :is(.small, .wearable) .profile-head {

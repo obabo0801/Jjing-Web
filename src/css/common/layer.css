@@ -236,7 +236,7 @@ dialog:is(
 
 :root:not(.small):not(.wearable)
   dialog[data-back]
-  > :is(.dialog-head, .layer-head):not(:has(> .layer-action)) {
+  > :is(.dialog-head, .layer-head) {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -260,8 +260,11 @@ dialog:is(
   border: 0;
 }
 
-.layer-back[data-background] {
-  background: color-mix(in srgb, var(--background) 20%, transparent);
+:is(.layer-back, .layer-action)[data-background],
+.header-actions > .avatar[data-shadow],
+.header-actions > button[data-shadow],
+.footer > button[data-shadow] {
+  background-color: color-mix(in srgb, var(--background) 20%, transparent);
 
   -webkit-backdrop-filter: blur(2px);
   backdrop-filter: blur(2px);
@@ -271,38 +274,30 @@ dialog:is(
   display: none;
 }
 
-dialog > :is(.dialog-head, .layer-head):has(> .layer-action) {
-  display: grid;
-  grid-template-columns: 48px minmax(0, 1fr) 48px;
-  align-items: center;
-  gap: 8px;
-  min-height: 0;
-  padding: max(8px, env(safe-area-inset-top))
-    max(16px, env(safe-area-inset-right)) 8px
-    max(16px, env(safe-area-inset-left));
+dialog:has(> .layer-action) > :is(.dialog-head, .layer-head) {
+  min-height: 80px;
+  padding: 16px 72px;
 }
 
-:is(.dialog-head, .layer-head):has(> .layer-action)
-  > :is(.dialog-title, .layer-title) {
-  grid-column: 2;
-  grid-row: 1;
-}
-
-:is(.dialog-head, .layer-head) > :is(.layer-back, .layer-action) {
-  position: static;
+dialog:has(> .layer-action) > .layer-back,
+dialog > .layer-action {
+  position: sticky;
+  inset-block-start: max(16px, env(safe-area-inset-top));
+  z-index: 3;
   display: inline-flex;
+  flex: 0 0 48px;
   width: 48px;
   min-height: 48px;
   height: 48px;
-  margin: 0;
+  margin-block: 16px -64px;
   padding: 0;
   border: 0;
   border-radius: 999px;
 }
 
-.layer-action {
-  grid-column: 3;
-  grid-row: 1;
+dialog > .layer-action {
+  align-self: flex-end;
+  margin-inline-end: max(16px, env(safe-area-inset-right));
 }
 
 .layer-action > .layer-label {
@@ -314,21 +309,13 @@ dialog > :is(.dialog-head, .layer-head):has(> .layer-action) {
   white-space: nowrap;
 }
 
-:is(.small, .wearable)
-  dialog
-  > :is(.dialog-head, .layer-head):has(> .layer-action) {
-  grid-template-columns: 44px minmax(0, 1fr) 44px;
-  gap: 2px;
-  padding-inline: max(4px, env(safe-area-inset-left))
-    max(4px, env(safe-area-inset-right));
-}
-
-:is(.small, .wearable)
-  :is(.dialog-head, .layer-head)
-  > :is(.layer-back, .layer-action) {
+:is(.small, .wearable) dialog:has(> .layer-action) > .layer-back,
+:is(.small, .wearable) dialog > .layer-action {
+  flex-basis: 44px;
   width: 44px;
   min-height: 44px;
   height: 44px;
+  margin-block-end: -60px;
 }
 
 dialog[data-popover][data-swipe],

@@ -3,6 +3,17 @@ export const description = 500;
 export const types = ["image/jpeg", "image/png", "image/webp", "image/gif"];
 export const domain = "https://ogq-sticker-global-cdn-z01.sooplive.com";
 
+export const giphy = (value) => {
+  if (
+    !["gif", "sticker"].includes(value?.type) ||
+    value.provider !== "giphy" ||
+    typeof value.id !== "string" ||
+    !/^[a-zA-Z0-9]{1,80}$/.test(value.id || "")
+  )
+    return null;
+  return { type: value.type, provider: "giphy", id: value.id };
+};
+
 export const ogq = (value) => {
   if (
     !/^[a-f0-9]{8,32}$/i.test(value?.ogq_id || "") ||
@@ -36,6 +47,7 @@ export const valid = (items) =>
   Array.isArray(items) &&
   items.length <= maximum &&
   items.every((item) => {
+    if (item?.provider === "giphy") return Boolean(giphy(item));
     if (item?.type === "ogq") return Boolean(ogq(item));
     return (
       ["image", "gif"].includes(item?.type) &&

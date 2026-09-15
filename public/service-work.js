@@ -289,7 +289,7 @@ self.addEventListener("push", (event) => {
     }
   }
 
-  const { title, body, image, url } = data;
+  const { title, body, image, url, tag } = data;
 
   event.waitUntil(
     Promise.all([
@@ -297,6 +297,7 @@ self.addEventListener("push", (event) => {
         body,
         icon: "/icons/icon-192.png",
         ...(image && { image }),
+        ...(tag && { tag }),
         data: { url }
       }),
       sendToast(data)
@@ -309,6 +310,9 @@ const openPage = async (path) => {
 
   if (target.origin !== self.location.origin) {
     target.href = self.location.origin;
+  }
+  if (target.searchParams.has("message")) {
+    target.searchParams.set("push", "1");
   }
 
   const [client] = await self.clients.matchAll({

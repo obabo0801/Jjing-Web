@@ -1,4 +1,87 @@
 export default `
+  CREATE TABLE IF NOT EXISTS message_asset (
+    seq INTEGER NOT NULL,
+    slot INTEGER NOT NULL,
+    kind TEXT NOT NULL,
+    url TEXT NOT NULL,
+    preview TEXT,
+    name TEXT,
+    size INTEGER,
+    PRIMARY KEY(seq, slot)
+  );
+  CREATE INDEX IF NOT EXISTS message_asset_kind
+    ON message_asset(kind, seq DESC);
+  CREATE TABLE IF NOT EXISTS room (
+    id TEXT PRIMARY KEY,
+    first TEXT NOT NULL,
+    second TEXT NOT NULL,
+    closed TEXT,
+    departed TEXT,
+    multiple INTEGER NOT NULL DEFAULT 0,
+    owner TEXT,
+    name TEXT
+  );
+  CREATE TABLE IF NOT EXISTS room_member (
+    room TEXT NOT NULL,
+    uid TEXT NOT NULL,
+    left TEXT,
+    reason TEXT,
+    pinned INTEGER NOT NULL DEFAULT 0,
+    muted INTEGER NOT NULL DEFAULT 0,
+    deputy INTEGER NOT NULL DEFAULT 0,
+    PRIMARY KEY(room, uid)
+  );
+  CREATE INDEX IF NOT EXISTS room_member_user ON room_member(uid, room);
+  CREATE TABLE IF NOT EXISTS message_receipt (
+    message TEXT NOT NULL,
+    uid TEXT NOT NULL,
+    read TEXT,
+    PRIMARY KEY(message, uid)
+  );
+  CREATE INDEX IF NOT EXISTS message_receipt_user ON message_receipt(uid, message);
+  CREATE TABLE IF NOT EXISTS user_block (
+    uid TEXT NOT NULL,
+    peer TEXT NOT NULL,
+    time TEXT NOT NULL DEFAULT (datetime('now', '+9 hours')),
+    PRIMARY KEY(uid, peer)
+  );
+  CREATE TABLE IF NOT EXISTS chatting_asset (
+    seq INTEGER NOT NULL,
+    slot INTEGER NOT NULL,
+    kind TEXT NOT NULL,
+    url TEXT NOT NULL,
+    preview TEXT,
+    name TEXT,
+    size INTEGER,
+    PRIMARY KEY(seq, slot)
+  );
+  CREATE INDEX IF NOT EXISTS chatting_asset_kind
+    ON chatting_asset(kind, seq DESC);
+  CREATE TABLE IF NOT EXISTS conversation (
+    uid TEXT NOT NULL,
+    peer TEXT NOT NULL,
+    pinned INTEGER NOT NULL DEFAULT 0,
+    muted INTEGER NOT NULL DEFAULT 0,
+    hidden INTEGER NOT NULL DEFAULT 0,
+    PRIMARY KEY(uid, peer)
+  );
+  CREATE TABLE IF NOT EXISTS message (
+    seq INTEGER PRIMARY KEY,
+    id TEXT NOT NULL UNIQUE,
+    sender TEXT NOT NULL,
+    recipient TEXT NOT NULL,
+    room TEXT,
+    system TEXT,
+    text TEXT NOT NULL,
+    read TEXT,
+    deleted TEXT,
+    attachments TEXT,
+    audio TEXT,
+    time TEXT NOT NULL DEFAULT (datetime('now', '+9 hours'))
+  );
+  CREATE INDEX IF NOT EXISTS message_recipient ON message(recipient, seq);
+  CREATE INDEX IF NOT EXISTS message_sender ON message(sender, seq);
+
   CREATE TABLE IF NOT EXISTS chatting (
     seq INTEGER PRIMARY KEY AUTOINCREMENT,
     id TEXT NOT NULL UNIQUE,
@@ -27,6 +110,7 @@ export default `
     text TEXT,
     reason TEXT NOT NULL,
     detail TEXT NOT NULL DEFAULT '',
+    snapshot TEXT,
     time TEXT NOT NULL DEFAULT (datetime('now', '+9 hours')),
     CHECK (reporter <> target),
     CHECK ((type = 'user' AND message IS NULL AND text IS NULL)
@@ -48,11 +132,20 @@ export default `
   CREATE TABLE IF NOT EXISTS user (
     uid TEXT PRIMARY KEY,
     id TEXT,
+    session TEXT,
+    deletion INTEGER,
+    recovery TEXT,
+    recovery_until INTEGER,
+    erased INTEGER NOT NULL DEFAULT 0,
     name TEXT,
     email TEXT,
+      google TEXT,
+      settings TEXT CHECK (settings IS NULL OR json_valid(settings)),
+    renamed TEXT,
     image TEXT,
     avatar TEXT,
     consent TEXT,
+    draft TEXT CHECK (draft IS NULL OR json_valid(draft)),
     setup INTEGER NOT NULL DEFAULT 0
       CHECK (setup IN (0, 1)),
     role INTEGER NOT NULL DEFAULT 0
@@ -76,14 +169,10 @@ export default `
       DEFAULT (datetime('now', '+9 hours'))
   );
 
-  CREATE TABLE IF NOT EXISTS draft (
-    uid TEXT PRIMARY KEY,
-    name TEXT NOT NULL COLLATE NOCASE,
-    email TEXT NOT NULL,
-    image TEXT,
-    avatar TEXT,
-    time TEXT NOT NULL
-      DEFAULT (datetime('now', '+9 hours'))
+  CREATE TABLE IF NOT EXISTS profile_file (
+    uid TEXT NOT NULL,
+    file TEXT NOT NULL,
+    PRIMARY KEY(uid, file)
   );
 
   CREATE TABLE IF NOT EXISTS authority (
@@ -95,7 +184,14 @@ export default `
   );
 
   CREATE TABLE IF NOT EXISTS web (
-    uid TEXT NOT NULL,
+      uid TEXT NOT NULL,
+      id TEXT,
+      name TEXT,
+      device TEXT,
+      os TEXT,
+      browser TEXT,
+      active INTEGER NOT NULL DEFAULT 1,
+      connected INTEGER NOT NULL DEFAULT 1,
     endpoint TEXT PRIMARY KEY,
     data TEXT NOT NULL,
     time TEXT NOT NULL
@@ -133,8 +229,12 @@ export default `
     WHERE name IS NOT NULL
       AND trim(name) <> '';
 
-  CREATE UNIQUE INDEX IF NOT EXISTS draft_name
-    ON draft (name COLLATE NOCASE);
+  CREATE UNIQUE INDEX IF NOT EXISTS user_draft_name
+    ON user (json_extract(draft, '$.name') COLLATE NOCASE)
+    WHERE draft IS NOT NULL;
+
+  CREATE UNIQUE INDEX IF NOT EXISTS user_id ON user (id);
+  CREATE UNIQUE INDEX IF NOT EXISTS user_session ON user (session);
 
   CREATE INDEX IF NOT EXISTS block_uid
     ON block (uid);

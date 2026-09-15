@@ -1,14 +1,15 @@
 :root {
-  --white: #ffffff;
-  --black: #000000;
+  --control-size: 60px;
+  --white: color-mix(in srgb, #ffffff var(--brightness, 100%), #000);
+  --black: color-mix(in srgb, #000000 var(--brightness, 100%), #000);
 
   --shadow: 0 4px 16px #00000033;
   --thumb: var(--white);
 
-  --error: #ff453a;
-  --warning: #ff9500;
-  --success: #34c759;
-  --info: #3779ff;
+  --error: color-mix(in srgb, #ff453a var(--brightness, 100%), #000);
+  --warning: color-mix(in srgb, #ff9500 var(--brightness, 100%), #000);
+  --success: color-mix(in srgb, #34c759 var(--brightness, 100%), #000);
+  --info: color-mix(in srgb, #3779ff var(--brightness, 100%), #000);
 
   --active: var(--error);
   --focus: var(--info);
@@ -22,38 +23,38 @@
   color-scheme: light;
 
   --background: var(--white);
-  --canvas: #f2f1f6;
+  --canvas: color-mix(in srgb, #f2f1f6 var(--brightness, 100%), #000);
   --panel: var(--white);
   --surface: var(--white);
-  --neutral: #c9c8cd;
+  --neutral: color-mix(in srgb, #c9c8cd var(--brightness, 100%), #000);
 
-  --text: #181818;
-  --mute: #6e6e6e;
+  --text: color-mix(in srgb, #181818 var(--brightness, 100%), #000);
+  --mute: color-mix(in srgb, #6e6e6e var(--brightness, 100%), #000);
   --border: #0000001f;
   --shade: #00000033;
 
-  --track: #a4a3a8;
-  --hover: #181818;
-  --select: #e5e5ea;
+  --track: color-mix(in srgb, #a4a3a8 var(--brightness, 100%), #000);
+  --hover: color-mix(in srgb, #181818 var(--brightness, 100%), #000);
+  --select: color-mix(in srgb, #e5e5ea var(--brightness, 100%), #000);
 }
 
 :root[data-theme="dark"] {
   color-scheme: dark;
 
-  --background: #181818;
-  --canvas: #262626;
-  --panel: #262626;
-  --surface: #3a3a3c;
-  --neutral: #161616;
+  --background: color-mix(in srgb, #181818 var(--brightness, 100%), #000);
+  --canvas: color-mix(in srgb, #262626 var(--brightness, 100%), #000);
+  --panel: color-mix(in srgb, #262626 var(--brightness, 100%), #000);
+  --surface: color-mix(in srgb, #3a3a3c var(--brightness, 100%), #000);
+  --neutral: color-mix(in srgb, #161616 var(--brightness, 100%), #000);
 
-  --text: #eeeeee;
-  --mute: #a0a0a0;
+  --text: color-mix(in srgb, #eeeeee var(--brightness, 100%), #000);
+  --mute: color-mix(in srgb, #a0a0a0 var(--brightness, 100%), #000);
   --border: #ffffff24;
   --shade: #00000099;
 
-  --track: #646368;
+  --track: color-mix(in srgb, #646368 var(--brightness, 100%), #000);
   --hover: var(--white);
-  --select: #292929;
+  --select: color-mix(in srgb, #292929 var(--brightness, 100%), #000);
 }
 
 :root[data-theme="black"] {
@@ -61,9 +62,9 @@
 
   --background: var(--black);
   --canvas: var(--black);
-  --panel: #262626;
+  --panel: color-mix(in srgb, #262626 var(--brightness, 100%), #000);
   --surface: var(--black);
-  --neutral: #161616;
+  --neutral: color-mix(in srgb, #161616 var(--brightness, 100%), #000);
 
   --text: var(--white);
   --mute: var(--white);
@@ -71,9 +72,9 @@
 
   --shade: #000000a3;
 
-  --track: #646368;
+  --track: color-mix(in srgb, #646368 var(--brightness, 100%), #000);
   --hover: var(--white);
-  --select: #292929;
+  --select: color-mix(in srgb, #292929 var(--brightness, 100%), #000);
 }
 
 .theme-color {

@@ -184,6 +184,7 @@ const portrait = (source, original = source) => {
       input.hidden = true;
 
       dom.set(button, "data-icon", `${icon} center`);
+      dom.set(button, "data-color", "");
       dom.set(button, "data-circle", "");
       dom.set(button, "data-background", "");
       dom.set(button, "data-response", "");
@@ -235,6 +236,7 @@ const portrait = (source, original = source) => {
 
       button.type = "button";
       dom.set(button, "data-icon", "phone center");
+      dom.set(button, "data-color", "");
       dom.set(button, "data-circle", "");
       dom.set(button, "data-background", "");
       dom.set(button, "data-response", "");
@@ -386,6 +388,7 @@ const portrait = (source, original = source) => {
 
     adjustment = pending?.edit;
     media.set(url ?? source, adjustment);
+    root.dispatchEvent(new Event("input", { bubbles: true }));
   };
 
   dom.on(media.root, "click", () => {

@@ -9,16 +9,13 @@ import authority from "#common/profile/authority";
 import history from "#common/profile/history";
 import report from "#common/report";
 import inbox from "#common/report/inbox";
+import * as room from "#common/room";
+import events from "#common/events";
+import mount from "#common/mount";
 
-i18n.preload(
-  "profile.mute30",
-  "profile.mute30Info",
-  "profile.mute60",
-  "profile.mute60Info",
-  "profile.mute120",
-  "profile.mute120Info",
-  "profile.reportHistory"
-);
+i18n.preload("profile.reportHistory");
+
+const online = (user) => ["online", "away"].includes(user.state);
 
 const emit = (target, type, detail) => {
   target?.dispatchEvent(new CustomEvent(type, { bubbles: true, detail }));
@@ -26,16 +23,18 @@ const emit = (target, type, detail) => {
 
 const item = (handlers, data) => {
   const { text, icon, run } = data;
-  const { danger, next, close = true } = data;
+  const { danger, next, close = true, disabled = false } = data;
   const row = dom.create("div");
   const button = dom.create("button");
   const label = dom.create("span");
 
   row.className = "group-item";
   button.type = "button";
+  button.disabled = disabled;
   label.textContent = i18n.message(text);
 
   dom.set(button, "data-icon", icon);
+  button.toggleAttribute("data-color", !danger && icon !== "arrow");
   dom.set(label, "data-i18n", text);
   dom.set(button, "data-response", "");
   button.append(label);
@@ -54,7 +53,7 @@ const item = (handlers, data) => {
   if (next) {
     const arrow = dom.create("span");
 
-    arrow.className = "profile-next";
+    arrow.className = "group-next";
     dom.set(arrow, "data-icon", "arrow");
     button.append(arrow);
   }
@@ -73,6 +72,15 @@ const group = (...items) => {
 
   return element;
 };
+
+const personal = (user, handlers) =>
+  item(handlers, {
+    text: user.directBlocked ? "room.unblock" : "room.block",
+    icon: user.directBlocked ? "check" : "minus",
+    danger: !user.directBlocked,
+    close: false,
+    run: () => room.block(user)
+  });
 
 const hidden = (target, options) => {
   const value = dom.create("span");
@@ -156,7 +164,7 @@ const block = async (user) => {
     : await profile.block(user.id, input.value.trim());
 
   if (!result.ok) {
-    await dialog({ title: "profile.saveError" });
+    await dialog({ title: "profile.saveError", direction: "→" });
     return;
   }
   await profile.read(user.id, { fresh: true });
@@ -168,19 +176,6 @@ const sanction = async (user, action) => {
   const input = dom.create("input");
 
   content.className = "profile";
-  if (action === "mute") {
-    content.append(
-      group(
-        ...[30, 60, 120].map((seconds) => {
-          const key = `profile.mute${seconds}`;
-          const row = label(key, i18n.message(`${key}Info`));
-
-          dom.set(dom.query(".label-value", row), "data-i18n", `${key}Info`);
-          return row;
-        })
-      )
-    );
-  }
   field.className = "input";
   input.name = "sanction-reason";
   input.maxLength = 500;
@@ -224,7 +219,7 @@ const sanction = async (user, action) => {
             );
 
             if (!result.ok) {
-              await dialog({ title: "profile.saveError" });
+              await dialog({ title: "profile.saveError", direction: "→" });
               return false;
             }
             await profile.read(user.id, { fresh: true });
@@ -238,6 +233,61 @@ const sanction = async (user, action) => {
   });
 };
 
+export const moderation = (user, handlers, opening) => {
+  if (!user.manage || user.self || !user.details) return null;
+  const element = group(
+    user.authority ? authority(user) : null,
+    ...(user.blocked
+      ? [
+          label("profile.blockReason", user.block?.reason),
+          label("profile.blockTime", user.block?.time, { date: true }),
+          label("profile.handler", user.block?.handler)
+        ]
+      : [
+          online(user)
+            ? item(handlers, {
+                text: "profile.chatMute",
+                icon: "tts-mute",
+                danger: true,
+                close: false,
+                run: () =>
+                  opening(`sanction:${user.id}`, () => sanction(user, "mute"))
+              })
+            : null,
+          online(user) || user.sanction?.kicked
+            ? item(handlers, {
+                text: user.sanction?.kicked ? "profile.unkick" : "profile.kick",
+                icon: "arrow",
+                danger: true,
+                close: false,
+                run: () =>
+                  opening(`sanction:${user.id}`, () =>
+                    sanction(user, user.sanction?.kicked ? "unkick" : "kick")
+                  )
+              })
+            : null
+        ]),
+    item(handlers, {
+      text: "profile.blockHistory",
+      icon: "info",
+      next: true,
+      close: false,
+      run: () =>
+        opening(`history:${user.id}`, () => history(user.id, "sanction"))
+    }),
+    item(handlers, {
+      text: user.blocked ? "profile.unblock" : "profile.block",
+      icon: "error",
+      danger: true,
+      close: false,
+      run: () => opening(`block:${user.id}`, () => block(user))
+    })
+  );
+
+  if (user.blocked) element.classList.add("profile-block");
+  return element;
+};
+
 export const manage = (user, target, options, handlers, opening) => {
   if ((!user.manage && !user.self) || !user.details) {
     return null;
@@ -247,7 +297,7 @@ export const manage = (user, target, options, handlers, opening) => {
   const element = dom.create("section");
   const info = dom.create("div");
   const fields = group(
-    label("profile.uid", details.uid, { short: true }),
+    label("profile.id", user.id, { short: true }),
     label("profile.email", details.email),
     ...(details.date || details.userIp || details.time || details.accessIp
       ? [line({ type: "dotted", text: "profile.access", icon: "info" })]
@@ -271,59 +321,13 @@ export const manage = (user, target, options, handlers, opening) => {
   element.append(info);
   if (user.self || !user.manage) return element;
 
-  element.append(
-    group(
-      user.authority ? authority(user) : null,
-      ...(user.blocked
-        ? [
-            label("profile.blockReason", user.block?.reason),
-            label("profile.blockTime", user.block?.time, { date: true }),
-            label("profile.handler", user.block?.handler || user.block?.actor)
-          ]
-        : [
-            item(handlers, {
-              text: "profile.chatMute",
-              icon: "tts-mute",
-              danger: true,
-              close: false,
-              run: () =>
-                opening(`sanction:${user.id}`, () => sanction(user, "mute"))
-            }),
-            item(handlers, {
-              text: user.sanction?.kicked ? "profile.unkick" : "profile.kick",
-              icon: "arrow",
-              danger: true,
-              close: false,
-              run: () =>
-                opening(`sanction:${user.id}`, () =>
-                  sanction(user, user.sanction?.kicked ? "unkick" : "kick")
-                )
-            })
-          ]),
-      item(handlers, {
-        text: "profile.blockHistory",
-        icon: "info",
-        next: true,
-        close: false,
-        run: () =>
-          opening(`history:${user.id}`, () => history(user.id, "sanction"))
-      }),
-      item(handlers, {
-        text: user.blocked ? "profile.unblock" : "profile.block",
-        icon: "error",
-        danger: true,
-        close: false,
-        run: () => opening(`block:${user.id}`, () => block(user))
-      })
-    )
-  );
-  if (user.blocked) element.lastElementChild.classList.add("profile-block");
+  element.append(moderation(user, handlers, opening));
 
   return element;
 };
 
-export const context = (user, target, options, handlers, opening) => {
-  const gift = item(handlers, {
+const gift = (handlers) => {
+  const row = item(handlers, {
     text: "profile.gift",
     icon: "gift",
     next: true,
@@ -337,10 +341,81 @@ export const context = (user, target, options, handlers, opening) => {
         direction: "→"
       })
   });
+
+  row.hidden = true;
+  return row;
+};
+
+export const message = (user, target, options, handlers, opening) => {
+  const context = [];
+
+  if (!user.self) {
+    for (const [text, icon, event] of [
+      ["message", "mail", "chatting-message"],
+      ["whisper", "whisper", "chatting-whisper"]
+    ]) {
+      if (text === "message" && user.receiving?.message === false) continue;
+      if (
+        text === "whisper" &&
+        (!online(user) || user.receiving?.whisper === false)
+      )
+        continue;
+      context.push(
+        item(handlers, {
+          text: `profile.${text}`,
+          icon,
+          run: () => emit(target, event, options)
+        })
+      );
+    }
+    context.push(
+      gift(handlers),
+      hidden(target, options),
+      personal(user, handlers)
+    );
+  }
+  const records = [];
+
+  if (user.manage && user.details) {
+    for (const [text, icon, run] of [
+      ["chatHistory", "info", () => history(user.id, "chatting")],
+      ["reportHistory", "flag", () => inbox(user.id)]
+    ])
+      records.push(
+        item(handlers, {
+          text: `profile.${text}`,
+          icon,
+          close: false,
+          run: () => opening(`history:${user.id}`, run)
+        })
+      );
+  }
+  records.push(
+    item(handlers, {
+      text: "chatting.action.report",
+      disabled: user.self || (!options.url && !options.proof),
+      icon: "flag",
+      danger: true,
+      run: () =>
+        report(
+          "message",
+          options.url || options.token,
+          user.self,
+          options.evidence?.()
+        )
+    })
+  );
+  return [
+    group(...context),
+    group(...records),
+    moderation(user, handlers, opening)
+  ].filter(Boolean);
+};
+
+export const context = (user, target, options, handlers, opening) => {
   const element = dom.create("section");
 
   element.className = "profile-section";
-  element.append(group(gift));
 
   if (!user.self) {
     const whisper = item(handlers, {
@@ -350,18 +425,24 @@ export const context = (user, target, options, handlers, opening) => {
     });
 
     dom.set(whisper, "data-whisper", "");
-    whisper.hidden = user.state === "offline";
+    whisper.hidden = !online(user) || user.receiving?.whisper === false;
 
     const items = [
-      item(handlers, {
-        text: "profile.message",
-        icon: "mail",
-        run: () => emit(target, "chatting-message", options)
-      }),
+      user.receiving?.message === false
+        ? null
+        : item(handlers, {
+            text: "profile.message",
+            icon: "mail",
+            run: () => emit(target, "chatting-message", options)
+          }),
       whisper
-    ];
+    ].filter(Boolean);
 
-    items.push(hidden(target, options));
+    items.push(
+      gift(handlers),
+      hidden(target, options),
+      personal(user, handlers)
+    );
     if (user.manage && user.details) {
       const entry = item(handlers, {
         text: "profile.chatHistory",
@@ -399,3 +480,66 @@ export const context = (user, target, options, handlers, opening) => {
 
   return element;
 };
+
+export function member(user, id, handlers) {
+  const root = group();
+
+  let closed = false;
+  let revision = 0;
+
+  const update = async () => {
+    if (!id || user.self) return;
+    const version = ++revision;
+    const result = await room.read(id);
+
+    if (closed || version !== revision) return;
+    root.replaceChildren();
+    const current = result.data;
+
+    root.hidden =
+      !result.ok ||
+      (!current.owner && !current.deputy) ||
+      current.closed ||
+      current.departed ||
+      !current.participants.some((item) => item.id === user.id);
+    if (root.hidden) return;
+    const peer = current.participants.find((item) => item.id === user.id);
+
+    if (!current.owner && (peer.owner || peer.deputy)) {
+      root.hidden = true;
+      return;
+    }
+    const items = [["remove", "room.remove", "logout"]];
+
+    if (current.owner)
+      items.push(
+        ["owner", "room.transfer", "user"],
+        peer.deputy
+          ? ["revoke", "room.revoke", "minus"]
+          : ["deputy", "room.delegate", "user"]
+      );
+    for (const [action, text, icon] of items)
+      root.append(
+        item(handlers, {
+          text,
+          icon,
+          close: false,
+          danger: action === "remove",
+          run: () => room.manage(id, action, user.id)
+        })
+      );
+    mount(root);
+  };
+
+  const off =
+    id && !user.self ? dom.on(events(), "direct-state", update) : () => {};
+
+  update();
+  return {
+    root,
+    off: () => {
+      closed = true;
+      off();
+    }
+  };
+}

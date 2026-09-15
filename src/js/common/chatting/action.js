@@ -1,3 +1,4 @@
+import context from "#common/context";
 import * as dom from "#common/dom";
 import * as css from "#common/css";
 import * as route from "#shared/route";
@@ -6,10 +7,17 @@ import toast from "#common/toast";
 import dialog from "#common/dialog";
 import * as i18n from "#common/i18n";
 import { validId } from "#shared/chatting";
-import report from "#common/report";
+import * as profile from "#common/profile";
+import * as actions from "#common/profile/actions";
+import * as storage from "#common/storage";
+import once from "#common/once";
+import mount from "#common/mount";
+
+const opening = once();
 
 i18n.preload(
   "chatting.copied",
+  "chatting.saveFailed",
   "chatting.copyFailed",
   "chatting.removeSuccess",
   "chatting.removeFailed",
@@ -38,21 +46,6 @@ export const copyLink = async (id) => {
     toast({ text: "chatting.copyFailed", type: "error" });
     return false;
   }
-};
-
-const confirmRemove = async () => {
-  return dialog({
-    title: "chatting.removeTitle",
-    actions: [
-      { text: "dialog.cancel", value: false },
-      {
-        text: "dialog.confirm",
-        icon: "trash",
-        value: true,
-        data: ["data-danger"]
-      }
-    ]
-  });
 };
 
 const remove = async (id) => {
@@ -84,27 +77,73 @@ const opened = new WeakSet();
 
 const copy = async (value) => {
   if (value) {
-    await navigator.clipboard.writeText(value);
+    try {
+      await navigator.clipboard.writeText(value);
+      toast({ text: "chatting.copied", type: "success" });
+    } catch {
+      toast({ text: "chatting.copyFailed", type: "error" });
+    }
   }
 };
 
-const save = async (source) => {
+const imageBlob = async (source) => {
   const response = await fetch(source);
 
-  if (!response.ok) {
-    return;
+  if (!response.ok) throw new Error("Image fetch failed");
+  return response.blob();
+};
+
+const save = async (sources) => {
+  try {
+    for (const source of sources) {
+      const blob = await imageBlob(source);
+      const url = URL.createObjectURL(blob);
+      const link = dom.create("a");
+      const path = new URL(source, location.href).pathname;
+
+      link.href = url;
+      link.download = path.split("/").at(-1) || "image";
+      link.click();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    }
+  } catch {
+    toast({ text: "chatting.saveFailed", type: "error" });
   }
+};
 
-  const blob = await response.blob();
-  const url = URL.createObjectURL(blob);
-  const link = dom.create("a");
-  const path = new URL(source, location.href).pathname;
+const copyImage = async (source) => {
+  try {
+    if (!navigator.clipboard?.write || typeof ClipboardItem === "undefined") {
+      throw new Error("Image clipboard unavailable");
+    }
+    const blob = (async () => {
+      const bitmap = await createImageBitmap(await imageBlob(source));
 
-  link.href = url;
-  link.download = path.split("/").at(-1) || "image";
-  link.click();
+      try {
+        const canvas = dom.create("canvas");
 
-  setTimeout(() => URL.revokeObjectURL(url));
+        canvas.width = bitmap.width;
+        canvas.height = bitmap.height;
+        canvas.getContext("2d").drawImage(bitmap, 0, 0);
+        return await new Promise((resolve, reject) => {
+          canvas.toBlob(
+            (value) =>
+              value
+                ? resolve(value)
+                : reject(new Error("Image conversion failed")),
+            "image/png"
+          );
+        });
+      } finally {
+        bitmap.close();
+      }
+    })();
+
+    await navigator.clipboard.write([new ClipboardItem({ "image/png": blob })]);
+    toast({ text: "chatting.copied", type: "success" });
+  } catch {
+    toast({ text: "chatting.copyFailed", type: "error" });
+  }
 };
 
 const item = ({ value, text, icon, run, danger = false, disabled = false }) => {
@@ -117,6 +156,7 @@ const item = ({ value, text, icon, run, danger = false, disabled = false }) => {
   button.disabled = disabled;
 
   dom.set(button, "data-icon", icon);
+  button.toggleAttribute("data-color", !danger);
   dom.set(button, "data-i18n", text);
   dom.set(button, "data-response", "");
   dom.set(button, "data-layer-action", value);
@@ -174,49 +214,77 @@ const preview = (message) => {
   return element;
 };
 
-const content = (message, options) => {
+const confirmRemove = async (message) => {
+  return dialog({
+    title: "chatting.removeTitle",
+    content: preview(message),
+    direction: "→",
+    actions: [
+      { text: "dialog.cancel", value: false },
+      {
+        text: "dialog.confirm",
+        icon: "trash",
+        value: true,
+        data: ["data-danger"]
+      }
+    ]
+  });
+};
+
+const content = (message, options, user, handlers) => {
   const element = dom.create("div");
-  const items = [
-    item({
-      value: "copy-text",
-      text: "chatting.action.copyText",
-      icon: "copy",
-      disabled: !options.text,
-      run: () => copy(options.text)
-    })
+  const items = [];
+
+  if (options.text)
+    items.push(
+      item({
+        value: "copy-text",
+        text: "chatting.action.copyText",
+        icon: "copy",
+        run: () => copy(options.text)
+      })
+    );
+  if (!options.private)
+    items.push(
+      item({
+        value: "copy-link",
+        text: "chatting.action.copyLink",
+        icon: "link",
+        disabled: !validId(options.url),
+        run: () => copyLink(options.url)
+      })
+    );
+  const sources = [
+    ...new Set(
+      [
+        ...(options.attachments || [])
+          .filter((entry) => entry.type === "image")
+          .map((entry) => entry.image),
+        options.image
+      ].filter(Boolean)
+    )
   ];
 
-  if (options.image) {
+  if (sources.length)
     items.push(
       item({
         value: "save-image",
         text: "chatting.action.saveImage",
         icon: "download",
-        run: () => save(options.image)
+        run: () => save(sources)
       }),
       item({
         value: "copy-image",
         text: "chatting.action.copyImage",
-        icon: "link",
-        run: () => copy(options.image)
+        icon: "copy",
+        run: () => copyImage(sources[0])
       })
     );
-  }
-
-  items.push(
-    item({
-      value: "copy-link",
-      text: "chatting.action.copyLink",
-      icon: "link",
-      disabled: !validId(options.url),
-      run: () => copyLink(options.url)
-    })
-  );
-
-  const moderation = [];
-
-  if (options.removable) {
-    moderation.push(
+  if (
+    options.removable &&
+    (!options.private || message.querySelector("[data-unread]"))
+  )
+    items.push(
       item({
         value: "remove",
         text: "chatting.action.remove",
@@ -224,22 +292,46 @@ const content = (message, options) => {
         danger: true
       })
     );
-  }
-
-  moderation.push(
-    item({
-      value: "report",
-      text: "chatting.action.report",
-      icon: "flag",
-      danger: true,
-      disabled: Boolean(options.own) || !validId(options.url)
-    })
-  );
-
   element.className = "chatting-actions";
-  element.append(preview(message), group(...items), group(...moderation));
+  element.append(preview(message), group(...items));
+  let groups = [];
 
-  return element;
+  const render = (value) => {
+    groups.forEach((group) => group.remove());
+    handlers.clear();
+    groups = actions.message(
+      value,
+      message.closest(".chatting"),
+      {
+        ...options,
+        hidden: storage.get(`chatting-hide:${options.id}`) === "true"
+      },
+      handlers,
+      opening
+    );
+    element.append(...groups);
+    if (element.isConnected) {
+      groups.forEach((group) => mount(group));
+      i18n.translate();
+    }
+  };
+
+  if (user && !(options.private && options.kind === "message")) render(user);
+  const off =
+    user?.id && !(options.private && options.kind === "message")
+      ? profile.bind(element, user.id, render)
+      : () => {};
+
+  const member = user ? actions.member(user, options.room, handlers) : null;
+
+  if (member) element.append(member.root);
+  return {
+    root: element,
+    off: () => {
+      off();
+      member?.off();
+    }
+  };
 };
 
 const open = async (message, options) => {
@@ -251,22 +343,38 @@ const open = async (message, options) => {
   dom.set(message, "data-action", "");
 
   try {
-    const value = await sheet({
-      content: content(message, options),
-      direction: "↓"
-    });
+    const handlers = new Map();
+    const result =
+      options.id || options.own
+        ? await profile.read(options.own ? "me" : options.id, { fresh: true })
+        : null;
+
+    const user = result?.ok
+      ? result.data
+      : options.id
+        ? { id: options.id, self: Boolean(options.own), manage: false }
+        : null;
+
+    const menu = content(message, options, user, handlers);
+
+    let value;
+
+    try {
+      value = await sheet({ content: menu.root, direction: "↓" });
+    } finally {
+      menu.off();
+    }
 
     if (value === "remove") {
-      const confirmed = await confirmRemove();
+      const confirmed = await confirmRemove(message);
 
       if (confirmed === true) {
-        await remove(options.url);
+        if (options.remove) await options.remove();
+        else await remove(options.url);
       }
     }
 
-    if (value === "report") {
-      await report("message", options.url, options.own);
-    }
+    await handlers.get(value)?.();
   } finally {
     dom.remove(message, "data-action");
     opened.delete(message);
@@ -274,82 +382,8 @@ const open = async (message, options) => {
 };
 
 export default function action(message, options) {
-  let timer;
-  let pointer;
-  let held = false;
-
-  const clear = () => {
-    clearTimeout(timer);
-    timer = undefined;
-    pointer = undefined;
-  };
-
-  const show = () => {
-    if (dom.get(message, "data-deleted") !== null) {
-      return;
-    }
-
+  context(message, () => {
+    if (dom.get(message, "data-deleted") !== null) return;
     open(message, options).catch(() => {});
-  };
-
-  dom.on(message, "pointerdown", (event) => {
-    if (event.target.closest?.("audio")) return;
-    if (event.pointerType === "mouse") {
-      return;
-    }
-
-    pointer = { id: event.pointerId, x: event.clientX, y: event.clientY };
-
-    timer = setTimeout(() => {
-      held = true;
-      timer = undefined;
-      show();
-    }, 500);
-  });
-
-  dom.on(message, "pointermove", (event) => {
-    if (!pointer || event.pointerId !== pointer.id) {
-      return;
-    }
-
-    const x = event.clientX - pointer.x;
-    const y = event.clientY - pointer.y;
-
-    if (Math.hypot(x, y) > 10) {
-      clear();
-    }
-  });
-
-  dom.on(message, "pointerup", () => {
-    clear();
-
-    if (held) {
-      setTimeout(() => {
-        held = false;
-      });
-    }
-  });
-
-  dom.on(message, "pointercancel", clear);
-
-  dom.on(
-    message,
-    "click",
-    (event) => {
-      if (!held) {
-        return;
-      }
-
-      held = false;
-      event.preventDefault();
-      event.stopPropagation();
-    },
-    true
-  );
-
-  dom.on(message, "contextmenu", (event) => {
-    if (event.target.closest?.("audio")) return;
-    event.preventDefault();
-    show();
   });
 }

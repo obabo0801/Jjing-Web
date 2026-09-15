@@ -113,7 +113,7 @@
   transform: translate(-50%, -50%) scale(0);
 }
 
-.range:focus-within .range-thumb {
+.range:has(input:focus-visible) .range-thumb {
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--focus) 24%, transparent);
 }
 
@@ -134,4 +134,23 @@
   .range-thumb {
     transition: none;
   }
+}
+
+.range-label {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+  padding: 16px;
+}
+
+.range-line {
+  display: grid;
+  align-items: center;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 16px;
+}
+
+:is(.small, .wearable) .range-label {
+  padding: 8px 0;
+  text-align: center;
 }

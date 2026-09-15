@@ -13,6 +13,7 @@
 @import "./common/console.css";
 @import "./common/chatting.css";
 @import "./common/profile.css";
+@import "./common/login.css";
 @import "./common/online.css";
 @import "./common/image.css";
 @import "./common/setup.css";
@@ -33,3 +34,4 @@
 @import "./common/picker.css";
 @import "./common/keypad.css";
 @import "./common/group.css";
+@import "./common/table.css";

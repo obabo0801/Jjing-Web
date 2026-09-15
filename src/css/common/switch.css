@@ -37,10 +37,6 @@
   cursor: inherit;
 }
 
-.switch > label > [data-icon] {
-  gap: 8px;
-}
-
 .switch input {
   display: flex;
   flex: none;

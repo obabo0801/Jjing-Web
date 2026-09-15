@@ -19,6 +19,7 @@ const effects = Object.freeze({
   noinput: file("noinput"),
   open: file("open"),
   pop: file("pop"),
+  send: file("send"),
   snap: file("snap"),
   success: file("success")
 });

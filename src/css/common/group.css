@@ -46,6 +46,50 @@
     color 160ms ease;
 }
 
+.group[data-background] {
+  background: var(--background);
+}
+
+.group-name,
+.group-item > button > span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.group-next,
+.group-item > button > .label-value {
+  margin-inline-start: auto;
+}
+
+.group-next > .icon {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+.group-item > button > .label-value + .group-next {
+  margin-inline-start: 0;
+}
+
+.group-item > .label {
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.group-item > .toggle .toggle-head,
+.group-item > .toggle .switch {
+  border: 0;
+  border-radius: 0;
+}
+
+.group-item :is(.switch, .checkbox, .radio) {
+  background: transparent;
+}
+
+.group-item :is(.switch, .checkbox, .radio):has(input:disabled) {
+  opacity: 1;
+  color: var(--text);
+}
+
 .group[data-view="grid"] {
   grid-template-columns: repeat(5, minmax(0, 1fr));
 
@@ -55,6 +99,25 @@
 
 .group[data-view="grid"] > .group-item::before {
   display: none;
+}
+
+.group[data-view="grid"]:has(> .group-item > :is(.radio, .checkbox)) {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 6rem), 1fr));
+}
+
+.group[data-view="grid"] > .group-item > :is(.radio, .checkbox) {
+  justify-content: center;
+  min-width: 0;
+  padding: 8px;
+}
+
+.group[data-view="grid"] :is(.radio, .checkbox) > label,
+.group[data-view="grid"] :is(.radio, .checkbox) > label > [data-icon] {
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  text-align: center;
 }
 
 .group-item {
@@ -89,6 +152,10 @@
   width: 100%;
   min-width: 0;
   border: 0;
+}
+
+.group-item > :not(.icon):not(button),
+.group:not([data-view="grid"]) > .group-item > button:not(.history-record *) {
   border-radius: 0;
 }
 
@@ -168,7 +235,7 @@
 }
 
 :is(.small, .wearable) .group-item > button,
-:is(.small, .wearable) .group-item > .switch > label {
+:is(.small, .wearable) .group-item > :is(.switch, .checkbox, .radio) > label {
   flex-direction: column;
   align-items: center;
   justify-content: center;
@@ -183,6 +250,20 @@
 
 :is(.small, .wearable) .group-item > button > [data-icon] {
   margin-inline: 0;
+}
+
+:is(.small, .wearable) .group-item > button > .label-value {
+  margin-inline: 0;
+  text-align: center;
+}
+
+:is(.small, .wearable)
+  .group-item
+  > :is(.switch, .checkbox, .radio)
+  > label
+  > [data-icon] {
+  flex-direction: column;
+  justify-content: center;
 }
 
 @media (prefers-reduced-motion: reduce) {

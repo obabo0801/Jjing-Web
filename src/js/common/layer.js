@@ -84,6 +84,7 @@ const action = (item, wearable) => {
   if (item.head) {
     button.className = "layer-action";
     dom.set(button, "data-tooltip", key);
+    dom.set(button, "data-background", "");
   }
   return button;
 };
@@ -173,14 +174,10 @@ const build = (type, options) => {
 
   const headed = actions.some((item) => item.head);
 
+  if (back) element.append(back);
   actions.forEach((item, index) => {
-    (item.head ? head : footer).append(buttons[index]);
+    (item.head ? element : footer).append(buttons[index]);
   });
-
-  if (back) {
-    if (headed) head.prepend(back);
-    else element.append(back);
-  }
 
   if (title || dialog || headed) {
     element.append(head);
@@ -446,6 +443,12 @@ async function open(type, options) {
   return new Promise((finish) => {
     let opening;
     let closed = false;
+    let removeHistory;
+    let settle;
+
+    const finished = new Promise((resolve) => {
+      settle = resolve;
+    });
 
     const off = [];
     const clearFocus = () => {
@@ -456,7 +459,7 @@ async function open(type, options) {
 
     const close = async (value = false, smooth = true) => {
       if (closed) {
-        return;
+        return finished;
       }
 
       closed = true;
@@ -508,25 +511,33 @@ async function open(type, options) {
       wrap.remove();
 
       clearFocus();
+      removeHistory?.();
       finish(value);
+      settle();
     };
 
-    if (back) {
+    const controls = [
+      back,
+      ...buttons.filter((_, index) => actions[index].head)
+    ].filter(Boolean);
+
+    if (controls.length) {
       const shadow = () => {
-        if (element.scrollTop > 0) {
-          dom.set(back, "data-shadow", "");
-        } else {
-          dom.remove(back, "data-shadow");
+        for (const control of controls) {
+          if (element.scrollTop > 0) dom.set(control, "data-shadow", "");
+          else dom.remove(control, "data-shadow");
         }
       };
 
+      off.push(dom.on(element, "scroll", shadow, { passive: true }));
+      shadow();
+    }
+    if (back) {
       off.push(
         dom.on(back, "click", () => {
           history.back().catch(console.error);
-        }),
-        dom.on(element, "scroll", shadow, { passive: true })
+        })
       );
-      shadow();
     }
 
     actions.forEach((item, index) => {
@@ -734,14 +745,15 @@ async function open(type, options) {
       off.push(dom.on(window, "resize", update));
     }
 
-    off.push(
-      history.add(() => {
+    removeHistory = history.add(
+      () => {
         if (locked) {
           return false;
         }
 
         return close(false);
-      })
+      },
+      options.route ? [type, ...options.route] : undefined
     );
 
     if (
@@ -776,5 +788,9 @@ export default function layer(type, options = {}) {
       ? options.anchor
       : button.trigger || document.activeElement;
 
-  return opening(source, () => open(type, options));
+  const key = source?.matches?.("button, a, input, select, textarea")
+    ? source
+    : options;
+
+  return opening(key, () => open(type, options));
 }

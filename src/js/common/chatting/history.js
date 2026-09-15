@@ -1,16 +1,23 @@
+import retry from "#common/retry";
 import * as dom from "#common/dom";
 import * as i18n from "#common/i18n";
 import * as storage from "#common/storage";
 import api from "#common/api";
 import upload from "#common/upload";
-import events, { isAdmin, isBlocked } from "#common/events";
-import { append, regroup, atBottom, system } from "#common/chatting";
+import events, * as access from "#common/events";
+import * as chat from "#common/chatting";
 import toast from "#common/toast";
+import sound from "#common/sound";
 import progress from "#common/progress";
 import { chatting as path } from "#shared/route";
 import * as rules from "#shared/chatting";
 import * as media from "#shared/attachment";
-import attachments from "#common/chatting/attachment";
+import * as attachments from "#common/chatting/attachment";
+import viewport from "#common/chatting/viewport";
+import * as clock from "#common/chatting/time";
+import * as direct from "#common/chatting/direct";
+import * as profile from "#common/profile";
+import * as names from "#common/profile/name";
 
 i18n.preload(
   "chatting.loadFailed",
@@ -20,6 +27,8 @@ i18n.preload(
   "chatting.rate",
   "chatting.muted",
   "chatting.entered",
+  "chatting.hidden",
+  "chatting.shown",
   "chatting.muteNotice",
   "chatting.kickNotice",
   "chatting.unkickNotice",
@@ -29,7 +38,6 @@ i18n.preload(
   "chatting.muteDetail",
   "chatting.reason",
   "chatting.handler",
-  "chatting.retry",
   "image.sizeError",
   "image.uploadError",
   "chatting.audio.error",
@@ -52,10 +60,10 @@ const valid = (item) =>
   ) &&
   (item.system === undefined || Object.hasOwn(rules.notices, item.system));
 
-const request = async (query = {}, id) => {
+const request = async (query = {}, id, recent = false) => {
   const url = id
     ? `${path}/${encodeURIComponent(id)}`
-    : `${path}?${new URLSearchParams(query)}`;
+    : `${path}${recent ? "/recent" : ""}?${new URLSearchParams(query)}`;
 
   const response = await api(url, {
     cache: "no-store",
@@ -69,7 +77,9 @@ const request = async (query = {}, id) => {
     !Number.isSafeInteger(page.cursor) ||
     page.messages.some((item) => !valid(item))
   ) {
-    throw new Error("Chatting query failed");
+    throw Object.assign(new Error("Chatting query failed"), {
+      status: response.status
+    });
   }
   return page;
 };
@@ -86,13 +96,11 @@ export default function history(root, messageId = "") {
   const detail = dom.create("p");
   const reason = dom.create("p");
   const source = events();
-  const attached = attachments(input);
+  const attached = attachments.default(input);
   const rows = new Map();
   const tail = new Map();
-  const hidden = new Set();
   const previous = dom.create("div");
   const next = dom.create("div");
-  const retry = dom.create("button");
   const indicator = progress({ type: "circular", value: 25, show: false });
   const off = [];
   const notices = [];
@@ -104,6 +112,7 @@ export default function history(root, messageId = "") {
   let again = false;
   let loading = false;
   let sending = false;
+  let transfer;
   let after = false;
   let before = false;
   let destroyed = false;
@@ -111,7 +120,7 @@ export default function history(root, messageId = "") {
   let joined = false;
   let highlight;
   let revision = 0;
-  let staff = isAdmin();
+  let staff = access.isAdmin();
   let muteTimer;
   let muted = 0;
   let restriction = {};
@@ -120,10 +129,6 @@ export default function history(root, messageId = "") {
   let scrollFrame;
 
   previous.className = next.className = "chatting-page";
-  retry.type = "button";
-  retry.textContent = i18n.message("chatting.retry");
-  dom.set(retry, "data-i18n", "chatting.retry");
-  dom.set(retry, "data-response", "");
 
   limit.className = "chatting-limit";
   limit.hidden = true;
@@ -140,7 +145,7 @@ export default function history(root, messageId = "") {
 
     input.disabled = seconds > 0;
     if (voice) voice.disabled = input.disabled;
-    send.disabled = sending || input.disabled;
+    if (!sending) send.disabled = input.disabled;
     limit.hidden = !seconds;
     countdown.textContent = format("chatting.countdown", {
       seconds: String(seconds).padStart(2, "0")
@@ -178,19 +183,23 @@ export default function history(root, messageId = "") {
   list.append(previous, next);
   input.maxLength = rules.length;
 
+  const retries = retry(
+    () => page(failed === next),
+    () => !destroyed && !halted && Boolean(failed)
+  );
   const notice = (key) => toast({ text: key, type: "error" });
   const controls = () => {
     const position = anchor();
 
     previous.hidden = ready && !before && !(loading && !forward);
     next.hidden = !after && !(loading && forward);
-    indicator.element.hidden = !loading || halted;
+    indicator.element.hidden = (!loading && !failed) || halted;
     if (loading) (forward ? next : previous).append(indicator.element);
     if (failed) {
       failed.hidden = false;
-      failed.append(retry);
-    } else retry.remove();
-    retry.disabled = loading || halted;
+      failed.append(indicator.element);
+      if (!halted) retries.schedule();
+    }
     if (position?.node.isConnected)
       list.scrollTop +=
         position.node.getBoundingClientRect().top - position.top;
@@ -227,17 +236,22 @@ export default function history(root, messageId = "") {
 
     for (const item of added) {
       if (rows.has(item.url)) continue;
-      if (!item.system && storage.get(`chatting-hide:${item.id}`) === "true")
-        hidden.add(item.id);
-      item.hidden = !item.system && hidden.has(item.id);
-      const node = append(list, item, false);
+      item.hidden = false;
+      if (!item.system && storage.get(`chatting-hide:${item.id}`) === "true") {
+        const key = `chatting-hide-since:${item.id}`;
+        const since = Number(storage.get(key)) || Date.now();
+
+        storage.set(key, since);
+        item.hidden = clock.stamp(item.time) >= since;
+      }
+      const node = chat.append(list, item, false);
 
       if (!node) continue;
       if (reveal) dom.set(node, "data-reveal", "");
       node.hidden = item.hidden;
       const later = existing.find((row) => row.item.seq > item.seq);
 
-      list.insertBefore(node, later?.node || next);
+      chat.place(list, node, later?.node || next);
       rows.set(item.url, { node, item });
     }
     if (existing.length && added[0].seq < existing.at(-1).item.seq) {
@@ -248,7 +262,7 @@ export default function history(root, messageId = "") {
       rows.clear();
       sorted.forEach(([key, value]) => rows.set(key, value));
     }
-    regroup(list);
+    chat.regroup(list);
     controls();
     if (follow) list.scrollTop = list.scrollHeight;
     else if (position?.node.isConnected)
@@ -289,14 +303,18 @@ export default function history(root, messageId = "") {
         let more;
 
         do {
-          const page = await request({ after: cursor });
+          const page = await request(
+            { after: cursor },
+            undefined,
+            !access.isAdmin() && !messageId
+          );
 
           if (version !== generation || destroyed) return;
           mute(page.restriction || page.muted);
           if (page.more && page.cursor <= cursor)
             throw new Error("Invalid cursor");
           if (after) page.messages.forEach((item) => tail.set(item.url, item));
-          else insert(page.messages, !messageId && atBottom(list));
+          else insert(page.messages, !messageId && chat.atBottom(list));
           cursor = page.cursor;
           more = page.more;
         } while (more);
@@ -320,11 +338,11 @@ export default function history(root, messageId = "") {
     // 번호가 건너뛰면 삭제·비공개 메시지 여부도 DB에서 확인합니다.
     if (
       item.seq !== cursor + 1 ||
-      (!isAdmin() && (item.blocked || isBlocked(item.id)))
+      (!access.isAdmin() && (item.blocked || access.isBlocked(item.id)))
     )
       return recover();
     if (after) tail.set(item.url, item);
-    else if (!follow) insert([item], !messageId && atBottom(list));
+    else if (!follow) insert([item], !messageId && chat.atBottom(list));
     cursor = item.seq;
   };
 
@@ -339,7 +357,7 @@ export default function history(root, messageId = "") {
     controls();
     try {
       if (id && !rules.validId(id)) throw new Error("Invalid ID");
-      const page = await request({ live: "1" }, id);
+      const page = await request({ live: "1" }, id, !access.isAdmin());
 
       if (version !== generation || destroyed) return;
       mute(page.restriction || page.muted);
@@ -347,6 +365,7 @@ export default function history(root, messageId = "") {
       list.replaceChildren(previous, next);
       rows.clear();
       tail.clear();
+      retries.reset();
       cursor = page.cursor;
       before = id ? page.before : Boolean(page.history && page.more);
       after = id ? page.after : false;
@@ -354,15 +373,15 @@ export default function history(root, messageId = "") {
       insert(page.messages, !id, true);
       if (!joined) {
         joined = true;
-        system(list, { text: "chatting.entered" });
+        chat.system(list, { text: "chatting.entered" });
       }
       if (id) await focus(id, version);
       if (version !== generation || destroyed || halted) return;
       if (notices.length) insert(notices.splice(0), true);
-    } catch {
+    } catch (error) {
       if (version !== generation || destroyed) return;
-      notice(id ? "chatting.unavailable" : "chatting.loadFailed");
-      failed = previous;
+      if (![400, 401, 403, 404].includes(error.status)) failed = previous;
+      else notice(id ? "chatting.unavailable" : "chatting.loadFailed");
     } finally {
       if (version === generation) {
         loading = false;
@@ -372,7 +391,7 @@ export default function history(root, messageId = "") {
     }
   };
 
-  const page = async (direction) => {
+  async function page(direction) {
     if (loading || halted || destroyed) return;
     if (!ready) return load(messageId);
     const items = [...rows.values()];
@@ -397,6 +416,7 @@ export default function history(root, messageId = "") {
         )
       )
         throw new Error("Invalid page cursor");
+      retries.reset();
       mute(result.restriction || result.muted);
       if (forward) after = result.more;
       else before = result.more;
@@ -405,10 +425,11 @@ export default function history(root, messageId = "") {
         insert([...tail.values()]);
         tail.clear();
       }
-    } catch {
+    } catch (error) {
       if (version === generation && !halted && !destroyed) {
-        failed = forward ? next : previous;
-        notice("chatting.loadFailed");
+        if (![400, 401, 403, 404].includes(error.status))
+          failed = forward ? next : previous;
+        else notice("chatting.loadFailed");
       }
     } finally {
       if (version === generation) {
@@ -416,7 +437,7 @@ export default function history(root, messageId = "") {
         controls();
       }
     }
-  };
+  }
 
   const nearby = () => {
     cancelAnimationFrame(scrollFrame);
@@ -446,7 +467,7 @@ export default function history(root, messageId = "") {
     const audio = file?.type.startsWith("audio/");
     const batch = file ? [] : attached.snapshot();
     const value = input.value;
-    const edited = revision;
+    const recipient = dom.get(form, "data-whisper");
     const version = generation;
 
     if (
@@ -462,47 +483,86 @@ export default function history(root, messageId = "") {
       notice("chatting.tooLong");
       return false;
     }
+    if (recipient && (file || batch.length)) {
+      notice("direct.textOnly");
+      return false;
+    }
     sending = true;
+    let succeeded = false;
+
+    if (!file) {
+      input.value = "";
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+    }
+    const edited = revision;
+
     attached.busy(true);
-    send.disabled = true;
+    transfer = new AbortController();
+    const signal = AbortSignal.any([
+      transfer.signal,
+      AbortSignal.timeout(60_000)
+    ]);
+
+    const state = (value, cancel = false) => {
+      dom.set(form, "data-send", value);
+      form.toggleAttribute("data-cancel", cancel);
+      form.dispatchEvent(new Event("chatting-state"));
+    };
+
+    state(
+      "sending",
+      batch.some((item) => item.file)
+    );
     try {
-      const items = [];
+      if (recipient) {
+        const result = await api(`${path}/direct/whisper/${recipient}`, {
+          method: "POST",
+          signal,
+          data: { text: value }
+        });
 
-      for (const item of batch) {
-        if (item.type === "ogq") {
-          items.push(media.ogq(item));
-          continue;
-        }
-        const result =
-          item.receipt?.expires > Date.now()
-            ? { ok: true, data: item.receipt }
-            : await upload(`${path}/attachment`, item, {
-                cache: "no-store",
-                signal: AbortSignal.timeout(60_000)
-              });
-
-        if (!result.ok || !rules.validId(result.data?.token)) {
+        if (!result.ok) {
           notice(
-            result.status === 413 ? "image.sizeError" : "image.uploadError"
+            result.status === 409
+              ? result.data?.code === "offline"
+                ? "direct.offline"
+                : "direct.refused"
+              : result.status === 423
+                ? "direct.muted"
+                : "direct.error"
           );
           return false;
         }
-        if (destroyed || halted) return false;
-        attached.receipt(item, result.data);
-        items.push({
-          type: item.type,
-          token: result.data.token,
-          description: item.description,
-          spoiler: item.spoiler
-        });
+        succeeded = true;
+        state("success");
+        direct.receive(result.data);
+        void sound.play("send", { volume: 0.2 });
+        form.dispatchEvent(new Event("chatting-sent"));
+        await new Promise((resolve) => setTimeout(resolve, 400));
+        return true;
       }
+      const prepared = await attachments.prepare(batch, attached, signal);
+
+      if (!prepared.ok) {
+        notice(
+          prepared.status === 413 ? "image.sizeError" : "image.uploadError"
+        );
+        return false;
+      }
+      if (destroyed || halted) return false;
+      const items = prepared.items;
+
+      if (signal.aborted) return false;
+      state("sending");
       const result = file
         ? await upload(`${path}/${audio ? "audio" : "image"}`, file, {
-            cache: "no-store"
+            cache: "no-store",
+            signal
           })
         : await api(path, {
             method: "POST",
             cache: "no-store",
+            signal,
             data: { text: value, attachments: items }
           });
 
@@ -522,18 +582,36 @@ export default function history(root, messageId = "") {
         notice(key);
         return false;
       }
-      if (!file && input.value === value && revision === edited) {
-        input.value = "";
-        input.dispatchEvent(new Event("input", { bubbles: true }));
-      }
+      succeeded = true;
+      state("success");
+      void sound.play("send", { volume: 0.2 });
+      await new Promise((resolve) => {
+        setTimeout(resolve, 400);
+      });
+      if (destroyed || halted) return true;
       attached.clear(batch);
-      if (version === generation) await receive(result.data);
+      if (version === generation) {
+        if (after || messageId || !ready) {
+          messageId = "";
+          await load();
+        }
+        await receive(result.data, true);
+      }
       form.dispatchEvent(new Event("chatting-sent"));
       return true;
     } finally {
+      if (!succeeded && !file && !destroyed && !halted) {
+        const draft = input.value;
+
+        if (revision === edited || !draft) input.value = value;
+        else input.value = `${value}\n${draft}`;
+        input.dispatchEvent(new Event("input", { bubbles: true }));
+      }
       sending = false;
+      transfer = undefined;
       attached.busy(false);
       send.disabled = halted || Boolean(input.disabled);
+      state("idle");
     }
   };
 
@@ -550,8 +628,13 @@ export default function history(root, messageId = "") {
   };
 
   off.push(dom.on(form, "submit", submit));
+  off.push(viewport(root));
+  off.push(
+    dom.on(form, "chatting-cancel", () => {
+      if (form.hasAttribute("data-cancel")) transfer?.abort();
+    })
+  );
   off.push(dom.on(input, "input", () => revision++));
-  off.push(dom.on(retry, "click", () => page(failed === next)));
   off.push(dom.on(list, "scroll", nearby, { passive: true }));
   off.push(dom.on(window, "scroll", nearby, { passive: true, capture: true }));
   off.push(dom.on(window, "resize", nearby, { passive: true }));
@@ -576,11 +659,12 @@ export default function history(root, messageId = "") {
   off.push(
     dom.on(window, "chatting-stop", () => {
       halted = true;
+      transfer?.abort();
       ready = false;
       generation++;
       clearTimeout(muteTimer);
       clearTimeout(highlight);
-      input.disabled = send.disabled = retry.disabled = true;
+      input.disabled = send.disabled = true;
       cancelAnimationFrame(scrollFrame);
       indicator.element.hidden = true;
       if (voice) voice.disabled = true;
@@ -593,16 +677,26 @@ export default function history(root, messageId = "") {
     dom.on(root, "chatting-hide", (event) => {
       const { id, hidden: hide } = event.detail;
 
-      if (hide) hidden.add(id);
-      else hidden.delete(id);
+      const changed = (storage.get(`chatting-hide:${id}`) === "true") !== hide;
+
       storage.set(`chatting-hide:${id}`, hide);
+      if (changed)
+        chat.system(list, {
+          text: hide ? "chatting.hidden" : "chatting.shown",
+          params: { name: names.label(profile.value(id) || event.detail) },
+          time: new Date().toISOString()
+        });
+      if (hide) {
+        storage.set(`chatting-hide-since:${id}`, Date.now());
+        return;
+      }
       rows.forEach((row) => {
         if (row.item.id === id) {
           row.item.hidden = hide;
           row.node.hidden = hide;
         }
       });
-      regroup(list);
+      chat.regroup(list);
     })
   );
 
@@ -621,8 +715,8 @@ export default function history(root, messageId = "") {
 
   off.push(
     dom.on(source, "ready", () => {
-      if (staff === isAdmin()) return recover();
-      staff = isAdmin();
+      if (staff === access.isAdmin()) return recover();
+      staff = access.isAdmin();
       rows.clear();
       list.replaceChildren(previous, next);
       load(messageId);
@@ -631,7 +725,7 @@ export default function history(root, messageId = "") {
 
   off.push(
     dom.on(source, "role", () => {
-      staff = isAdmin();
+      staff = access.isAdmin();
       // 이미 받은 관리자 전용 메시지도 권한 변경 즉시 제거합니다.
       rows.clear();
       list.replaceChildren(previous, next);
@@ -644,13 +738,13 @@ export default function history(root, messageId = "") {
         try {
           const { id } = JSON.parse(event.data);
 
-          if (!isAdmin() && type === "chatting-block") {
+          if (!access.isAdmin() && type === "chatting-block") {
             rows.forEach((row, url) => {
               if (row.item.id !== id) return;
               row.node.remove();
               rows.delete(url);
             });
-            regroup(list);
+            chat.regroup(list);
           }
           recover();
         } catch {}
@@ -672,11 +766,13 @@ export default function history(root, messageId = "") {
     audio: (file) => transmit(file),
     destroy: () => {
       destroyed = true;
+      transfer?.abort();
       attached.destroy();
       generation++;
       clearTimeout(highlight);
       clearTimeout(muteTimer);
       cancelAnimationFrame(scrollFrame);
+      retries.reset();
       indicator.destroy();
       input.disabled = halted;
       send.disabled = halted;

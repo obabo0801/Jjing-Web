@@ -1,3 +1,5 @@
+import * as route from "#common/route";
+
 const stack = [];
 
 let watcher;
@@ -36,6 +38,7 @@ function drop(item) {
   const last = index === stack.length - 1;
 
   stack.splice(index, 1);
+  item.release?.();
 
   if (last && !running) {
     watch();
@@ -44,7 +47,7 @@ function drop(item) {
   return true;
 }
 
-export function add(run) {
+export function add(run, state) {
   if (typeof run !== "function") {
     return () => {};
   }
@@ -52,6 +55,18 @@ export function add(run) {
   const item = { run };
 
   stack.push(item);
+
+  if (state) {
+    item.release = route.add(state, async () => {
+      while (stack.at(-1) && stack.at(-1) !== item) {
+        const top = stack.at(-1);
+
+        await back();
+        if (stack.at(-1) === top) return false;
+      }
+      return run();
+    });
+  }
 
   if (!running) {
     watch();

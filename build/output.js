@@ -4,7 +4,6 @@ const page = (name) => path.src(`${name}.html`);
 
 const input = {
   index: path.root("index.html"),
-  admin: page("admin"),
   image: page("image"),
   terms: page("terms"),
   privacy: page("privacy"),

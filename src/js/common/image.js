@@ -6,6 +6,7 @@ import double from "#common/image/double";
 import toolbar from "#common/toolbar";
 import range from "#common/range";
 import * as i18n from "#common/i18n";
+import { bounds } from "#shared/image";
 
 i18n.preload("image.title", "image.confirm", "image.rotate", "image.zoom");
 
@@ -169,6 +170,30 @@ export default async function edit(file, options = {}) {
   const { model, gesture, timer, raf, layout } = createState();
 
   let tool = "rotate";
+  let initial;
+
+  const size = () => {
+    if (shape !== "original") return;
+    const rotated = bounds(sourceWidth, sourceHeight, model.angle);
+    const ratio = Math.min(1, 1024 / Math.max(rotated.width, rotated.height));
+
+    width = Math.max(1, Math.round(rotated.width * ratio));
+    height = Math.max(1, Math.round(rotated.height * ratio));
+    css.set(root, { "--image-aspect": rotated.width / rotated.height });
+  };
+
+  const state = () => [
+    ((model.angle % 360) + 360) % 360,
+    model.scale,
+    model.x / (layout.width || 1),
+    model.y / (layout.height || 1)
+  ];
+
+  const unchanged = () =>
+    !initial ||
+    state().every(
+      (value, index) => Math.abs(value - initial[index]) < 0.000001
+    );
 
   const sync = () => {
     const rotation = tool === "rotate";
@@ -194,10 +219,14 @@ export default async function edit(file, options = {}) {
     const sine = Math.sin(radians);
     const horizontal = Math.abs(cosine);
     const vertical = Math.abs(sine);
-    const base = Math.max(stageWidth / sourceWidth, stageHeight / sourceHeight);
+    const rotated = bounds(sourceWidth, sourceHeight, model.angle);
+    const base =
+      shape === "original"
+        ? Math.min(stageWidth / rotated.width, stageHeight / rotated.height)
+        : Math.max(stageWidth / sourceWidth, stageHeight / sourceHeight);
 
     const cover =
-      shape === "circle"
+      shape === "circle" || shape === "original"
         ? base
         : Math.max(
             (stageWidth * horizontal + stageHeight * vertical) / sourceWidth,
@@ -232,7 +261,7 @@ export default async function edit(file, options = {}) {
       return;
     }
 
-    model.view = { width: stageWidth, height: stageHeight, cover };
+    model.view = { width: stageWidth, height: stageHeight, base, cover };
 
     const zoom = base * model.scale;
     const localX = model.x * cosine + model.y * sine;
@@ -256,6 +285,19 @@ export default async function edit(file, options = {}) {
     model.x = nextX * cosine - nextY * sine;
     model.y = nextX * sine + nextY * cosine;
 
+    if (shape === "original") {
+      const rotated = bounds(
+        sourceWidth * zoom,
+        sourceHeight * zoom,
+        model.angle
+      );
+      const limitX = Math.max(0, (rotated.width - stageWidth) / 2);
+      const limitY = Math.max(0, (rotated.height - stageHeight) / 2);
+
+      model.x = clamp(localX * cosine - localY * sine, -limitX, limitX);
+      model.y = clamp(localX * sine + localY * cosine, -limitY, limitY);
+    }
+
     css.set(root, {
       "--image-width": `${sourceWidth * base}px`,
       "--image-height": `${sourceHeight * base}px`,
@@ -265,6 +307,7 @@ export default async function edit(file, options = {}) {
       "--image-angle": `${model.angle}deg`
     });
     sync();
+    root.dispatchEvent(new Event("input", { bubbles: true }));
   };
 
   const render = () => {
@@ -284,7 +327,17 @@ export default async function edit(file, options = {}) {
     const stageHeight = stage.clientHeight;
 
     if (!stageWidth || !stageHeight) return;
-    if (layout.width && layout.height) {
+    if (shape === "original" && model.view?.base) {
+      const rotated = bounds(sourceWidth, sourceHeight, model.angle);
+      const base = Math.min(
+        stageWidth / rotated.width,
+        stageHeight / rotated.height
+      );
+      const ratio = base / model.view.base;
+
+      model.x *= ratio;
+      model.y *= ratio;
+    } else if (layout.width && layout.height) {
       model.x *= stageWidth / layout.width;
       model.y *= stageHeight / layout.height;
     }
@@ -507,6 +560,8 @@ export default async function edit(file, options = {}) {
     model.x = nextX;
     model.y = nextY;
     model.angle += difference;
+    size();
+    if (shape === "original") measure();
     render();
   };
 
@@ -552,15 +607,19 @@ export default async function edit(file, options = {}) {
           const number = (value, fallback = 0) =>
             Number.isFinite(Number(value)) ? Number(value) : fallback;
 
+          model.angle = number(options.edit.angle) % 360;
+          size();
+          measure();
           Object.assign(model, {
-            angle: number(options.edit.angle) % 360,
             scale: clamp(number(options.edit.scale, 1), 1, 3),
             x: number(options.edit.x) * layout.width,
             y: number(options.edit.y) * layout.height
           });
           paint();
         }
+        initial = state();
         sync();
+        root.dispatchEvent(new Event("input", { bubbles: true }));
       },
       actions: [
         {
@@ -568,7 +627,7 @@ export default async function edit(file, options = {}) {
           icon: "check",
           head: true,
           value: true,
-          data: ["data-confirm"],
+          disabled: unchanged,
           run: () => tapping.cancel()
         }
       ],

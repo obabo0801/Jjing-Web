@@ -24,6 +24,10 @@ export const get = (value) => {
 
 export const remove = (value) => links.delete(value);
 
+export const disconnect = (uid) => {
+  for (const [key, item] of links) if (item.uid === uid) links.delete(key);
+};
+
 export const refresh = (item) => {
   item.expires = Date.now() + expire;
 };

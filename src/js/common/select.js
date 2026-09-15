@@ -4,6 +4,7 @@ import * as css from "#common/css";
 import popover from "#common/popover";
 import sound from "#common/sound";
 import vibrate from "#common/vibrate";
+import * as route from "#common/route";
 
 const bound = new WeakSet();
 const pending = new WeakSet();
@@ -124,6 +125,10 @@ const fullscreen = async (session) => {
   pending.add(element);
   try {
     const result = await popover({
+      route:
+        source(element)?.name || source(element)?.id
+          ? ["select", source(element).name || source(element).id]
+          : undefined,
       content,
       fullscreen: true,
       direction: "left",
@@ -147,7 +152,7 @@ const fullscreen = async (session) => {
   }
 };
 
-const open = (element) => {
+const open = (element, full = false) => {
   const input = source(element);
   const list = menu(element);
 
@@ -156,11 +161,12 @@ const open = (element) => {
   }
 
   close();
-  const mode = dom.has("wearable")
-    ? "fullscreen"
-    : dom.get(element, "data-expand") !== null
-      ? "expand"
-      : "float";
+  const mode =
+    full || dom.has("wearable")
+      ? "fullscreen"
+      : dom.get(element, "data-expand") !== null
+        ? "expand"
+        : "float";
 
   const session = { element, list, mode, off: [], closed: false };
 
@@ -175,8 +181,7 @@ const open = (element) => {
   session.off.push(() => observer.disconnect());
 
   if (mode === "fullscreen") {
-    fullscreen(session);
-    return;
+    return fullscreen(session);
   }
 
   session.off.push(back.add(() => close(true)));
@@ -365,3 +370,13 @@ export function listen() {
     options[next]?.scrollIntoView({ block: "nearest" });
   });
 }
+
+route.register("select", (id) => {
+  const element = dom.all(".select").find((item) => {
+    const input = source(item);
+
+    return id && (input?.name || input?.id) === id;
+  });
+
+  return element ? open(element, true) : false;
+});

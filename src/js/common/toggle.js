@@ -1,6 +1,7 @@
 import * as dom from "#common/dom";
 import drawer from "#common/drawer";
 import * as i18n from "#common/i18n";
+import * as route from "#common/route";
 
 i18n.preload("toggle.on", "toggle.off");
 
@@ -111,6 +112,9 @@ const open = async (element, source) => {
 
   try {
     await drawer({
+      route: dom.get(element, "data-route")
+        ? ["authority", dom.get(element, "data-route")]
+        : undefined,
       content: create(element, source, target),
       toolbar,
       back: true,
@@ -174,3 +178,16 @@ export function listen() {
     }
   });
 }
+
+route.register(
+  "authority",
+  (id) => {
+    const element = dom
+      .all(".toggle")
+      .find((item) => dom.get(item, "data-route") === id);
+    const source = element && input(element);
+
+    return source ? open(element, source) : false;
+  },
+  "drawer"
+);

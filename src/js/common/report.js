@@ -22,7 +22,7 @@ i18n.preload(
   ...rules.reasons.map((reason) => `report.${reason}`)
 );
 
-export default function report(type, target, own = false) {
+export default function report(type, target, own = false, evidence) {
   if (
     own ||
     !target ||
@@ -100,7 +100,8 @@ export default function report(type, target, own = false) {
                   type,
                   target,
                   reason: select.value,
-                  detail: detail.value
+                  detail: detail.value,
+                  ...(evidence && { evidence })
                 }
               });
 

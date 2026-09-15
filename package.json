@@ -6,6 +6,7 @@
     "node": ">=24"
   },
   "imports": {
+    "#package": "./package.json",
     "#common/*": "./src/js/common/*.js",
     "#config/*": "./config/*.js",
     "#shared/*": "./shared/*.js",
@@ -43,6 +44,7 @@
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
     "firebase-admin": "^14.3.0",
+    "google-auth-library": "^11.0.2",
     "qrcode": "^1.5.4",
     "sharp": "^0.35.4",
     "sqlite3": "^6.0.1",

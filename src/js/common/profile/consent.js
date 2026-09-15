@@ -1,6 +1,7 @@
 import * as dom from "#common/dom";
 import * as i18n from "#common/i18n";
 import * as version from "#shared/consent";
+import legal from "#common/legal";
 
 const keys = ["all", "terms", "privacy", "view", "error"];
 
@@ -55,8 +56,12 @@ export default function consent() {
     row.className = "setup-consent-row";
 
     link.href = `/${key}`;
-    link.target = "_blank";
-    link.rel = "noopener";
+    dom.on(link, "click", (event) => {
+      if (event.ctrlKey || event.metaKey || event.shiftKey || event.altKey)
+        return;
+      event.preventDefault();
+      legal(key);
+    });
 
     text(link, "view");
 

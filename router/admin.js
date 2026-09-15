@@ -1,53 +1,21 @@
 import { raw, Router } from "express";
 
-import fcm, * as firebase from "#service/fcm";
-import store from "#service/image";
-import record from "#service/log/notify";
-import webpush, * as push from "#service/push";
-import { all, run } from "#db";
+import fcm, * as firebase from "../service/fcm.js";
+import store from "../service/image.js";
+import record from "../service/log/notify.js";
+import * as push from "../service/push.js";
+import { all, run } from "../db/index.js";
 
-import string from "#shared/string";
+import string from "../shared/string.js";
 
-import admin from "#middleware/admin";
+import admin from "../middleware/admin.js";
+import * as management from "#service/admin";
+import * as role from "#shared/role";
 
 const upload = raw({
   type: ["image/jpeg", "image/png", "image/webp"],
   limit: "5mb"
 });
-
-const sendWeb = async (rows, value) => {
-  let sent = 0;
-  let failed = 0;
-
-  await Promise.all(
-    rows.map(async (row) => {
-      try {
-        await webpush.sendNotification(
-          JSON.parse(row.data),
-          JSON.stringify(value),
-          { TTL: 300 }
-        );
-        sent += 1;
-      } catch (error) {
-        if ([404, 410].includes(error.statusCode)) {
-          await run(
-            `
-            DELETE FROM web
-            WHERE endpoint = ?
-          `,
-            [row.endpoint]
-          );
-
-          return;
-        }
-
-        failed += 1;
-      }
-    })
-  );
-
-  return { sent, failed };
-};
 
 const sendFcm = async (rows, value) => {
   let results;
@@ -88,9 +56,30 @@ const sendFcm = async (rows, value) => {
 const router = Router();
 
 router.use(admin);
+router.use((_, res, next) => {
+  res.set("Cache-Control", "private, no-store");
+  next();
+});
 
-router.get("/", (_, res) => {
-  res.status(204).end();
+router.get("/", (req, res) => {
+  res.json({ database: req.user.role === role.root });
+});
+
+router.get("/users", async (req, res) => {
+  res.json(await management.users(req.query));
+});
+
+router.get("/status", async (_, res) => {
+  res.json(await management.status());
+});
+
+router.use("/database", (req, res, next) => {
+  if (req.user.role !== role.root) return res.status(403).end();
+  next();
+});
+router.get("/database", (_, res) => res.json(management.catalogue()));
+router.get("/database/:table", async (req, res) => {
+  res.json(await management.list(req.params.table, req.query));
 });
 
 router.post("/image", upload, async (req, res) => {
@@ -168,7 +157,7 @@ router.post("/", async (req, res) => {
   const wear = devices.filter(({ device }) => device === "wearable");
 
   const [webResult, fcmResult] = await Promise.all([
-    sendWeb(web, value),
+    push.send(web, value),
     sendFcm(wear, native)
   ]);
   const sent = webResult.sent + fcmResult.sent;

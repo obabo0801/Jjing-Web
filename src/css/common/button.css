@@ -27,8 +27,8 @@ button {
 }
 
 button[data-circle] {
-  width: 60px;
-  height: 60px;
+  width: var(--control-size);
+  height: var(--control-size);
   padding: 0;
   border-radius: 999px;
 }

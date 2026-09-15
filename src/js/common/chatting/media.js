@@ -2,6 +2,7 @@ import * as dom from "#common/dom";
 import * as i18n from "#common/i18n";
 import * as rules from "#shared/attachment";
 import view from "#common/image/view";
+import * as giphy from "#common/giphy";
 
 i18n.preload("chatting.attach.reveal");
 
@@ -22,6 +23,22 @@ export default function media(target, options) {
 
   if (!rules.valid(items)) return;
   for (const item of items) {
+    if (item.provider === "giphy") {
+      const button = dom.create("button");
+
+      button.type = "button";
+      button.className = "chatting-image";
+      dom.set(button, "data-giphy", item.type);
+      giphy.image(button, item);
+      dom.on(button, "click", () => {
+        const image = button.querySelector("img");
+
+        if (image?.src && !image.hidden)
+          view(image.src, button, "", `giphy-${item.id}`);
+      });
+      target.append(button);
+      continue;
+    }
     const button = dom.create("button");
     const image = dom.create("img");
     const sticker = item.type === "ogq";

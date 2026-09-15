@@ -2,6 +2,9 @@ import sqlite3 from "sqlite3";
 import * as path from "#config/path";
 import * as chat from "#service/chatting";
 import * as history from "#shared/history";
+import { publicName } from "#config/uid";
+import * as db from "#db";
+import * as snapshots from "#service/history";
 
 const invalid = () => {
   throw Object.assign(new Error("Invalid history query"), { status: 400 });
@@ -31,14 +34,31 @@ export const chatting = async (user, uid, query) => {
 
   const items = page.messages
     .reverse()
-    .map(({ url, text, time, image, audio, deleted }) => ({
-      url,
-      text,
-      time,
-      ...(image && { image }),
-      ...(audio && { audio }),
-      ...(deleted && { deleted: true })
-    }));
+    .map(
+      ({
+        url,
+        id,
+        name,
+        text,
+        time,
+        image,
+        preview,
+        attachments,
+        audio,
+        deleted
+      }) => ({
+        url,
+        id,
+        name,
+        text,
+        time,
+        ...(image && { image }),
+        ...(preview && { preview }),
+        ...(attachments?.length && { attachments }),
+        ...(audio && { audio }),
+        ...(deleted && { deleted: true })
+      })
+    );
 
   return {
     items,
@@ -76,16 +96,18 @@ const read = (file, uid, before, limit, sanctions, filter, totals = false) =>
       ];
 
       db.all(
-        "SELECT name FROM sqlite_master WHERE type = 'table' AND name IN ('block','sanction')",
+        "SELECT name, sql FROM sqlite_master WHERE type = 'table' AND name IN ('block','sanction')",
         (error, tables) => {
           if (error) return done(error);
           if (sanctions) {
             const parts = tables
               .filter(({ name }) => ["block", "sanction"].includes(name))
               .map(
-                ({ name }) =>
+                ({ name, sql }) =>
                   `SELECT rowid AS seq, ${name === "block" ? 0 : 1} AS kind,
-                action,time,reason,handler,${name === "block" ? "NULL AS until" : "until"}
+                action,time,reason,handler,
+                ${/\bactor\b/i.test(sql) ? "actor" : "NULL AS actor"},${name === "block" ? "NULL AS until" : "until"},
+                ${/\bsnapshot\b/i.test(sql) ? "snapshot" : "NULL AS snapshot"}
                 FROM ${name} WHERE uid = ?`
               );
 
@@ -121,7 +143,10 @@ const read = (file, uid, before, limit, sanctions, filter, totals = false) =>
             return;
           }
           db.all(
-            `SELECT rowid AS seq, action, time, reason, handler FROM block
+            `SELECT rowid AS seq, action, time, reason, handler,
+              ${/\bactor\b/i.test(tables.find(({ name }) => name === "block").sql) ? "actor" : "NULL AS actor"},
+              ${/\bsnapshot\b/i.test(tables.find(({ name }) => name === "block").sql) ? "snapshot" : "NULL AS snapshot"}
+              FROM block
               WHERE uid = ? AND rowid < ? AND ${condition}
               ORDER BY rowid DESC LIMIT ?`,
             [uid, before, ...params, limit],
@@ -217,6 +242,7 @@ export const block = async (uid, query, sanctions = false) => {
   }
 
   const items = [];
+  const handlers = new Map();
 
   let next = null;
 
@@ -238,9 +264,20 @@ export const block = async (uid, query, sanctions = false) => {
       filter
     );
 
-    for (const { seq, kind, ...row } of rows) {
+    for (const { seq, kind, actor, ...row } of rows) {
       if (items.length === limit) return { items, next, ...summary };
-      items.push(row);
+      if (actor && !handlers.has(actor)) {
+        const user = await db.get("SELECT id FROM user WHERE uid = ?", [actor]);
+
+        handlers.set(actor, user?.id || "");
+      }
+      items.push({
+        ...row,
+        ...(handlers.get(actor) && { handlerId: handlers.get(actor) }),
+        handler: publicName(row.handler),
+        snapshot: snapshots.read(row.snapshot)
+      });
+
       next = sanctions
         ? Buffer.from(JSON.stringify([date, row.time, kind, seq])).toString(
             "base64url"
