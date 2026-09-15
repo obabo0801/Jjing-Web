@@ -67,8 +67,8 @@
   overflow: hidden;
 }
 
-:root[data-keypad-reveal]:has(.keypad[data-open]),
-:root[data-keypad-reveal]:has(.keypad[data-close]) {
+:root[data-unlock]:has(.keypad[data-open]),
+:root[data-unlock]:has(.keypad[data-close]) {
   overflow: auto;
 }
 

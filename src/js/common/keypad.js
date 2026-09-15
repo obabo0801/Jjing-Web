@@ -43,7 +43,7 @@ const reveal = (target, keypad) => {
     return;
   }
 
-  dom.set(dom.root, "data-keypad-reveal", "");
+  dom.set(dom.root, "data-unlock", "");
 
   target.scrollIntoView({ behavior: "auto", block: "nearest", inline: "nearest" });
 
@@ -54,7 +54,7 @@ const reveal = (target, keypad) => {
     dom.scroller.scrollTop += bottom - top + 12;
   }
 
-  dom.remove(dom.root, "data-keypad-reveal");
+  dom.remove(dom.root, "data-unlock");
 };
 
 const write = (input, value) => {
