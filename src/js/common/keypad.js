@@ -1,3 +1,4 @@
+import * as css from "#common/css";
 import * as dom from "#common/dom";
 import * as back from "#common/back";
 import { pause } from "#common/scroll";
@@ -166,7 +167,7 @@ export default function keypad(root, actions = {}) {
 
     const height = element.scrollHeight;
 
-    dom.root.style.setProperty("--keypad-height", `${height}px`);
+    css.set(dom.root, { "--keypad-height": `${height}px` });
     reveal(state.field, element);
   };
 
@@ -241,7 +242,7 @@ export default function keypad(root, actions = {}) {
 
       pause();
       dom.remove(element, "data-close");
-      dom.root.style.removeProperty("--keypad-height");
+      css.set(dom.root, { "--keypad-height": null });
     });
   };
 
