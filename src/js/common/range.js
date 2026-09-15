@@ -9,9 +9,7 @@ const paint = (input) => {
   const max = Number(input.max || 100);
   const value = Number(input.value);
   const size = max - min;
-  const percent = size
-    ? Math.min(100, Math.max(0, ((value - min) / size) * 100))
-    : 0;
+  const percent = size ? Math.min(100, Math.max(0, ((value - min) / size) * 100)) : 0;
   const container = input.closest(".range");
   const fill = dom.query(".range-fill", container);
   const thumb = dom.query(".range-thumb", container);
@@ -89,11 +87,7 @@ const drag = (input) => {
   });
 
   dom.on(input, "pointermove", (event) => {
-    if (
-      !pointer ||
-      event.pointerId !== pointer.id ||
-      Math.abs(event.clientX - pointer.x) < 4
-    ) {
+    if (!pointer || event.pointerId !== pointer.id || Math.abs(event.clientX - pointer.x) < 4) {
       return;
     }
 

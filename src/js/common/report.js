@@ -30,6 +30,7 @@ export default function report(type, target, own = false, evidence) {
     (type === "message" && !validId(target))
   )
     return Promise.resolve(false);
+
   return opening("report", async () => {
     const root = dom.create("div");
     const field = dom.create("div");
@@ -50,6 +51,7 @@ export default function report(type, target, own = false, evidence) {
       dom.set(option, "data-i18n", key);
       select.append(option);
     }
+
     field.append(select);
     input.className = "input";
     detail.name = "report-detail";
@@ -63,6 +65,7 @@ export default function report(type, target, own = false, evidence) {
     status.textContent = i18n.message("report.error");
     dom.set(status, "data-i18n", "report.error");
     root.append(field, input, status);
+
     let busy = false;
     let active = true;
     let request;
@@ -73,12 +76,7 @@ export default function report(type, target, own = false, evidence) {
         content: root,
         direction: "→",
         actions: [
-          {
-            text: "profile.cancel",
-            icon: "close",
-            value: false,
-            data: ["data-neutral"]
-          },
+          { text: "profile.cancel", icon: "close", value: false, data: ["data-neutral"] },
           {
             text: "report.send",
             icon: "flag",
@@ -86,13 +84,13 @@ export default function report(type, target, own = false, evidence) {
             data: ["data-confirm"],
             disabled: () => busy || !rules.reasons.includes(select.value),
             run: async () => {
-              if (!active || busy || !rules.reasons.includes(select.value))
-                return false;
+              if (!active || busy || !rules.reasons.includes(select.value)) return false;
               busy = true;
               status.hidden = true;
               select.disabled = true;
               detail.disabled = true;
               request = new AbortController();
+
               const result = await api(path, {
                 method: "POST",
                 signal: request.signal,
@@ -111,9 +109,12 @@ export default function report(type, target, own = false, evidence) {
                 select.disabled = false;
                 detail.disabled = false;
                 status.hidden = false;
+
                 return false;
               }
+
               toast({ type: "success", text: "report.success" });
+
               return true;
             }
           }

@@ -24,9 +24,7 @@ const bytes = async (url) => {
 async function index(source, state) {
   let cursor = source === "message" ? 0 : state.cursor;
 
-  const high = (
-    await db.get(`SELECT COALESCE(MAX(seq),0) AS seq FROM ${source}`)
-  ).seq;
+  const high = (await db.get(`SELECT COALESCE(MAX(seq),0) AS seq FROM ${source}`)).seq;
 
   while (cursor < high) {
     const rows = await db.all(
@@ -41,33 +39,23 @@ async function index(source, state) {
       const items = attachment
         .read(row.attachments)
         .filter((item) => item.image)
-        .map((item) => ({
-          kind: "image",
-          url: item.image,
-          preview: item.preview
-        }));
+        .map((item) => ({ kind: "image", url: item.image, preview: item.preview }));
 
-      if (
-        row.image &&
-        !items.some((item) => item.url === media.resolve(row.image))
-      )
+      if (row.image && !items.some((item) => item.url === media.resolve(row.image)))
         items.push({
           kind: "image",
           url: media.resolve(row.image),
           preview: media.resolve(row.preview || row.image)
         });
-      if (row.audio)
-        items.push({ kind: "file", url: media.resolve(row.audio) });
-      for (const url of new Set(
-        (row.text || "").match(/https?:\/\/[^\s<>"']+/gi) || []
-      )) {
+      if (row.audio) items.push({ kind: "file", url: media.resolve(row.audio) });
+      for (const url of new Set((row.text || "").match(/https?:\/\/[^\s<>"']+/gi) || [])) {
         try {
           const parsed = new URL(url.replace(/[.,!?;:)}\]]+$/, ""));
 
-          if (!parsed.username && !parsed.password)
-            items.push({ kind: "link", url: parsed.href });
+          if (!parsed.username && !parsed.password) items.push({ kind: "link", url: parsed.href });
         } catch {}
       }
+
       for (const [slot, item] of items.entries()) {
         const url = media.resolve(item.url);
 
@@ -85,6 +73,7 @@ async function index(source, state) {
           ]
         );
       }
+
       if (source === "message")
         await db.run(
           `INSERT OR IGNORE INTO message_asset
@@ -103,10 +92,7 @@ export const list = async (user, query, room = "") => {
   const kind = query.kind || "image";
   const before = query.before === undefined ? null : query.before;
 
-  if (
-    !["image", "file", "link"].includes(kind) ||
-    (before !== null && !/^\d+:\d+$/.test(before))
-  )
+  if (!["image", "file", "link"].includes(kind) || (before !== null && !/^\d+:\d+$/.test(before)))
     throw Object.assign(new Error("Invalid asset query"), { status: 400 });
   if (!indexes.has(source)) indexes.set(source, { cursor: 0 });
   const state = indexes.get(source);
@@ -115,6 +101,7 @@ export const list = async (user, query, room = "") => {
     state.pending = undefined;
   });
   await state.pending;
+
   const base = room
     ? `FROM message_asset a JOIN message chatting ON chatting.seq = a.seq
       WHERE a.kind = ? AND chatting.deleted IS NULL AND chatting.room = ?
@@ -142,18 +129,14 @@ export const list = async (user, query, room = "") => {
   return {
     count: totals.count,
     size: totals.unknown ? null : totals.size || 0,
-    items: items.map(({ seq, slot, ...item }) => ({
-      ...item,
-      id: `${seq}:${slot}`
-    })),
+    items: items.map(({ seq, slot, ...item }) => ({ ...item, id: `${seq}:${slot}` })),
     next: rows.length > 24 ? `${items.at(-1).seq}:${items.at(-1).slot}` : null
   };
 };
 
 export const preview = async (user, id, room = "") => {
   if (room) await rooms.read(user, room);
-  if (!/^\d+:\d+$/.test(id))
-    throw Object.assign(new Error("Invalid asset"), { status: 400 });
+  if (!/^\d+:\d+$/.test(id)) throw Object.assign(new Error("Invalid asset"), { status: 400 });
   const row = await db.get(
     room
       ? `SELECT a.url FROM message_asset a
@@ -171,5 +154,6 @@ export const preview = async (user, id, room = "") => {
   );
 
   if (!row) throw Object.assign(new Error("Missing asset"), { status: 404 });
+
   return metadata(row.url);
 };

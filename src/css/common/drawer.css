@@ -5,8 +5,6 @@ dialog[data-drawer] {
   max-width: none;
   height: 100dvh;
   max-height: none;
-
-  border: 0;
 }
 
 dialog[data-drawer][open]:has(.chatting.direct) {
@@ -16,11 +14,9 @@ dialog[data-drawer][open]:has(.chatting.direct) {
 dialog[data-drawer][data-side="left"] {
   inset-inline-start: 0;
   inset-inline-end: auto;
-  border-inline-start: 0;
 }
 
 dialog[data-drawer][data-side="right"] {
   inset-inline-start: auto;
   inset-inline-end: 0;
-  border-inline-end: 0;
 }

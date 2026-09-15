@@ -15,11 +15,7 @@ const icons = {
   minus: ["M5 12h14"],
   edit: ["M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"],
   copy: ["M8 8h12v12H8z", "M4 16V4h12"],
-  delete: [
-    "M21 4H8l-7 8 7 8h13a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2Z",
-    "m10 9 6 6",
-    "m16 9-6 6"
-  ],
+  delete: ["M21 4H8l-7 8 7 8h13a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2Z", "m10 9 6 6", "m16 9-6 6"],
   trash: ["M3 6h18", "M5 6l1 15h12l1-15", "M9 6V3h6v3", "M10 10v7M14 10v7"],
   close: ["M18 6 6 18", "m6 6 12 12"],
   reload: ["M20 11a8 8 0 1 0-2.34 5.66", "M20 4v7h-7"],
@@ -36,18 +32,11 @@ const icons = {
   pin: ["M8 3h8l-1 7 4 4v2H5v-2l4-4Z", "M12 16v6"],
   info: ["M21 12a9 9 0 1 1-18 0" + " 9 9 0 0 1 18 0Z", "M12 11v5", "M12 8h.01"],
   warning: [
-    "M21.73 18l-8-14" +
-      "a2 2 0 0 0-3.46 0" +
-      "l-8 14A2 2 0 0 0 4 21h16" +
-      "a2 2 0 0 0 1.73-3Z",
+    "M21.73 18l-8-14" + "a2 2 0 0 0-3.46 0" + "l-8 14A2 2 0 0 0 4 21h16" + "a2 2 0 0 0 1.73-3Z",
     "M12 9v4",
     "M12 17h.01"
   ],
-  error: [
-    "M21 12a9 9 0 1 1-18 0" + " 9 9 0 0 1 18 0Z",
-    "M12 8v5",
-    "M12 17h.01"
-  ],
+  error: ["M21 12a9 9 0 1 1-18 0" + " 9 9 0 0 1 18 0Z", "M12 8v5", "M12 17h.01"],
   throbber: ["M21 12a9 9 0 1 1-9-9"],
   "eye-off": [
     "m3 3 18 18",
@@ -69,8 +58,7 @@ const icons = {
 
   // Chat
   chat: [
-    "M5 3h14a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2h-7l-4 3v-3H5" +
-      "a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z",
+    "M5 3h14a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2h-7l-4 3v-3H5" + "a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z",
     "M8 10.5h.01M12 10.5h.01M16 10.5h.01"
   ],
   send: ["M22 2 15 22l-4-9-9-4Z", "M22 2 11 13"],
@@ -93,10 +81,7 @@ const icons = {
   flag: ["M5 22V4", "M5 4h12l-2 4 2 4H5"],
 
   // Notifications
-  notify: [
-    "M18 8a6 6 0 0 0-12 0" + "c0 7-3 7-3 9h18" + "c0-2-3-2-3-9",
-    "M10 21h4"
-  ],
+  notify: ["M18 8a6 6 0 0 0-12 0" + "c0 7-3 7-3 9h18" + "c0-2-3-2-3-9", "M10 21h4"],
   "notify-mute": [
     "M18 8a6 6 0 0 0-12 0" + "c0 7-3 7-3 9h18" + "c0-2-3-2-3-9",
     "M10 21h4",
@@ -106,11 +91,7 @@ const icons = {
   "vibration-off": ["M8 6h8v12H8z"],
 
   // Media and sound
-  image: [
-    "M3 5h18v14H3Z",
-    "M8.5 11a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3Z",
-    "m3 17 5-5 4 4 3-3 6 6"
-  ],
+  image: ["M3 5h18v14H3Z", "M8.5 11a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3Z", "m3 17 5-5 4 4 3-3 6 6"],
   camera: [
     "M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9" +
       "a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9" +
@@ -146,11 +127,7 @@ const icons = {
     "M3 3l18 18"
   ],
   wave: ["M4 10v4", "M8 7v10", "M12 4v16", "M16 7v10", "M20 10v4"],
-  sound: [
-    "M11 5 6 9H2v6h4l5 4Z",
-    "M15.54 8.46a5 5 0 0 1 0 7.07",
-    "M18.36 5.64a9 9 0 0 1 0 12.73"
-  ],
+  sound: ["M11 5 6 9H2v6h4l5 4Z", "M15.54 8.46a5 5 0 0 1 0 7.07", "M18.36 5.64a9 9 0 0 1 0 12.73"],
   "volume-high": [
     "M11 5 6 9H2v6h4l5 4Z",
     "M15.54 8.46a5 5 0 0 1 0 7.07",
@@ -247,10 +224,7 @@ const icons = {
     "M4 4h16a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Z",
     "m22 6-10 7L2 6"
   ],
-  search: [
-    "M21 21l-4.35-4.35",
-    "M10.5 18a7.5 7.5 0 1 0 0-15" + " 7.5 7.5 0 0 0 0 15Z"
-  ],
+  search: ["M21 21l-4.35-4.35", "M10.5 18a7.5 7.5 0 1 0 0-15" + " 7.5 7.5 0 0 0 0 15Z"],
   calendar: ["M3 5h18v16H3Z", "M3 10h18", "M7 3v4", "M17 3v4"],
   clock: ["M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20Z", "M12 6v6l4 2"]
 };
@@ -258,20 +232,12 @@ const icons = {
 icons.mention = [
   ...icons.user.map((d) => [
     "path",
-    {
-      d,
-      transform: "translate(4 4) scale(.6667)",
-      fill: "currentColor",
-      stroke: "none"
-    }
+    { d, transform: "translate(4 4) scale(.6667)", fill: "currentColor", stroke: "none" }
   ]),
   "M7 2H2v5M17 2h5v5M2 17v5h5M22 17v5h-5"
 ];
 
-icons["notify-ring"] = [
-  ...icons.notify,
-  "M4 3a9 9 0 0 0-2 5M20 3a9 9 0 0 1 2 5"
-];
+icons["notify-ring"] = [...icons.notify, "M4 3a9 9 0 0 0-2 5M20 3a9 9 0 0 1 2 5"];
 
 // Korean flag geometry: flag-icons (MIT), assets/flags/LICENSE.
 const colors = {
@@ -291,34 +257,17 @@ const colors = {
                 "g",
                 {},
                 [
-                  [
-                    "path",
-                    {
-                      fill: "#000001",
-                      d: "M-6-26H6v2H-6Zm0 3H6v2H-6Zm0 3H6v2H-6Z"
-                    }
-                  ],
+                  ["path", { fill: "#000001", d: "M-6-26H6v2H-6Zm0 3H6v2H-6Zm0 3H6v2H-6Z" }],
                   [
                     "g",
                     { transform: "translate(0 44)" },
-                    [
-                      [
-                        "path",
-                        {
-                          fill: "#000001",
-                          d: "M-6-26H6v2H-6Zm0 3H6v2H-6Zm0 3H6v2H-6Z"
-                        }
-                      ]
-                    ]
+                    [["path", { fill: "#000001", d: "M-6-26H6v2H-6Zm0 3H6v2H-6Zm0 3H6v2H-6Z" }]]
                   ]
                 ]
               ],
               ["path", { stroke: "#fff", d: "M0 17v10" }],
               ["path", { fill: "#cd2e3a", d: "M0-12a12 12 0 0 1 0 24Z" }],
-              [
-                "path",
-                { fill: "#0047a0", d: "M0-12a12 12 0 0 0 0 24A6 6 0 0 0 0 0Z" }
-              ],
+              ["path", { fill: "#0047a0", d: "M0-12a12 12 0 0 0 0 24A6 6 0 0 0 0 0Z" }],
               ["circle", { cy: "-6", r: "6", fill: "#cd2e3a" }]
             ]
           ],
@@ -334,25 +283,11 @@ const colors = {
                     "g",
                     {},
                     [
-                      [
-                        "path",
-                        {
-                          fill: "#000001",
-                          d: "M-6-26H6v2H-6Zm0 3H6v2H-6Zm0 3H6v2H-6Z"
-                        }
-                      ],
+                      ["path", { fill: "#000001", d: "M-6-26H6v2H-6Zm0 3H6v2H-6Zm0 3H6v2H-6Z" }],
                       [
                         "g",
                         { transform: "translate(0 44)" },
-                        [
-                          [
-                            "path",
-                            {
-                              fill: "#000001",
-                              d: "M-6-26H6v2H-6Zm0 3H6v2H-6Zm0 3H6v2H-6Z"
-                            }
-                          ]
-                        ]
+                        [["path", { fill: "#000001", d: "M-6-26H6v2H-6Zm0 3H6v2H-6Zm0 3H6v2H-6Z" }]]
                       ]
                     ]
                   ]
@@ -383,21 +318,12 @@ const colors = {
     viewBox: "0 0 24 24",
     paths: [
       ["circle", { cx: "12", cy: "12", r: "5", fill: "#ffd877" }],
-      [
-        "path",
-        {
-          d: "M12 2v2m0 16v2M2 12h2m16 0h2",
-          stroke: "#eead36",
-          "stroke-width": "2"
-        }
-      ]
+      ["path", { d: "M12 2v2m0 16v2M2 12h2m16 0h2", stroke: "#eead36", "stroke-width": "2" }]
     ]
   },
   moon: {
     viewBox: "0 0 24 24",
-    paths: [
-      ["path", { d: "M19 16A9 9 0 0 1 8 3a9 9 0 1 0 11 13Z", fill: "#a8bffa" }]
-    ]
+    paths: [["path", { d: "M19 16A9 9 0 0 1 8 3a9 9 0 1 0 11 13Z", fill: "#a8bffa" }]]
   },
   "moon-full": {
     viewBox: "0 0 24 24",
@@ -515,9 +441,7 @@ for (const name of Object.keys(icons)) {
   };
 }
 
-const images = {
-  google: new URL("../../assets/google/g.png", import.meta.url).href
-};
+const images = { google: new URL("../../assets/google/g.png", import.meta.url).href };
 
 const extensions = ["gif", "ico", "jpeg", "jpg", "png", "svg", "webp"];
 
@@ -565,7 +489,9 @@ const svg = (paths, viewBox = "0 0 24 24", color) => {
           : value
       );
     }
+
     node.append(...children.map(create));
+
     return node;
   };
 
@@ -573,6 +499,7 @@ const svg = (paths, viewBox = "0 0 24 24", color) => {
   icon.classList.add("icon");
   if (color !== undefined) icon.classList.add("icon-color");
   icon.append(...paths.map(create));
+
   return icon;
 };
 
@@ -615,18 +542,13 @@ const image = (source, element) => {
 
   icon.classList.add("icon", "icon-mask");
   css.set(icon, { "--icon-image": `url(${JSON.stringify(source)})` });
+
   return icon;
 };
 
 const render = (element) => {
   dom.query(":scope > .icon", element)?.remove();
-  element.classList.remove(
-    "icon-left",
-    "icon-right",
-    "icon-top",
-    "icon-bottom",
-    "icon-center"
-  );
+  element.classList.remove("icon-left", "icon-right", "icon-top", "icon-bottom", "icon-center");
 
   const value = dom.get(element, "data-icon")?.trim();
 
@@ -640,6 +562,7 @@ const render = (element) => {
 
   if (position) {
     parts.pop();
+
     const classes = position.split("-").map((value) => `icon-${value}`);
 
     element.classList.add(...classes);
@@ -652,8 +575,7 @@ const render = (element) => {
   }
 
   const color = element.hasAttribute("data-color");
-  const colored =
-    Object.hasOwn(colors, name) && (color || !Object.hasOwn(icons, name));
+  const colored = Object.hasOwn(colors, name) && (color || !Object.hasOwn(icons, name));
 
   const icon = colored
     ? svg(colors[name].paths, colors[name].viewBox, color)
@@ -670,10 +592,7 @@ const render = (element) => {
   const degree = Object.hasOwn(angles, angle) ? angles[angle] : Number(angle);
 
   if (Number.isFinite(degree)) {
-    icon.animate(
-      { transform: `rotate(${degree}deg)` },
-      { duration: 0, fill: "forwards" }
-    );
+    icon.animate({ transform: `rotate(${degree}deg)` }, { duration: 0, fill: "forwards" });
   }
 
   element.prepend(icon);
@@ -700,6 +619,7 @@ export default function icon() {
     records.forEach((record) => {
       if (record.type === "attributes") {
         render(record.target);
+
         return;
       }
 

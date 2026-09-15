@@ -13,6 +13,7 @@ const visible = new IntersectionObserver((entries) => {
   for (const entry of entries) {
     if (!entry.isIntersecting) continue;
     visible.unobserve(entry.target);
+
     const item = mounted.get(entry.target);
 
     if (item) {
@@ -38,6 +39,7 @@ const request = async (path, params, signal) => {
   const url = new URL(`https://api.giphy.com/v1/${path}`);
 
   url.search = new URLSearchParams({ api_key: key, ...params });
+
   const response = await fetch(url, {
     signal: signal
       ? AbortSignal.any([signal, AbortSignal.timeout(10000)])
@@ -51,6 +53,7 @@ const request = async (path, params, signal) => {
   const body = await response.json();
 
   if (!Array.isArray(body.data)) throw new Error("Invalid GIPHY response");
+
   return body;
 };
 
@@ -68,9 +71,7 @@ export const list = async (type, query, offset, signal, limit = 24) => {
       media: item
     })),
     next: offset + result.data.length,
-    more:
-      result.data.length > 0 &&
-      offset + result.data.length < result.pagination?.total_count
+    more: result.data.length > 0 && offset + result.data.length < result.pagination?.total_count
   };
 };
 
@@ -84,6 +85,7 @@ const lookup = (id, signal) =>
       const entries = queue;
 
       queue = [];
+
       const active = entries.filter((entry) => !entry.signal.aborted);
       const ids = [...new Set(active.map((entry) => entry.id))];
 
@@ -93,10 +95,7 @@ const lookup = (id, signal) =>
         const waiting = active.filter((entry) => batch.includes(entry.id));
 
         try {
-          const result = await request("gifs", {
-            ids: batch.join(","),
-            rating: "g"
-          });
+          const result = await request("gifs", { ids: batch.join(","), rating: "g" });
 
           for (const entry of waiting)
             entry.resolve(result.data.find((item) => item.id === entry.id));
@@ -136,9 +135,7 @@ export const image = (target, item, { signal, preview = false } = {}) => {
   const loading = progress({ type: "circular", value: 25, show: false });
   const label = dom.create("span");
   const request = new AbortController();
-  const abort = signal
-    ? AbortSignal.any([signal, request.signal])
-    : request.signal;
+  const abort = signal ? AbortSignal.any([signal, request.signal]) : request.signal;
 
   let data = item.media;
   let active = false;
@@ -155,6 +152,7 @@ export const image = (target, item, { signal, preview = false } = {}) => {
   const retries = retry(
     () => {
       data = undefined;
+
       return load();
     },
     () => !stopped && !abort.aborted && target.isConnected
@@ -187,9 +185,7 @@ export const image = (target, item, { signal, preview = false } = {}) => {
 
       if (!url) throw new Error("Unavailable GIPHY media");
       node.alt = data.title || item.type;
-      label.textContent = data.user?.display_name
-        ? `${data.user.display_name} · GIPHY`
-        : "GIPHY";
+      label.textContent = data.user?.display_name ? `${data.user.display_name} · GIPHY` : "GIPHY";
       node.hidden = false;
       node.src = url;
     } catch {
@@ -203,6 +199,7 @@ export const image = (target, item, { signal, preview = false } = {}) => {
     active = false;
   });
   dom.on(node, "error", failed);
+
   const destroy = () => {
     if (stopped) return;
     stopped = true;
@@ -214,15 +211,10 @@ export const image = (target, item, { signal, preview = false } = {}) => {
     loading.destroy();
   };
 
-  if (!mounted.size)
-    removed.observe(document.body, { childList: true, subtree: true });
-  mounted.set(target, {
-    load,
-    destroy,
-    connected: target.isConnected,
-    visible: false
-  });
+  if (!mounted.size) removed.observe(document.body, { childList: true, subtree: true });
+  mounted.set(target, { load, destroy, connected: target.isConnected, visible: false });
   visible.observe(target);
   signal?.addEventListener("abort", destroy, { once: true });
+
   return destroy;
 };

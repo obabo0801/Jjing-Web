@@ -26,26 +26,17 @@ i18n.preload(
 );
 
 const text = () =>
-  Array.from(
-    { length: Math.max(...groups.map((group) => group.items.length)) },
-    (_, index) =>
-      groups.flatMap((group) => {
-        const value = group.items[index];
+  Array.from({ length: Math.max(...groups.map((group) => group.items.length)) }, (_, index) =>
+    groups.flatMap((group) => {
+      const value = group.items[index];
 
-        if (!value) return [];
-        const title = i18n.message(group.title);
-        const label = names.get(value) || title;
-        const kind = i18n.message(`chatting.emoji.${group.type}`);
+      if (!value) return [];
+      const title = i18n.message(group.title);
+      const label = names.get(value) || title;
+      const kind = i18n.message(`chatting.emoji.${group.type}`);
 
-        return [
-          {
-            value,
-            label,
-            type: group.type,
-            search: `${label} ${title} ${kind} ${value}`
-          }
-        ];
-      })
+      return [{ value, label, type: group.type, search: `${label} ${title} ${kind} ${value}` }];
+    })
   ).flat();
 
 export default function suggest(field, view) {
@@ -68,8 +59,7 @@ export default function suggest(field, view) {
   list.append(options, position.element);
 
   const scroll = () => {
-    if (options.scrollHeight - options.clientHeight - options.scrollTop < 80)
-      append();
+    if (options.scrollHeight - options.clientHeight - options.scrollTop < 80) append();
     const range = options.scrollHeight - options.clientHeight;
 
     position.element.hidden = range <= 1;
@@ -80,15 +70,9 @@ export default function suggest(field, view) {
     if (list.hidden) return;
     const viewport = window.visualViewport;
     const parent = view.closest(".chatting") || view.parentElement;
-    const top = Math.max(
-      viewport?.offsetTop || 0,
-      parent.getBoundingClientRect().top
-    );
+    const top = Math.max(viewport?.offsetTop || 0, parent.getBoundingClientRect().top);
 
-    const height = Math.max(
-      0,
-      view.parentElement.getBoundingClientRect().top - top - 12
-    );
+    const height = Math.max(0, view.parentElement.getBoundingClientRect().top - top - 12);
 
     css.set(list, { "--suggest-height": `${Math.floor(height)}px` });
     scroll();
@@ -105,13 +89,8 @@ export default function suggest(field, view) {
   const choose = (index) => {
     const item = items[index];
 
-    if (composing || !current || !item || field.disabled || field.readOnly)
-      return;
-    const active = mention.query(
-      field.value,
-      field.selectionStart,
-      field.selectionEnd
-    );
+    if (composing || !current || !item || field.disabled || field.readOnly) return;
+    const active = mention.query(field.value, field.selectionStart, field.selectionEnd);
 
     if (JSON.stringify(active) !== JSON.stringify(current)) return close();
     const start = field.selectionStart;
@@ -121,8 +100,10 @@ export default function suggest(field, view) {
     close();
     if (!input.insert(field, `${item.value} `)) {
       field.setSelectionRange(start, end);
+
       return;
     }
+
     recent.remember({ type: item.type, value: item.value });
   };
 
@@ -136,12 +117,12 @@ export default function suggest(field, view) {
       const label = dom.create("span");
 
       button.type = "button";
-      label.textContent =
-        current.type === ":" ? `${item.value} ${item.label}` : item.label;
+      label.textContent = current.type === ":" ? `${item.value} ${item.label}` : item.label;
       if (item.image) button.append(emoji.image(item.image, true));
       button.append(label);
       if (item.type === "mention") {
         identity.mark(label, item.verified);
+
         const picture = dom.create("div");
         const status = dom.create("span");
 
@@ -152,6 +133,7 @@ export default function suggest(field, view) {
         picture.append(avatar(item.avatar).root, status);
         button.prepend(picture);
       }
+
       dom.on(button, "click", () => choose(start + offset));
       options.append(button);
     }
@@ -163,11 +145,14 @@ export default function suggest(field, view) {
     if (selected >= options.children.length && items.length) {
       append();
       frame = requestAnimationFrame(mark);
+
       return;
     }
+
     [...options.children].forEach((button, index) => {
       button.toggleAttribute("data-selected", index === selected);
     });
+
     const button = options.children[selected];
 
     if (button) {
@@ -178,6 +163,7 @@ export default function suggest(field, view) {
       else if (bottom > options.scrollTop + options.clientHeight)
         options.scrollTop = bottom - options.clientHeight;
     }
+
     scroll();
   };
 
@@ -199,11 +185,9 @@ export default function suggest(field, view) {
       choices = text();
     } else {
       request = new AbortController();
+
       const result = await api(
-        `${chatting}/mentions?${new URLSearchParams({
-          q: query.value,
-          lang: dom.root.lang
-        })}`,
+        `${chatting}/mentions?${new URLSearchParams({ q: query.value, lang: dom.root.lang })}`,
         { signal: request.signal, cache: "no-store" }
       );
 
@@ -221,6 +205,7 @@ export default function suggest(field, view) {
               }))
           : [];
     }
+
     if (id !== version || document.activeElement !== view) return;
     items = mention.rank(
       choices,
@@ -239,19 +224,15 @@ export default function suggest(field, view) {
   };
 
   const update = () => {
-    if (field.disabled || field.readOnly || document.activeElement !== view)
-      return close();
-    const query = mention.query(
-      field.value,
-      field.selectionStart,
-      field.selectionEnd
-    );
+    if (field.disabled || field.readOnly || document.activeElement !== view) return close();
+    const query = mention.query(field.value, field.selectionStart, field.selectionEnd);
 
     if (!query) return close();
     if (JSON.stringify(query) === JSON.stringify(current)) return;
     request?.abort();
     list.hidden = true;
     current = query;
+
     const id = ++version;
 
     show(query, id).catch(() => {
@@ -297,8 +278,7 @@ export default function suggest(field, view) {
       "keydown",
       (event) => {
         if (list.hidden || event.isComposing || event.keyCode === 229) return;
-        if (!["ArrowUp", "ArrowDown", "Enter", "Escape"].includes(event.key))
-          return;
+        if (!["ArrowUp", "ArrowDown", "Enter", "Escape"].includes(event.key)) return;
         event.preventDefault();
         event.stopImmediatePropagation();
         if (event.key === "Escape") return close();
@@ -311,6 +291,7 @@ export default function suggest(field, view) {
       true
     )
   );
+
   return () => {
     close();
     off.forEach((remove) => remove());

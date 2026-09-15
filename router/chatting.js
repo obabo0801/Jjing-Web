@@ -50,9 +50,7 @@ router.get("/recent", async (req, res) => {
 });
 
 router.get("/direct/message", async (req, res) => {
-  res.json(
-    await direct.list(req.chatUser, req.query.id || "", req.query.before)
-  );
+  res.json(await direct.list(req.chatUser, req.query.id || "", req.query.before));
 });
 
 router.get("/direct/unread", async (req, res) => {
@@ -66,9 +64,7 @@ router.get("/direct/message/:id/room", async (req, res) => {
 });
 
 router.get("/rooms/search", async (req, res) => {
-  res.json(
-    await room.search(req.chatUser, req.query.q || "", req.query.room || "")
-  );
+  res.json(await room.search(req.chatUser, req.query.q || "", req.query.room || ""));
 });
 
 router.post("/rooms", async (req, res) => {
@@ -81,24 +77,11 @@ router.post("/rooms", async (req, res) => {
 });
 
 router.post("/rooms/:id/invite", async (req, res) => {
-  res.json(
-    await room.invite(
-      req.chatUser,
-      req.params.id,
-      req.body?.ids ?? req.body?.id
-    )
-  );
+  res.json(await room.invite(req.chatUser, req.params.id, req.body?.ids ?? req.body?.id));
 });
 
 router.patch("/rooms/:id", async (req, res) => {
-  res.json(
-    await room.manage(
-      req.chatUser,
-      req.params.id,
-      req.body?.action,
-      req.body?.value
-    )
-  );
+  res.json(await room.manage(req.chatUser, req.params.id, req.body?.action, req.body?.value));
 });
 
 router.get("/rooms/:id", async (req, res) => {
@@ -132,27 +115,19 @@ router.delete("/direct/message/:token", async (req, res) => {
 });
 
 router.patch("/direct/message/:id", async (req, res) => {
-  await direct.configure(
-    req.chatUser,
-    req.params.id,
-    req.body?.action,
-    req.body?.value
-  );
+  await direct.configure(req.chatUser, req.params.id, req.body?.action, req.body?.value);
   res.status(204).end();
 });
 
 router.post("/direct/:kind/:id", async (req, res) => {
   if (!allowed(req.chatUser.uid)) return res.status(429).end();
   await chatting.writable(req.chatUser);
+
   const items = req.body?.attachments ?? [];
   const attachments = await attachment.resolve(req.chatUser, items);
-  const result = await direct.send(
-    req.chatUser,
-    req.params.kind,
-    req.params.id,
-    req.body?.text,
-    { attachments }
-  );
+  const result = await direct.send(req.chatUser, req.params.kind, req.params.id, req.body?.text, {
+    attachments
+  });
 
   attachment.consume(req.chatUser, items);
   res.status(201).json(result);
@@ -160,23 +135,17 @@ router.post("/direct/:kind/:id", async (req, res) => {
 
 router.post(
   "/direct/message/:id/audio",
-  raw({
-    type: ["audio/webm", "audio/ogg", "audio/mp4", "audio/mpeg"],
-    limit: maximum
-  }),
+  raw({ type: ["audio/webm", "audio/ogg", "audio/mp4", "audio/mpeg"], limit: maximum }),
   async (req, res) => {
     if (!allowed(req.chatUser.uid)) return res.status(429).end();
     await chatting.writable(req.chatUser);
+
     const source = await audio(req.body, req.get("Content-Type"));
 
     if (!source) return res.status(415).end();
     res
       .status(201)
-      .json(
-        await direct.send(req.chatUser, "message", req.params.id, "", {
-          audio: source
-        })
-      );
+      .json(await direct.send(req.chatUser, "message", req.params.id, "", { audio: source }));
   }
 );
 
@@ -189,17 +158,16 @@ router.delete("/:id", async (req, res) => {
   res.status(204).end();
 });
 
-router.post(
-  ["/", "/image", "/audio", "/attachment"],
-  async (req, res, next) => {
-    if (!allowed(req.chatUser.uid)) {
-      res.set("Retry-After", "60");
-      return res.status(429).end();
-    }
-    await chatting.writable(req.chatUser);
-    next();
+router.post(["/", "/image", "/audio", "/attachment"], async (req, res, next) => {
+  if (!allowed(req.chatUser.uid)) {
+    res.set("Retry-After", "60");
+
+    return res.status(429).end();
   }
-);
+
+  await chatting.writable(req.chatUser);
+  next();
+});
 
 router.post("/", async (req, res) => {
   const items = req.body?.attachments ?? [];
@@ -220,45 +188,34 @@ router.post("/", async (req, res) => {
   res.status(201).json(message);
 });
 
-router.post(
-  "/attachment",
-  raw({ type: rules.types, limit: maximum }),
-  async (req, res) => {
-    const user = await chatting.viewer(
-      identity(req),
-      address(req),
-      req.app.get("env") === "development"
-    );
+router.post("/attachment", raw({ type: rules.types, limit: maximum }), async (req, res) => {
+  const user = await chatting.viewer(
+    identity(req),
+    address(req),
+    req.app.get("env") === "development"
+  );
 
-    await chatting.writable(user);
-    res
-      .status(201)
-      .json(
-        await attachment.upload(
-          user,
-          req.body,
-          req.get("Content-Type")?.split(";")[0],
-          req.get("X-Image-Edit")
-        )
-      );
-  }
-);
+  await chatting.writable(user);
+  res
+    .status(201)
+    .json(
+      await attachment.upload(
+        user,
+        req.body,
+        req.get("Content-Type")?.split(";")[0],
+        req.get("X-Image-Edit")
+      )
+    );
+});
 
 router.post(
   "/image",
-  raw({
-    type: ["image/jpeg", "image/png", "image/webp", "image/gif"],
-    limit: maximum
-  }),
+  raw({ type: ["image/jpeg", "image/png", "image/webp", "image/gif"], limit: maximum }),
   async (req, res) => {
-    if (!Buffer.isBuffer(req.body) || !req.body.length)
-      return res.status(415).end();
-    await chatting.viewer(
-      identity(req),
-      address(req),
-      req.app.get("env") === "development"
-    );
+    if (!Buffer.isBuffer(req.body) || !req.body.length) return res.status(415).end();
+    await chatting.viewer(identity(req), address(req), req.app.get("env") === "development");
     await chatting.writable(req.chatUser);
+
     const image = await store(req.body, "images", {
       width: 1280,
       height: 1280,
@@ -276,27 +233,15 @@ router.post(
 
 router.post(
   "/audio",
-  raw({
-    type: ["audio/webm", "audio/ogg", "audio/mp4", "audio/mpeg"],
-    limit: maximum
-  }),
+  raw({ type: ["audio/webm", "audio/ogg", "audio/mp4", "audio/mpeg"], limit: maximum }),
   async (req, res) => {
-    await chatting.viewer(
-      identity(req),
-      address(req),
-      req.app.get("env") === "development"
-    );
+    await chatting.viewer(identity(req), address(req), req.app.get("env") === "development");
     await chatting.writable(req.chatUser);
+
     const source = await audio(req.body, req.get("Content-Type"));
 
     if (!source) return res.status(415).end();
-    const message = await chatting.save(
-      req.chatUser,
-      address(req),
-      "",
-      null,
-      source
-    );
+    const message = await chatting.save(req.chatUser, address(req), "", null, source);
 
     await chatting.deliver(message.url);
     res.status(201).json(message);
@@ -306,9 +251,7 @@ router.post(
 router.use((error, req, res, next) => {
   if (error.status === 409) return res.status(409).json({ code: error.code });
   if (error.status === 423)
-    return res
-      .status(423)
-      .json({ until: error.until, restriction: error.restriction });
+    return res.status(423).json({ until: error.until, restriction: error.restriction });
   if (error.status) return res.status(error.status).end();
   next(error);
 });

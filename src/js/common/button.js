@@ -25,14 +25,21 @@ export default function button() {
     document,
     "click",
     (event) => {
-      const button = event.target.closest?.("button:enabled[data-response]");
+      const button = event.target.closest?.("button:enabled");
 
       if (!button) {
         return;
       }
 
-      sound.play("click");
-      vibrate.play("click");
+      const segment = button.closest(".segment");
+      const response = button.getAttribute("data-response");
+
+      if (response === null && !segment) {
+        return;
+      }
+
+      sound.play(response || "click");
+      vibrate.play(segment ? "segment" : "click");
     },
     true
   );

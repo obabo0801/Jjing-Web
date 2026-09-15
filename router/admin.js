@@ -12,10 +12,7 @@ import admin from "../middleware/admin.js";
 import * as management from "#service/admin";
 import * as role from "#shared/role";
 
-const upload = raw({
-  type: ["image/jpeg", "image/png", "image/webp"],
-  limit: "5mb"
-});
+const upload = raw({ type: ["image/jpeg", "image/png", "image/webp"], limit: "5mb" });
 
 const sendFcm = async (rows, value) => {
   let results;
@@ -110,10 +107,7 @@ router.post("/", async (req, res) => {
   const body = string(req.body.body).trim();
   const link = string(req.body.url).trim();
   const image = string(req.body.image).trim();
-  const url =
-    link.startsWith("/") && !link.startsWith("//") && !link.includes("\\")
-      ? link
-      : "/";
+  const url = link.startsWith("/") && !link.startsWith("//") && !link.includes("\\") ? link : "/";
 
   if (!title) {
     return res.status(400).end();
@@ -149,17 +143,13 @@ router.post("/", async (req, res) => {
   ]);
 
   const value = { title, body, image, url };
-  const source =
-    process.env.APP_URL?.trim() || `${req.protocol}://${req.get("host")}`;
+  const source = process.env.APP_URL?.trim() || `${req.protocol}://${req.get("host")}`;
 
   const native = { ...value, image: image ? new URL(image, source).href : "" };
 
   const wear = devices.filter(({ device }) => device === "wearable");
 
-  const [webResult, fcmResult] = await Promise.all([
-    push.send(web, value),
-    sendFcm(wear, native)
-  ]);
+  const [webResult, fcmResult] = await Promise.all([push.send(web, value), sendFcm(wear, native)]);
   const sent = webResult.sent + fcmResult.sent;
   const failed = webResult.failed + fcmResult.failed;
 

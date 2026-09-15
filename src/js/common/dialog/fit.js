@@ -1,15 +1,7 @@
 import * as css from "#common/css";
 import * as dom from "#common/dom";
 
-const types = new Set([
-  "text",
-  "search",
-  "email",
-  "password",
-  "tel",
-  "url",
-  "number"
-]);
+const types = new Set(["text", "search", "email", "password", "tel", "url", "number"]);
 
 export default function fit(element) {
   const view = window.visualViewport;
@@ -35,10 +27,12 @@ export default function fit(element) {
 
   const update = () => {
     frame = undefined;
+
     const active = document.activeElement;
 
     if (!element.open || !element.contains(active)) {
       reset();
+
       return;
     }
 
@@ -59,6 +53,7 @@ export default function fit(element) {
     // 기존 CSS가 처리하므로 별도 보정이 필요하지 않습니다.
     if (layout - height < 100 || (!input && !previous)) {
       reset();
+
       return;
     }
 
@@ -66,10 +61,7 @@ export default function fit(element) {
 
     if (next === previous) return;
     previous = next;
-    css.set(element, {
-      "--dialog-top": `${top}px`,
-      "--dialog-height": `${height}px`
-    });
+    css.set(element, { "--dialog-top": `${top}px`, "--dialog-height": `${height}px` });
     dom.set(element, "data-keyboard", "");
   };
 
@@ -86,6 +78,7 @@ export default function fit(element) {
   ];
 
   schedule();
+
   return () => {
     off.forEach((remove) => remove());
     cancelAnimationFrame(frame);

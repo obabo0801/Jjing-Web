@@ -8,5 +8,6 @@ export default async function setup(ready) {
   }
 
   ready?.();
+
   return true;
 }

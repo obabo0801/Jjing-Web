@@ -43,6 +43,7 @@ export default function editor(user) {
   input.maxLength = Math.max(20, input.value.length);
   input.autocomplete = "nickname";
   dom.set(input, "data-control", "");
+
   const field = label("setup.name", input.value);
   const value = dom.query(".label-value", field);
   const change = dom.create("button");
@@ -58,6 +59,7 @@ export default function editor(user) {
     content.className = "input";
     input.value = change.textContent;
     content.append(input);
+
     const accepted = await dialog({
       title: "setup.name",
       content,
@@ -82,22 +84,32 @@ export default function editor(user) {
     const text = dom.create("span");
 
     row.className = "group-item";
+    if (key === "profile.delete") {
+      dom.set(row, "data-danger", "");
+    }
+
     button.type = "button";
+    dom.set(button, "data-icon", icon);
+
+    if (key === "login.logout") {
+      dom.set(button, "data-color", "");
+    }
+
+    dom.set(button, "data-response", "");
+
     text.textContent = i18n.message(key);
     dom.set(text, "data-i18n", key);
-    dom.set(button, "data-icon", icon);
-    if (key === "login.logout") dom.set(button, "data-color", "");
-    dom.set(button, "data-response", "");
-    if (key === "profile.delete") dom.set(row, "data-danger", "");
+
     dom.on(button, "click", run);
+
     button.append(text);
     row.append(button);
     account.append(row);
   }
+
   root.append(group, account);
   function update() {
-    const changed =
-      input.value.trim() !== current.name || picture.file() !== undefined;
+    const changed = input.value.trim() !== current.name || picture.file() !== undefined;
 
     save.disabled = busy || !changed;
   }
@@ -108,8 +120,10 @@ export default function editor(user) {
 
     if (name !== current.name && !/^[\p{L}\p{N} _-]{2,20}$/u.test(name)) {
       toast({ title: "setup.nameInvalid", type: "error" });
+
       return;
     }
+
     busy = true;
     input.disabled = true;
     picture.busy(true);
@@ -129,13 +143,13 @@ export default function editor(user) {
                 ? "setup.nameUnavailable"
                 : "setup.saveError"
         });
+
         return;
       }
+
       if (!active) return;
       const file = picture.file();
-      const upload = file
-        ? await profile.uploadAvatar(file, draft.data.token)
-        : { ok: true };
+      const upload = file ? await profile.uploadAvatar(file, draft.data.token) : { ok: true };
 
       if (!active) return;
       if (!upload.ok) {
@@ -143,8 +157,10 @@ export default function editor(user) {
           type: "error",
           title: upload.status === 413 ? "image.sizeError" : "setup.uploadError"
         });
+
         return;
       }
+
       const result = await profile.complete(
         agreement,
         file === null ? "clear" : file ? "draft" : "keep",
@@ -154,9 +170,12 @@ export default function editor(user) {
       if (!active) return;
       if (!result.ok) {
         toast({ type: "error", title: "setup.saveError" });
+
         return;
       }
+
       current = profile.value();
+
       const next = portrait(current.avatar, current.image || current.avatar);
 
       picture.root.replaceWith(next.root);
@@ -180,6 +199,7 @@ export default function editor(user) {
 
   dom.on(picture.root, "input", update);
   update();
+
   return {
     root,
     picture: picture.root,

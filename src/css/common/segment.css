@@ -97,8 +97,7 @@
   color: inherit;
 }
 
-.segment
-  button:is([data-danger], [data-success], [data-confirm])[data-selected] {
+.segment button:is([data-danger], [data-success], [data-confirm])[data-selected] {
   color: var(--thumb);
 }
 

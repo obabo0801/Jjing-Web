@@ -6,6 +6,7 @@ const router = Router();
 
 router.get("/ogq", async (_, res) => {
   res.set("Cache-Control", "private, no-store");
+
   const { groups } = await ogq();
 
   res.json({ groups });

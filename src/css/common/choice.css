@@ -22,10 +22,6 @@
     opacity 100ms ease;
 }
 
-:is(.radio, .checkbox)[data-background] {
-  background: var(--background);
-}
-
 :is(.radio, .checkbox) > label {
   display: flex;
   align-items: center;

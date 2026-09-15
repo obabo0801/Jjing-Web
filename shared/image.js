@@ -6,23 +6,23 @@ export const identify = (value, origin) => {
 
     if (!value || url.username || url.password || url.hash) return "";
     if (url.origin === origin && !url.search) {
-      const file =
-        /^\/(?:[a-f0-9]{8}|media)\/([a-f0-9]{32})(?:\.(?:gif|jpg|png|webp))?$/.exec(
-          url.pathname
-        );
+      const file = /^\/(?:[a-f0-9]{8}|media)\/([a-f0-9]{32})(?:\.(?:gif|jpg|png|webp))?$/.exec(
+        url.pathname
+      );
       const icon = /^\/icons\/icon-(192|512)\.png$/.exec(url.pathname);
 
       return file?.[1] || (icon ? `icon-${icon[1]}` : "");
     }
+
     if (url.origin === attachment.domain) {
-      const item =
-        /^\/sticker\/([a-f0-9]{8,32})\/(\d+)_(80|160|240)\.(png|webp)$/.exec(
-          url.pathname
-        );
+      const item = /^\/sticker\/([a-f0-9]{8,32})\/(\d+)_(80|160|240)\.(png|webp)$/.exec(
+        url.pathname
+      );
 
       return item ? `ogq-${item.slice(1).join("-")}` : "";
     }
   } catch {}
+
   return "";
 };
 

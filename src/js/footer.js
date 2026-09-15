@@ -9,22 +9,20 @@ export default function footer(app) {
 
   root.className = "footer";
   button.type = "button";
+  dom.set(button, "data-background", "");
   dom.set(button, "data-icon", "mail");
   dom.set(button, "data-color", "");
   dom.set(button, "data-circle", "");
-  dom.set(button, "data-background", "");
   dom.set(button, "data-tooltip", "direct.inbox");
   dom.set(button, "data-response", "");
   dom.on(button, "click", () => direct.inbox());
   root.append(button);
   app.append(root);
+
   const shadow = () => {
     const { small, wearable } = device();
     const view = window.visualViewport;
-    const bottom =
-      window.scrollY +
-      (view?.offsetTop || 0) +
-      (view?.height || window.innerHeight);
+    const bottom = window.scrollY + (view?.offsetTop || 0) + (view?.height || window.innerHeight);
 
     button.toggleAttribute(
       "data-shadow",
@@ -34,9 +32,7 @@ export default function footer(app) {
     css.set(root, {
       "--footer-bottom": `${Math.max(
         0,
-        window.innerHeight -
-          (view?.height || window.innerHeight) -
-          (view?.offsetTop || 0)
+        window.innerHeight - (view?.height || window.innerHeight) - (view?.offsetTop || 0)
       )}px`
     });
   };
@@ -48,6 +44,7 @@ export default function footer(app) {
     dom.on(window.visualViewport, "resize", shadow);
     dom.on(window.visualViewport, "scroll", shadow);
   }
+
   new ResizeObserver(shadow).observe(app);
   shadow();
 }

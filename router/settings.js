@@ -18,9 +18,7 @@ router.use((req, res, next) => {
 });
 
 router.get("/", async (req, res) => {
-  const user = await db.get("SELECT settings FROM user WHERE uid = ?", [
-    identity(req)
-  ]);
+  const user = await db.get("SELECT settings FROM user WHERE uid = ?", [identity(req)]);
 
   if (!user) return res.status(404).end();
   res.json(settings.read(user.settings));
@@ -32,8 +30,7 @@ router.patch("/", async (req, res) => {
   if (
     !entries.length ||
     entries.some(
-      ([key, value]) =>
-        !Object.hasOwn(settings.defaults, key) || typeof value !== "boolean"
+      ([key, value]) => !Object.hasOwn(settings.defaults, key) || typeof value !== "boolean"
     )
   )
     return res.status(400).end();

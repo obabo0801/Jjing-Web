@@ -10,8 +10,8 @@ i18n.preload(...keys.map((key) => `setup.consent.${key}`));
 const text = (element, key) => {
   const value = `setup.consent.${key}`;
 
-  dom.set(element, "data-i18n", value);
   element.textContent = i18n.message(value);
+  dom.set(element, "data-i18n", value);
 };
 
 const choice = (key) => {
@@ -57,8 +57,7 @@ export default function consent() {
 
     link.href = `/${key}`;
     dom.on(link, "click", (event) => {
-      if (event.ctrlKey || event.metaKey || event.shiftKey || event.altKey)
-        return;
+      if (event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
       event.preventDefault();
       legal(key);
     });
@@ -83,8 +82,7 @@ export default function consent() {
     }
 
     all.input.checked = valid();
-    all.input.indeterminate =
-      !all.input.checked && inputs.some((input) => input.checked);
+    all.input.indeterminate = !all.input.checked && inputs.some((input) => input.checked);
 
     root.dispatchEvent(new Event("input", { bubbles: true }));
   });

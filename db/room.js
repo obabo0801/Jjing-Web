@@ -4,9 +4,7 @@ export default async function migrate(db) {
   const members = await db.all("PRAGMA table_info(room_member)");
 
   if (!members.some((item) => item.name === "deputy"))
-    await db.exec(
-      "ALTER TABLE room_member ADD COLUMN deputy INTEGER NOT NULL DEFAULT 0"
-    );
+    await db.exec("ALTER TABLE room_member ADD COLUMN deputy INTEGER NOT NULL DEFAULT 0");
   const columns = await db.all("PRAGMA table_info(room)");
 
   if (!columns.some((item) => item.name === "multiple")) {
@@ -22,8 +20,10 @@ export default async function migrate(db) {
       ALTER TABLE room_next RENAME TO room;
       COMMIT;`);
   }
+
   await db.exec(`CREATE UNIQUE INDEX IF NOT EXISTS room_pair
     ON room(first,second) WHERE multiple = 0`);
+
   const pairs = await db.all(`SELECT DISTINCT
     min(sender,recipient) AS first, max(sender,recipient) AS second
     FROM message WHERE room IS NULL`);
@@ -43,6 +43,7 @@ export default async function migrate(db) {
       [pair.first, pair.second, pair.first, pair.second]
     );
   }
+
   await db.exec(`
     INSERT OR IGNORE INTO room_member(room,uid,left,reason)
       SELECT id,first,CASE WHEN departed = first THEN closed END,

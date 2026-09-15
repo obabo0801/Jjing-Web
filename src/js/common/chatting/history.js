@@ -54,9 +54,7 @@ const valid = (item) =>
   typeof item.own === "boolean" &&
   (item.attachments === undefined || media.valid(item.attachments)) &&
   [item.image, item.preview, item.audio].every(
-    (value) =>
-      value === undefined ||
-      (typeof value === "string" && /^\/(?!\/)/.test(value))
+    (value) => value === undefined || (typeof value === "string" && /^\/(?!\/)/.test(value))
   ) &&
   (item.system === undefined || Object.hasOwn(rules.notices, item.system));
 
@@ -65,10 +63,7 @@ const request = async (query = {}, id, recent = false) => {
     ? `${path}/${encodeURIComponent(id)}`
     : `${path}${recent ? "/recent" : ""}?${new URLSearchParams(query)}`;
 
-  const response = await api(url, {
-    cache: "no-store",
-    signal: AbortSignal.timeout(15_000)
-  });
+  const response = await api(url, { cache: "no-store", signal: AbortSignal.timeout(15_000) });
   const page = response.data;
 
   if (
@@ -77,10 +72,9 @@ const request = async (query = {}, id, recent = false) => {
     !Number.isSafeInteger(page.cursor) ||
     page.messages.some((item) => !valid(item))
   ) {
-    throw Object.assign(new Error("Chatting query failed"), {
-      status: response.status
-    });
+    throw Object.assign(new Error("Chatting query failed"), { status: response.status });
   }
+
   return page;
 };
 
@@ -134,10 +128,9 @@ export default function history(root, messageId = "") {
   limit.hidden = true;
   limit.append(remaining, detail, reason);
   form.prepend(limit);
+
   const format = (key, values) =>
-    i18n
-      .message(key)
-      .replace(/\{(\w+)\}/g, (match, name) => String(values[name] ?? match));
+    i18n.message(key).replace(/\{(\w+)\}/g, (match, name) => String(values[name] ?? match));
 
   const tick = () => {
     if (destroyed || halted) return;
@@ -150,9 +143,8 @@ export default function history(root, messageId = "") {
     countdown.textContent = format("chatting.countdown", {
       seconds: String(seconds).padStart(2, "0")
     });
-    const [prefix = "", suffix = ""] = i18n
-      .message("chatting.remaining")
-      .split("{time}");
+
+    const [prefix = "", suffix = ""] = i18n.message("chatting.remaining").split("{time}");
 
     remaining.replaceChildren(prefix, countdown, suffix);
     detail.hidden = !restriction.seconds;
@@ -168,14 +160,13 @@ export default function history(root, messageId = "") {
   const mute = (value) => {
     if (value === undefined || halted || destroyed) return;
     const next = typeof value === "object" && value ? value : { until: value };
-    const stamp = next.until
-      ? Date.parse(`${next.until.replace(" ", "T")}+09:00`)
-      : 0;
+    const stamp = next.until ? Date.parse(`${next.until.replace(" ", "T")}+09:00`) : 0;
 
     if (Number.isFinite(stamp) && stamp >= muted) {
       muted = stamp;
       restriction = { ...restriction, ...next };
     }
+
     clearTimeout(muteTimer);
     tick();
   };
@@ -200,14 +191,10 @@ export default function history(root, messageId = "") {
       failed.append(indicator.element);
       if (!halted) retries.schedule();
     }
+
     if (position?.node.isConnected)
-      list.scrollTop +=
-        position.node.getBoundingClientRect().top - position.top;
-    dom.set(
-      root,
-      "data-history",
-      String(Boolean(after || (messageId && !ready)))
-    );
+      list.scrollTop += position.node.getBoundingClientRect().top - position.top;
+    dom.set(root, "data-history", String(Boolean(after || (messageId && !ready))));
     list.dispatchEvent(new Event("scroll"));
   };
 
@@ -217,20 +204,18 @@ export default function history(root, messageId = "") {
       (row) => !row.node.hidden && row.node.getBoundingClientRect().bottom > top
     );
 
-    return item
-      ? { node: item.node, top: item.node.getBoundingClientRect().top }
-      : null;
+    return item ? { node: item.node, top: item.node.getBoundingClientRect().top } : null;
   }
 
   const insert = (messages, follow = false, reveal = false) => {
-    const added = messages
-      .filter((item) => !rows.has(item.url))
-      .sort((a, b) => a.seq - b.seq);
+    const added = messages.filter((item) => !rows.has(item.url)).sort((a, b) => a.seq - b.seq);
 
     if (!added.length) {
       if (follow) list.scrollTop = list.scrollHeight;
+
       return controls();
     }
+
     const position = anchor();
     const existing = [...rows.values()];
 
@@ -244,30 +229,31 @@ export default function history(root, messageId = "") {
         storage.set(key, since);
         item.hidden = clock.stamp(item.time) >= since;
       }
+
       const node = chat.append(list, item, false);
 
       if (!node) continue;
       if (reveal) dom.set(node, "data-reveal", "");
       node.hidden = item.hidden;
+
       const later = existing.find((row) => row.item.seq > item.seq);
 
       chat.place(list, node, later?.node || next);
       rows.set(item.url, { node, item });
     }
+
     if (existing.length && added[0].seq < existing.at(-1).item.seq) {
-      const sorted = [...rows.entries()].sort(
-        (a, b) => a[1].item.seq - b[1].item.seq
-      );
+      const sorted = [...rows.entries()].sort((a, b) => a[1].item.seq - b[1].item.seq);
 
       rows.clear();
       sorted.forEach(([key, value]) => rows.set(key, value));
     }
+
     chat.regroup(list);
     controls();
     if (follow) list.scrollTop = list.scrollHeight;
     else if (position?.node.isConnected)
-      list.scrollTop +=
-        position.node.getBoundingClientRect().top - position.top;
+      list.scrollTop += position.node.getBoundingClientRect().top - position.top;
     list.dispatchEvent(new Event("scroll"));
   };
 
@@ -280,12 +266,12 @@ export default function history(root, messageId = "") {
 
     if (!node || node.hidden) {
       notice("chatting.unavailable");
+
       return;
     }
+
     list.scrollTop +=
-      node.getBoundingClientRect().top -
-      list.getBoundingClientRect().top -
-      list.clientHeight / 3;
+      node.getBoundingClientRect().top - list.getBoundingClientRect().top - list.clientHeight / 3;
     dom.set(node, "data-highlight", "");
     clearTimeout(highlight);
     highlight = setTimeout(() => dom.remove(node, "data-highlight"), 2000);
@@ -295,24 +281,21 @@ export default function history(root, messageId = "") {
     again = true;
     if (!ready || catching || destroyed || halted) return;
     catching = true;
+
     const version = generation;
 
     try {
       while (again && version === generation && !destroyed) {
         again = false;
+
         let more;
 
         do {
-          const page = await request(
-            { after: cursor },
-            undefined,
-            !access.isAdmin() && !messageId
-          );
+          const page = await request({ after: cursor }, undefined, !access.isAdmin() && !messageId);
 
           if (version !== generation || destroyed) return;
           mute(page.restriction || page.muted);
-          if (page.more && page.cursor <= cursor)
-            throw new Error("Invalid cursor");
+          if (page.more && page.cursor <= cursor) throw new Error("Invalid cursor");
           if (after) page.messages.forEach((item) => tail.set(item.url, item));
           else insert(page.messages, !messageId && chat.atBottom(list));
           cursor = page.cursor;
@@ -333,6 +316,7 @@ export default function history(root, messageId = "") {
       if (ready) insert([item], true);
       else notices.push(item);
     }
+
     if (!valid(item) || !ready || catching) return recover();
     if (item.seq <= cursor) return;
     // 번호가 건너뛰면 삭제·비공개 메시지 여부도 DB에서 확인합니다.
@@ -375,6 +359,7 @@ export default function history(root, messageId = "") {
         joined = true;
         chat.system(list, { text: "chatting.entered" });
       }
+
       if (id) await focus(id, version);
       if (version !== generation || destroyed || halted) return;
       if (notices.length) insert(notices.splice(0), true);
@@ -404,9 +389,7 @@ export default function history(root, messageId = "") {
     failed = null;
     controls();
     try {
-      const result = await request({
-        [forward ? "after" : "before"]: edge.item.seq
-      });
+      const result = await request({ [forward ? "after" : "before"]: edge.item.seq });
 
       if (version !== generation || destroyed) return;
       if (
@@ -427,8 +410,7 @@ export default function history(root, messageId = "") {
       }
     } catch (error) {
       if (version === generation && !halted && !destroyed) {
-        if (![400, 401, 403, 404].includes(error.status))
-          failed = forward ? next : previous;
+        if (![400, 401, 403, 404].includes(error.status)) failed = forward ? next : previous;
         else notice("chatting.loadFailed");
       }
     } finally {
@@ -481,27 +463,31 @@ export default function history(root, messageId = "") {
       return false;
     if (!file && value.length > rules.length) {
       notice("chatting.tooLong");
+
       return false;
     }
+
     if (recipient && (file || batch.length)) {
       notice("direct.textOnly");
+
       return false;
     }
+
     sending = true;
+
     let succeeded = false;
 
     if (!file) {
       input.value = "";
       input.dispatchEvent(new Event("input", { bubbles: true }));
     }
+
     const edited = revision;
 
     attached.busy(true);
     transfer = new AbortController();
-    const signal = AbortSignal.any([
-      transfer.signal,
-      AbortSignal.timeout(60_000)
-    ]);
+
+    const signal = AbortSignal.any([transfer.signal, AbortSignal.timeout(60_000)]);
 
     const state = (value, cancel = false) => {
       dom.set(form, "data-send", value);
@@ -531,34 +517,36 @@ export default function history(root, messageId = "") {
                 ? "direct.muted"
                 : "direct.error"
           );
+
           return false;
         }
+
         succeeded = true;
         state("success");
         direct.receive(result.data);
-        void sound.play("send", { volume: 0.2 });
+        void sound.play("send");
         form.dispatchEvent(new Event("chatting-sent"));
         await new Promise((resolve) => setTimeout(resolve, 400));
+
         return true;
       }
+
       const prepared = await attachments.prepare(batch, attached, signal);
 
       if (!prepared.ok) {
-        notice(
-          prepared.status === 413 ? "image.sizeError" : "image.uploadError"
-        );
+        notice(prepared.status === 413 ? "image.sizeError" : "image.uploadError");
+
         return false;
       }
+
       if (destroyed || halted) return false;
       const items = prepared.items;
 
       if (signal.aborted) return false;
       state("sending");
+
       const result = file
-        ? await upload(`${path}/${audio ? "audio" : "image"}`, file, {
-            cache: "no-store",
-            signal
-          })
+        ? await upload(`${path}/${audio ? "audio" : "image"}`, file, { cache: "no-store", signal })
         : await api(path, {
             method: "POST",
             cache: "no-store",
@@ -568,23 +556,22 @@ export default function history(root, messageId = "") {
 
       if (destroyed || halted) return false;
       if (!result.ok || !valid(result.data)) {
-        if (result.status === 400)
-          batch.forEach((item) => attached.receipt(item, null));
-        if (result.status === 423)
-          mute(result.data?.restriction || result.data?.until);
+        if (result.status === 400) batch.forEach((item) => attached.receipt(item, null));
+        if (result.status === 423) mute(result.data?.restriction || result.data?.until);
         let key = audio ? "chatting.audio.error" : "image.uploadError";
 
         if (!file) key = "chatting.sendFailed";
-        if (result.status === 413)
-          key = audio ? "chatting.audio.size" : "image.sizeError";
+        if (result.status === 413) key = audio ? "chatting.audio.size" : "image.sizeError";
         if (result.status === 429) key = "chatting.rate";
         if (result.status === 423) key = "chatting.muted";
         notice(key);
+
         return false;
       }
+
       succeeded = true;
       state("success");
-      void sound.play("send", { volume: 0.2 });
+      void sound.play("send");
       await new Promise((resolve) => {
         setTimeout(resolve, 400);
       });
@@ -595,9 +582,12 @@ export default function history(root, messageId = "") {
           messageId = "";
           await load();
         }
+
         await receive(result.data, true);
       }
+
       form.dispatchEvent(new Event("chatting-sent"));
+
       return true;
     } finally {
       if (!succeeded && !file && !destroyed && !halted) {
@@ -607,6 +597,7 @@ export default function history(root, messageId = "") {
         else input.value = `${value}\n${draft}`;
         input.dispatchEvent(new Event("input", { bubbles: true }));
       }
+
       sending = false;
       transfer = undefined;
       attached.busy(false);
@@ -644,6 +635,7 @@ export default function history(root, messageId = "") {
     observer.observe(list);
     off.push(() => observer.disconnect());
   }
+
   off.push(
     dom.on(source, "mute", (event) => {
       if (halted || destroyed) return;
@@ -688,8 +680,10 @@ export default function history(root, messageId = "") {
         });
       if (hide) {
         storage.set(`chatting-hide-since:${id}`, Date.now());
+
         return;
       }
+
       rows.forEach((row) => {
         if (row.item.id === id) {
           row.item.hidden = hide;
@@ -709,6 +703,7 @@ export default function history(root, messageId = "") {
       } catch {
         return recover();
       }
+
       receive(item);
     })
   );
@@ -746,6 +741,7 @@ export default function history(root, messageId = "") {
             });
             chat.regroup(list);
           }
+
           recover();
         } catch {}
       })
@@ -756,6 +752,7 @@ export default function history(root, messageId = "") {
       if (!document.hidden) recover();
     })
   );
+
   const initial = load(messageId);
 
   return {

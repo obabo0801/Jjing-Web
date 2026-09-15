@@ -8,8 +8,7 @@ import limit from "#middleware/limit";
 
 const router = Router();
 const allowed = limit(5);
-const current = (req) =>
-  viewer(identity(req), address(req), req.app.get("env") === "development");
+const current = (req) => viewer(identity(req), address(req), req.app.get("env") === "development");
 
 router.use((req, res, next) => {
   res.set({ "Cache-Control": "private, no-store", Vary: "Cookie" });
@@ -21,8 +20,10 @@ router.post("/", async (req, res) => {
 
   if (!allowed(user.uid)) {
     res.set("Retry-After", "60");
+
     return res.status(429).end();
   }
+
   res.status(201).json(await report.save(user, address(req), req.body));
 });
 
@@ -31,8 +32,7 @@ router.get("/", async (req, res) => {
   const result = await report.list(user, req.query);
   const fresh = await current(req);
 
-  if (!role.staff(fresh.role) || fresh.role !== user.role)
-    return res.status(403).end();
+  if (!role.staff(fresh.role) || fresh.role !== user.role) return res.status(403).end();
   res.json(result);
 });
 

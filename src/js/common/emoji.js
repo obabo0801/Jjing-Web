@@ -38,12 +38,15 @@ export const load = (force = false) => {
           for (const item of group.items) entries.set(item.keyword, item);
         }
       }
+
       expires = Date.now() + (catalog.unavailable ? 60000 : 3600000);
+
       return catalog;
     })
     .finally(() => {
       pending = undefined;
     });
+
   return pending;
 };
 
@@ -61,6 +64,7 @@ export const image = (item, lazy = false) => {
   if (lazy) node.loading = "lazy";
   dom.on(node, "error", () => node.replaceWith(item.keyword), { once: true });
   node.src = (still && item.still) || item.src;
+
   return node;
 };
 
@@ -69,10 +73,9 @@ export const fragment = (text, editable = false) => {
 
   let end = 0;
 
-  const tokens = [
-    ...text.matchAll(/\/[^/\s]{1,80}\//gu),
-    ...mention.matches(text)
-  ].sort((a, b) => a.index - b.index);
+  const tokens = [...text.matchAll(/\/[^/\s]{1,80}\//gu), ...mention.matches(text)].sort(
+    (a, b) => a.index - b.index
+  );
 
   for (const match of tokens) {
     if (match.index < end) continue;
@@ -85,10 +88,12 @@ export const fragment = (text, editable = false) => {
         node.contentEditable = "false";
         dom.set(node, "data-emoji", match[0]);
       }
+
       result.append(text.slice(end, match.index), node);
       end = match.index + match[0].length;
       continue;
     }
+
     const item = entries.get(match[0]);
 
     if (!item) continue;
@@ -100,10 +105,13 @@ export const fragment = (text, editable = false) => {
       dom.set(token, "data-emoji", item.keyword);
       token.append(node);
     }
+
     result.append(text.slice(end, match.index), token);
     end = match.index + match[0].length;
   }
+
   result.append(text.slice(end));
+
   return result;
 };
 
@@ -115,8 +123,10 @@ export const render = (target, value = "") => {
   if (!text.includes("/") && !mention.matches(text).length) return;
   if (entries.size) {
     node.replaceWith(fragment(text));
+
     return;
   }
+
   load().then(() => {
     if (node.parentNode === target) node.replaceWith(fragment(text));
   });

@@ -60,6 +60,7 @@ export const set = (element, next) => {
 
   if (!Object.keys(value).length) {
     clear(element, id);
+
     return;
   }
 

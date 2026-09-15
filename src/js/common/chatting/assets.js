@@ -30,6 +30,7 @@ const node = (tag, name = "", text = "") => {
 
   result.className = name;
   result.textContent = text;
+
   return result;
 };
 
@@ -64,12 +65,14 @@ export default function assets(selected = "image", room = "") {
       img.loading = "lazy";
       img.draggable = false;
       img.referrerPolicy = "no-referrer";
+
       return img;
     };
 
     const render = (item) => {
       if (seen.has(item.id)) return;
       seen.add(item.id);
+
       const day = clock.day(item.time);
 
       if (!dates.has(day)) {
@@ -78,18 +81,17 @@ export default function assets(selected = "image", room = "") {
 
         dom.set(group, "data-background", "");
         if (kind !== "file") dom.set(group, "data-view", "grid");
-        section.append(
-          node("h3", "group-title", clock.label(item.time)),
-          group
-        );
+        section.append(node("h3", "group-title", clock.label(item.time)), group);
         list.append(section);
         dates.set(day, group);
       }
+
       const row = node("div", "group-item");
       const button = node(kind === "image" ? "button" : "a", "asset");
 
       if (kind === "image") {
         button.type = "button";
+
         const img = image(item.preview || item.url, item.name);
 
         button.append(img);
@@ -98,6 +100,7 @@ export default function assets(selected = "image", room = "") {
         button.href = item.url;
         button.target = "_blank";
         button.rel = "noopener noreferrer";
+
         const icon = node("span", "asset-icon");
         const body = node("span", "asset-body");
         const title = node("span", "asset-title", item.name || item.url);
@@ -110,9 +113,7 @@ export default function assets(selected = "image", room = "") {
             node(
               "small",
               "asset-detail",
-              item.size === null
-                ? i18n.message("assets.unknown")
-                : format(item.size)
+              item.size === null ? i18n.message("assets.unknown") : format(item.size)
             )
           );
         } else {
@@ -125,6 +126,7 @@ export default function assets(selected = "image", room = "") {
           links.observe(button);
         }
       }
+
       row.append(button);
       dates.get(day).append(row);
     };
@@ -134,6 +136,7 @@ export default function assets(selected = "image", room = "") {
       busy = true;
       observer?.unobserve(edge);
       edge.replaceChildren(loading.element);
+
       const signal = request.signal;
       const query = new URLSearchParams({ kind });
 
@@ -146,9 +149,12 @@ export default function assets(selected = "image", room = "") {
         if ([400, 401, 403, 404].includes(result.status))
           edge.replaceChildren(node("p", "", i18n.message("assets.error")));
         else retries.schedule();
+
         return;
       }
+
       retries.reset();
+
       const data = result.data;
 
       const size =
@@ -158,9 +164,9 @@ export default function assets(selected = "image", room = "") {
               .message("assets.megabytes")
               .replace(
                 "{size}",
-                new Intl.NumberFormat(dom.root.lang, {
-                  maximumFractionDigits: 2
-                }).format(data.size / 1048576)
+                new Intl.NumberFormat(dom.root.lang, { maximumFractionDigits: 2 }).format(
+                  data.size / 1048576
+                )
               );
 
       totals.textContent = i18n
@@ -170,8 +176,7 @@ export default function assets(selected = "image", room = "") {
       data.items.forEach(render);
       cursor = data.next;
       edge.replaceChildren();
-      if (!seen.size)
-        edge.append(node("p", "assets-empty", i18n.message("assets.empty")));
+      if (!seen.size) edge.append(node("p", "assets-empty", i18n.message("assets.empty")));
       mount(root);
       if (cursor !== null) observer?.observe(edge);
     }
@@ -202,6 +207,7 @@ export default function assets(selected = "image", room = "") {
       });
       tabs.append(button);
     }
+
     root.append(tabs, totals, list, edge);
     dom.set(root, "data-kind", kind);
     try {
@@ -227,16 +233,14 @@ export default function assets(selected = "image", room = "") {
                 const button = entry.target;
 
                 links.unobserve(button);
+
                 const signal = request.signal;
 
-                void api(`${base}/${dom.get(button, "data-asset")}`, {
-                  signal
-                }).then((result) => {
+                void api(`${base}/${dom.get(button, "data-asset")}`, { signal }).then((result) => {
                   if (!result.ok || signal.aborted || closed) return;
                   const data = result.data;
 
-                  if (data.title)
-                    dom.query(".asset-title", button).textContent = data.title;
+                  if (data.title) dom.query(".asset-title", button).textContent = data.title;
                   const description = dom.query(".asset-detail", button);
 
                   description.textContent = data.description;
@@ -282,14 +286,12 @@ export function preview(kind, room = "") {
     grid.replaceChildren();
     if (!result.ok || !result.data.items.length) {
       grid.append(
-        node(
-          "p",
-          "assets-empty",
-          i18n.message(result.ok ? "assets.empty" : "assets.error")
-        )
+        node("p", "assets-empty", i18n.message(result.ok ? "assets.empty" : "assets.error"))
       );
+
       return;
     }
+
     for (const item of result.data.items.slice(0, 6)) {
       const row = node("div", "group-item");
       const button = node("button", "asset-preview");
@@ -305,15 +307,16 @@ export function preview(kind, room = "") {
         button.append(img);
       } else {
         dom.set(button, "data-icon", kind === "file" ? "voice" : "link");
-        button.append(
-          node("span", "", item.name || new URL(item.url).hostname)
-        );
+        button.append(node("span", "", item.name || new URL(item.url).hostname));
       }
+
       dom.on(button, "click", () => assets(kind, room));
       row.append(button);
       grid.append(row);
     }
+
     mount(root);
   });
+
   return root;
 }

@@ -28,10 +28,7 @@ export default function avatar(source = "", tag = "div") {
       return;
     }
 
-    const ratio =
-      adjustment?.shape === "original"
-        ? adjustment.width / adjustment.height
-        : 1;
+    const ratio = adjustment?.shape === "original" ? adjustment.width / adjustment.height : 1;
 
     root.toggleAttribute("data-original", adjustment?.shape === "original");
     css.set(root, {
@@ -54,6 +51,7 @@ export default function avatar(source = "", tag = "div") {
       dom.remove(image, "src");
       dom.remove(root, "data-image");
       css.remove(root);
+
       return;
     }
 

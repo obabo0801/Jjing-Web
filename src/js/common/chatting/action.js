@@ -31,6 +31,7 @@ export const link = (id) => {
   const url = new URL("/", location.origin);
 
   url.searchParams.set("message", id);
+
   return url.href;
 };
 
@@ -41,9 +42,11 @@ export const copyLink = async (id) => {
     if (!url) throw new Error("Unstored message");
     await navigator.clipboard.writeText(url);
     toast({ text: "chatting.copied", type: "success" });
+
     return true;
   } catch {
     toast({ text: "chatting.copyFailed", type: "error" });
+
     return false;
   }
 };
@@ -54,10 +57,10 @@ const remove = async (id) => {
       throw new Error("Invalid message");
     }
 
-    const response = await fetch(
-      `/api${route.chatting}/${encodeURIComponent(id)}`,
-      { method: "DELETE", credentials: "same-origin" }
-    );
+    const response = await fetch(`/api${route.chatting}/${encodeURIComponent(id)}`, {
+      method: "DELETE",
+      credentials: "same-origin"
+    });
 
     if (!response.ok) {
       throw new Error("Message remove failed");
@@ -90,6 +93,7 @@ const imageBlob = async (source) => {
   const response = await fetch(source);
 
   if (!response.ok) throw new Error("Image fetch failed");
+
   return response.blob();
 };
 
@@ -116,6 +120,7 @@ const copyImage = async (source) => {
     if (!navigator.clipboard?.write || typeof ClipboardItem === "undefined") {
       throw new Error("Image clipboard unavailable");
     }
+
     const blob = (async () => {
       const bitmap = await createImageBitmap(await imageBlob(source));
 
@@ -125,12 +130,10 @@ const copyImage = async (source) => {
         canvas.width = bitmap.width;
         canvas.height = bitmap.height;
         canvas.getContext("2d").drawImage(bitmap, 0, 0);
+
         return await new Promise((resolve, reject) => {
           canvas.toBlob(
-            (value) =>
-              value
-                ? resolve(value)
-                : reject(new Error("Image conversion failed")),
+            (value) => (value ? resolve(value) : reject(new Error("Image conversion failed"))),
             "image/png"
           );
         });
@@ -151,19 +154,17 @@ const item = ({ value, text, icon, run, danger = false, disabled = false }) => {
   const button = dom.create("button");
 
   row.className = "group-item";
-  button.type = "button";
-  button.textContent = text;
-  button.disabled = disabled;
+  if (danger) dom.set(row, "data-danger", "");
 
+  button.type = "button";
+  button.disabled = disabled;
   dom.set(button, "data-icon", icon);
   button.toggleAttribute("data-color", !danger);
+
+  button.textContent = text;
   dom.set(button, "data-i18n", text);
   dom.set(button, "data-response", "");
   dom.set(button, "data-layer-action", value);
-
-  if (danger) {
-    dom.set(row, "data-danger", "");
-  }
 
   dom.on(button, "click", () => {
     if (button.disabled) return;
@@ -171,6 +172,7 @@ const item = ({ value, text, icon, run, danger = false, disabled = false }) => {
   });
 
   row.append(button);
+
   return row;
 };
 
@@ -211,6 +213,7 @@ const preview = (message) => {
   });
 
   element.append(clone);
+
   return element;
 };
 
@@ -221,12 +224,7 @@ const confirmRemove = async (message) => {
     direction: "→",
     actions: [
       { text: "dialog.cancel", value: false },
-      {
-        text: "dialog.confirm",
-        icon: "trash",
-        value: true,
-        data: ["data-danger"]
-      }
+      { text: "dialog.confirm", icon: "trash", value: true, data: ["data-danger"] }
     ]
   });
 };
@@ -280,20 +278,13 @@ const content = (message, options, user, handlers) => {
         run: () => copyImage(sources[0])
       })
     );
-  if (
-    options.removable &&
-    (!options.private || message.querySelector("[data-unread]"))
-  )
+  if (options.removable && (!options.private || message.querySelector("[data-unread]")))
     items.push(
-      item({
-        value: "remove",
-        text: "chatting.action.remove",
-        icon: "trash",
-        danger: true
-      })
+      item({ value: "remove", text: "chatting.action.remove", icon: "trash", danger: true })
     );
   element.className = "chatting-actions";
   element.append(preview(message), group(...items));
+
   let groups = [];
 
   const render = (value) => {
@@ -302,10 +293,7 @@ const content = (message, options, user, handlers) => {
     groups = actions.message(
       value,
       message.closest(".chatting"),
-      {
-        ...options,
-        hidden: storage.get(`chatting-hide:${options.id}`) === "true"
-      },
+      { ...options, hidden: storage.get(`chatting-hide:${options.id}`) === "true" },
       handlers,
       opening
     );
@@ -325,6 +313,7 @@ const content = (message, options, user, handlers) => {
   const member = user ? actions.member(user, options.room, handlers) : null;
 
   if (member) element.append(member.root);
+
   return {
     root: element,
     off: () => {

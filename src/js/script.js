@@ -19,8 +19,7 @@ import * as direct from "#common/chatting/direct";
 const app = dom.query(".app");
 const loading = init();
 const url = new URL(location.href);
-const message =
-  url.searchParams.get("message") || window.history.state?.message || "";
+const message = url.searchParams.get("message") || window.history.state?.message || "";
 
 if (url.searchParams.has("message") || url.searchParams.get("push") === "1") {
   url.searchParams.delete("push");
@@ -43,6 +42,7 @@ try {
       loading.remove();
       await login.pending();
     }
+
     if (await setup(() => loading.remove())) {
       app.hidden = false;
       header(app);

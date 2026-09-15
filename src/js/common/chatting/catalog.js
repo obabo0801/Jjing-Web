@@ -1,8 +1,4 @@
-const category = (title, icon, values) => ({
-  title,
-  icon,
-  items: values.split(" ")
-});
+const category = (title, icon, values) => ({ title, icon, items: values.split(" ") });
 
 export const unicode = [
   category(

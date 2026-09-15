@@ -29,25 +29,23 @@ const item = (handlers, data) => {
   const label = dom.create("span");
 
   row.className = "group-item";
+  if (danger) dom.set(row, "data-danger", "");
+
   button.type = "button";
   button.disabled = disabled;
-  label.textContent = i18n.message(text);
-
   dom.set(button, "data-icon", icon);
   button.toggleAttribute("data-color", !danger && icon !== "arrow");
-  dom.set(label, "data-i18n", text);
   dom.set(button, "data-response", "");
+  if (close) dom.set(button, "data-layer-action", text);
+
+  label.textContent = i18n.message(text);
+  dom.set(label, "data-i18n", text);
   button.append(label);
 
   if (close) {
-    dom.set(button, "data-layer-action", text);
     handlers.set(text, run);
   } else {
     dom.on(button, "click", run);
-  }
-
-  if (danger) {
-    dom.set(row, "data-danger", "");
   }
 
   if (next) {
@@ -93,12 +91,14 @@ const hidden = (target, options) => {
   row.className = "group-item";
   dom.set(value, "data-icon", "eye-off");
   field.className = "switch";
+
   text.textContent = i18n.message("profile.hide");
+  dom.set(text, "data-i18n", "profile.hide");
+
   input.type = "checkbox";
   input.name = "chatting-hide";
   input.checked = Boolean(options.hidden);
 
-  dom.set(text, "data-i18n", "profile.hide");
   dom.on(input, "change", () => {
     emit(target, "chatting-hide", { ...options, hidden: input.checked });
   });
@@ -138,12 +138,7 @@ const block = async (user) => {
     content,
     direction: "→",
     actions: [
-      {
-        text: "profile.cancel",
-        icon: "close",
-        value: false,
-        data: ["data-neutral"]
-      },
+      { text: "profile.cancel", icon: "close", value: false, data: ["data-neutral"] },
       {
         text: "profile.confirm",
         icon: "check",
@@ -165,8 +160,10 @@ const block = async (user) => {
 
   if (!result.ok) {
     await dialog({ title: "profile.saveError", direction: "→" });
+
     return;
   }
+
   await profile.read(user.id, { fresh: true });
 };
 
@@ -184,6 +181,7 @@ const sanction = async (user, action) => {
   dom.set(input, "data-i18n-placeholder", "profile.historyReason");
   field.append(input);
   content.append(field);
+
   let busy = false;
 
   await dialog({
@@ -196,12 +194,7 @@ const sanction = async (user, action) => {
     content,
     direction: "→",
     actions: [
-      {
-        text: "profile.cancel",
-        icon: "close",
-        value: false,
-        data: ["data-neutral"]
-      },
+      { text: "profile.cancel", icon: "close", value: false, data: ["data-neutral"] },
       {
         text: "profile.confirm",
         icon: "check",
@@ -212,17 +205,16 @@ const sanction = async (user, action) => {
           if (busy || !input.value.trim()) return false;
           busy = true;
           try {
-            const result = await profile.sanction(
-              user.id,
-              action,
-              input.value.trim()
-            );
+            const result = await profile.sanction(user.id, action, input.value.trim());
 
             if (!result.ok) {
               await dialog({ title: "profile.saveError", direction: "→" });
+
               return false;
             }
+
             await profile.read(user.id, { fresh: true });
+
             return true;
           } finally {
             busy = false;
@@ -250,8 +242,7 @@ export const moderation = (user, handlers, opening) => {
                 icon: "tts-mute",
                 danger: true,
                 close: false,
-                run: () =>
-                  opening(`sanction:${user.id}`, () => sanction(user, "mute"))
+                run: () => opening(`sanction:${user.id}`, () => sanction(user, "mute"))
               })
             : null,
           online(user) || user.sanction?.kicked
@@ -272,8 +263,7 @@ export const moderation = (user, handlers, opening) => {
       icon: "info",
       next: true,
       close: false,
-      run: () =>
-        opening(`history:${user.id}`, () => history(user.id, "sanction"))
+      run: () => opening(`history:${user.id}`, () => history(user.id, "sanction"))
     }),
     item(handlers, {
       text: user.blocked ? "profile.unblock" : "profile.block",
@@ -285,6 +275,7 @@ export const moderation = (user, handlers, opening) => {
   );
 
   if (user.blocked) element.classList.add("profile-block");
+
   return element;
 };
 
@@ -343,6 +334,7 @@ const gift = (handlers) => {
   });
 
   row.hidden = true;
+
   return row;
 };
 
@@ -355,25 +347,15 @@ export const message = (user, target, options, handlers, opening) => {
       ["whisper", "whisper", "chatting-whisper"]
     ]) {
       if (text === "message" && user.receiving?.message === false) continue;
-      if (
-        text === "whisper" &&
-        (!online(user) || user.receiving?.whisper === false)
-      )
-        continue;
+      if (text === "whisper" && (!online(user) || user.receiving?.whisper === false)) continue;
       context.push(
-        item(handlers, {
-          text: `profile.${text}`,
-          icon,
-          run: () => emit(target, event, options)
-        })
+        item(handlers, { text: `profile.${text}`, icon, run: () => emit(target, event, options) })
       );
     }
-    context.push(
-      gift(handlers),
-      hidden(target, options),
-      personal(user, handlers)
-    );
+
+    context.push(gift(handlers), hidden(target, options), personal(user, handlers));
   }
+
   const records = [];
 
   if (user.manage && user.details) {
@@ -390,26 +372,20 @@ export const message = (user, target, options, handlers, opening) => {
         })
       );
   }
+
   records.push(
     item(handlers, {
       text: "chatting.action.report",
       disabled: user.self || (!options.url && !options.proof),
       icon: "flag",
       danger: true,
-      run: () =>
-        report(
-          "message",
-          options.url || options.token,
-          user.self,
-          options.evidence?.()
-        )
+      run: () => report("message", options.url || options.token, user.self, options.evidence?.())
     })
   );
-  return [
-    group(...context),
-    group(...records),
-    moderation(user, handlers, opening)
-  ].filter(Boolean);
+
+  return [group(...context), group(...records), moderation(user, handlers, opening)].filter(
+    Boolean
+  );
 };
 
 export const context = (user, target, options, handlers, opening) => {
@@ -438,23 +414,19 @@ export const context = (user, target, options, handlers, opening) => {
       whisper
     ].filter(Boolean);
 
-    items.push(
-      gift(handlers),
-      hidden(target, options),
-      personal(user, handlers)
-    );
+    items.push(gift(handlers), hidden(target, options), personal(user, handlers));
     if (user.manage && user.details) {
       const entry = item(handlers, {
         text: "profile.chatHistory",
         icon: "info",
         next: true,
         close: false,
-        run: () =>
-          opening(`history:${user.id}`, () => history(user.id, "chatting"))
+        run: () => opening(`history:${user.id}`, () => history(user.id, "chatting"))
       });
 
       entry.classList.add("profile-history");
       items.push(entry);
+
       const reports = item(handlers, {
         text: "profile.reportHistory",
         icon: "flag",
@@ -466,6 +438,7 @@ export const context = (user, target, options, handlers, opening) => {
       reports.classList.add("profile-history");
       items.push(reports);
     }
+
     items.push(
       item(handlers, {
         text: "profile.report",
@@ -494,6 +467,7 @@ export function member(user, id, handlers) {
 
     if (closed || version !== revision) return;
     root.replaceChildren();
+
     const current = result.data;
 
     root.hidden =
@@ -507,16 +481,16 @@ export function member(user, id, handlers) {
 
     if (!current.owner && (peer.owner || peer.deputy)) {
       root.hidden = true;
+
       return;
     }
+
     const items = [["remove", "room.remove", "logout"]];
 
     if (current.owner)
       items.push(
         ["owner", "room.transfer", "user"],
-        peer.deputy
-          ? ["revoke", "room.revoke", "minus"]
-          : ["deputy", "room.delegate", "user"]
+        peer.deputy ? ["revoke", "room.revoke", "minus"] : ["deputy", "room.delegate", "user"]
       );
     for (const [action, text, icon] of items)
       root.append(
@@ -531,10 +505,10 @@ export function member(user, id, handlers) {
     mount(root);
   };
 
-  const off =
-    id && !user.self ? dom.on(events(), "direct-state", update) : () => {};
+  const off = id && !user.self ? dom.on(events(), "direct-state", update) : () => {};
 
   update();
+
   return {
     root,
     off: () => {

@@ -2,5 +2,4 @@
 export const terms = "2";
 export const privacy = "6";
 
-export const valid = (value) =>
-  value?.terms === terms && value?.privacy === privacy;
+export const valid = (value) => value?.terms === terms && value?.privacy === privacy;

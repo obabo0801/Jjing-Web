@@ -16,10 +16,7 @@ export async function load() {
   const registration = await navigator.serviceWorker.ready;
 
   dom.on(navigator.serviceWorker, "message", (event) => {
-    if (
-      event.data?.type !== "notify" ||
-      document.visibilityState !== "visible"
-    ) {
+    if (event.data?.type !== "notify" || document.visibilityState !== "visible") {
       return;
     }
 
@@ -44,9 +41,7 @@ export async function load() {
   }
 
   dom.on(window, "appinstalled", cache, { once: true });
-  dom.on(window, "online", () =>
-    registration.active?.postMessage({ type: "sync" })
-  );
+  dom.on(window, "online", () => registration.active?.postMessage({ type: "sync" }));
 
   return registration;
 }

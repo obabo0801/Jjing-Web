@@ -19,6 +19,7 @@ import { events as path } from "#shared/route";
 const opening = once();
 
 route.register("online", (id) => (id === "" ? online() : false));
+
 const size = 50;
 
 i18n.preload(
@@ -53,10 +54,12 @@ export const arrange = (items, search = "", lang = "ko") => {
     );
 
   for (const item of rows) counts.set(item.id, (counts.get(item.id) || 0) + 1);
+
   return rows.map((item) => {
     const number = (numbers.get(item.id) || 0) + 1;
 
     numbers.set(item.id, number);
+
     return { ...item, number: counts.get(item.id) > 1 ? number : null };
   });
 };
@@ -71,8 +74,7 @@ const valid = (items) =>
       typeof item.id === "string" &&
       Boolean(item.id) &&
       typeof item.name === "string" &&
-      (item.order === undefined ||
-        (Number.isSafeInteger(item.order) && item.order > 0)) &&
+      (item.order === undefined || (Number.isSafeInteger(item.order) && item.order > 0)) &&
       (item.avatar === null || typeof item.avatar === "string") &&
       ["admin", "user"].includes(item.group) &&
       ["online", "away"].includes(item.state)
@@ -92,8 +94,8 @@ export default function online(anchor) {
     root.className = "online";
     empty.className = "online-empty";
     empty.hidden = true;
-    dom.set(empty, "data-i18n", "online.empty");
     empty.textContent = i18n.message("online.empty");
+    dom.set(empty, "data-i18n", "online.empty");
     edge.className = "online-edge";
     edge.append(indicator.element);
 
@@ -110,6 +112,7 @@ export default function online(anchor) {
       root.append(section);
       groups.set(type, { section, title, group });
     }
+
     root.append(empty, edge);
 
     let layer;
@@ -153,6 +156,7 @@ export default function online(anchor) {
         row.element.remove();
         nodes.delete(key);
       }
+
       for (const [type, section] of groups) {
         const count = visible.filter((item) => item.group === type).length;
         const rows = wanted.filter((item) => item.group === type);
@@ -189,8 +193,7 @@ export default function online(anchor) {
                 id,
                 online: root,
                 get number() {
-                  return visible.find((item) => item.session === session)
-                    ?.number;
+                  return visible.find((item) => item.session === session)?.number;
                 },
                 context: "chatting",
                 hidden: storage.get(`chatting-hide:${id}`) === "true"
@@ -198,6 +201,7 @@ export default function online(anchor) {
             });
             nodes.set(item.session, row);
           }
+
           if (row.item.avatar !== item.avatar || !row.element.isConnected)
             row.media.set(item.avatar);
           row.item = item;
@@ -207,24 +211,20 @@ export default function online(anchor) {
           names.mark(row.name, item.verified);
           dom.set(row.status, "data-state", item.state);
           if (section.group.children[index] !== row.element)
-            section.group.insertBefore(
-              row.element,
-              section.group.children[index] || null
-            );
+            section.group.insertBefore(row.element, section.group.children[index] || null);
         });
       }
-      heading.textContent = i18n
-        .message("online.title")
-        .replace("{count}", items.length);
+
+      heading.textContent = i18n.message("online.title").replace("{count}", items.length);
       badge(tools.children[0], search ? visible.length : undefined);
       empty.hidden = busy || Boolean(visible.length);
       edge.hidden = !busy && !expanding && limit >= visible.length;
       mount(root);
+
       const position = positions.find(({ node }) => node.isConnected);
 
       if (position?.node.isConnected)
-        layer.scrollTop +=
-          position.node.getBoundingClientRect().top - position.top;
+        layer.scrollTop += position.node.getBoundingClientRect().top - position.top;
       root.dispatchEvent(new Event("online-update"));
     }
 
@@ -233,9 +233,7 @@ export default function online(anchor) {
       animation = indicator.element.animate(
         { opacity: show ? [0, 1] : [1, 0] },
         {
-          duration: matchMedia("(prefers-reduced-motion: reduce)").matches
-            ? 0
-            : 120,
+          duration: matchMedia("(prefers-reduced-motion: reduce)").matches ? 0 : 120,
           fill: "forwards"
         }
       );
@@ -246,6 +244,7 @@ export default function online(anchor) {
       if (!active || busy || expanding || limit >= visible.length) return;
       expanding = true;
       observer.unobserve(edge);
+
       const current = visible;
 
       try {
@@ -276,13 +275,12 @@ export default function online(anchor) {
         try {
           while (again && active) {
             again = false;
+
             const version = revision;
 
             request = new AbortController();
-            const result = await api(`${path}/list`, {
-              cache: "no-store",
-              signal: request.signal
-            });
+
+            const result = await api(`${path}/list`, { cache: "no-store", signal: request.signal });
 
             if (!active) return;
             if (version !== revision) continue;
@@ -290,6 +288,7 @@ export default function online(anchor) {
               toast({ text: "online.error", type: "error" });
               continue;
             }
+
             items = result.data.items;
             visible = arrange(items, search, dom.root.lang || "ko");
             render();
@@ -307,6 +306,7 @@ export default function online(anchor) {
           }
         }
       })();
+
       return pending;
     }
 
@@ -324,6 +324,7 @@ export default function online(anchor) {
         dom.set(input, "data-control", "");
         dom.set(input, "data-i18n-placeholder", "search.placeholder");
         field.append(input);
+
         const result = await dialog({
           title: "online.search",
           content: field,
@@ -344,6 +345,7 @@ export default function online(anchor) {
         if (!active || (result !== true && result !== "reset")) return;
         search = result === "reset" ? "" : input.value.trim();
       }
+
       if (search) dom.set(tools.children[0], "data-selected", "");
       else dom.remove(tools.children[0], "data-selected");
       limit = size;
@@ -374,8 +376,7 @@ export default function online(anchor) {
             { root: layer, rootMargin: "0px 0px 128px 0px" }
           );
           render();
-          for (const type of ["online", "ready"])
-            off.push(dom.on(source, type, sync));
+          for (const type of ["online", "ready"]) off.push(dom.on(source, type, sync));
           sync();
         }
       });

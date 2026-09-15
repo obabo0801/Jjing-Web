@@ -127,7 +127,9 @@ export const silence = (stream, signal, stop) =>
 
     if (!audio) {
       let offSignal = () => {};
+
       let offStop = () => {};
+
       let timer;
       let settled = false;
 
@@ -169,6 +171,7 @@ export const silence = (stream, signal, stop) =>
     let frame;
     let stopped = false;
     let offSignal = () => {};
+
     let offStop = () => {};
 
     const done = () => {
@@ -189,6 +192,7 @@ export const silence = (stream, signal, stop) =>
 
     if (stop?.aborted) {
       done();
+
       return;
     }
 
@@ -218,6 +222,7 @@ export const silence = (stream, signal, stop) =>
         time - start >= 60_000
       ) {
         done();
+
         return;
       }
 

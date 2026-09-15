@@ -12,6 +12,7 @@ const group = (...items) => {
 
   root.className = "group";
   root.append(...items.filter(Boolean));
+
   return root;
 };
 
@@ -27,9 +28,7 @@ export default function authority(user) {
   const content = dom.create("fieldset");
   const status = dom.create("span");
   const info = group();
-  const tools = toolbar([
-    { icon: "edit", text: "profile.memo", run: () => edit() }
-  ]);
+  const tools = toolbar([{ icon: "edit", text: "profile.memo", run: () => edit() }]);
 
   row.className = "group-item";
   root.className = "toggle";
@@ -62,11 +61,9 @@ export default function authority(user) {
   let busy = false;
 
   const sync = () => {
-    input.disabled =
-      busy || !user.manage || Boolean(user.blocked) || !user.authority;
+    input.disabled = busy || !user.manage || Boolean(user.blocked) || !user.authority;
     button.disabled = input.disabled;
-    tools.hidden =
-      !user.manage || Boolean(user.blocked) || !user.authority?.enabled;
+    tools.hidden = !user.manage || Boolean(user.blocked) || !user.authority?.enabled;
     dom.query("button", tools).disabled = busy || tools.hidden;
     toggle.sync(root);
   };
@@ -81,16 +78,21 @@ export default function authority(user) {
 
       if (!result.ok) {
         status.hidden = false;
+
         return false;
       }
+
       const fresh = await profile.read(user.id, { fresh: true });
 
       if (!fresh.ok || !fresh.data.authority) {
         status.hidden = false;
+
         return false;
       }
+
       Object.assign(user, fresh.data);
       render();
+
       return true;
     } finally {
       busy = false;
@@ -127,12 +129,7 @@ export default function authority(user) {
       direction: "→",
       ready: () => input.focus({ preventScroll: true }),
       actions: [
-        {
-          text: "profile.cancel",
-          icon: "close",
-          value: false,
-          data: ["data-neutral"]
-        },
+        { text: "profile.cancel", icon: "close", value: false, data: ["data-neutral"] },
         {
           text: "profile.confirm",
           icon: "check",
@@ -141,9 +138,11 @@ export default function authority(user) {
           disabled: () => busy,
           run: async () => {
             error.hidden = true;
+
             const saved = await save({ memo: input.value.trim() });
 
             error.hidden = saved;
+
             return saved;
           }
         }
@@ -162,14 +161,14 @@ export default function authority(user) {
       tools.hidden = true;
       dom.query("button", tools).disabled = true;
       toggle.sync(root);
+
       return;
     }
-    const memo = label(
-      "profile.memo",
-      authority.memo || i18n.message("profile.none") || "-"
-    );
+
+    const memo = label("profile.memo", authority.memo || i18n.message("profile.none") || "-");
 
     input.checked = !user.blocked && authority.enabled;
+
     const activity = authority.activity;
     const summary = activity
       ? (i18n.message("profile.counts") || "")
@@ -191,10 +190,12 @@ export default function authority(user) {
   }
 
   render();
+
   let signature = JSON.stringify([user.manage, user.blocked, user.authority]);
 
   profile.bind(content, user.id, (value) => {
     user = { ...value };
+
     const next = JSON.stringify([user.manage, user.blocked, user.authority]);
 
     if (signature === next) return;

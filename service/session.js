@@ -21,6 +21,7 @@ export const remember = async (res, uid, key = ids.key) => {
   );
 
   if (user) res.cookie(key, user.session, cookie);
+
   return Boolean(user);
 };
 
@@ -42,6 +43,7 @@ export const read = async (value) => {
 
     return user && { ...user, legacy: true };
   }
+
   return null;
 };
 
@@ -53,5 +55,6 @@ export const create = async (ip, lang) => {
       VALUES (?, ?, ?, ?, ?)`,
     [uid, ids.publicId(uid), ip, ip, lang]
   );
+
   return uid;
 };

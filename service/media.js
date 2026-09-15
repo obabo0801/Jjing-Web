@@ -5,9 +5,7 @@ import { routes } from "#config/media";
 
 export default async function media(id) {
   if (!/^[a-f0-9]{32}$/.test(id)) return "";
-  const images = routes.filter(
-    (route) => !route.directory.startsWith("audio/")
-  );
+  const images = routes.filter((route) => !route.directory.startsWith("audio/"));
 
   const results = await Promise.all(
     images.flatMap(({ directory, prefix }) =>
@@ -16,9 +14,11 @@ export default async function media(id) {
 
         try {
           await access(path.upload(directory, file));
+
           return `${prefix}/${file}`;
         } catch (error) {
           if (error.code !== "ENOENT") throw error;
+
           return "";
         }
       })

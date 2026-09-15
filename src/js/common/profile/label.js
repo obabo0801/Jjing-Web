@@ -5,11 +5,7 @@ import toast from "#common/toast";
 
 i18n.preload("profile.copy", "profile.copied", "profile.copyError");
 
-export default function label(
-  key,
-  value,
-  { short = false, date = false } = {}
-) {
+export default function label(key, value, { short = false, date = false } = {}) {
   if (value === undefined || value === null || value === "") return null;
   const full = String(value);
   const compact = short && full.length > 13;
@@ -25,6 +21,8 @@ export default function label(
   result.className = "label-content";
   text.className = "label-value";
   name.textContent = i18n.message(key);
+  dom.set(name, "data-i18n", key);
+
   text.textContent = date
     ? full.replace(/^(\d{4}-\d{2}-\d{2})[T ](\d{2}:\d{2}).*$/, "$1 $2")
     : full;
@@ -43,9 +41,7 @@ export default function label(
         title: key,
         content,
         direction: "→",
-        actions: [
-          { text: "profile.confirm", icon: "check", data: ["data-confirm"] }
-        ]
+        actions: [{ text: "profile.confirm", icon: "check", data: ["data-confirm"] }]
       });
     });
 
@@ -55,8 +51,8 @@ export default function label(
     copy.className = "label-copy";
     dom.set(copy, "data-icon", "copy");
     dom.set(copy, "data-color", "");
-    dom.set(copy, "data-response", "");
     dom.set(copy, "data-tooltip", "profile.copy");
+    dom.set(copy, "data-response", "");
     dom.on(copy, "click", async () => {
       if (copy.disabled) return;
       copy.disabled = true;
@@ -71,8 +67,9 @@ export default function label(
     });
     result.append(copy);
   }
-  dom.set(name, "data-i18n", key);
+
   element.append(name, result);
   row.append(element);
+
   return row;
 }

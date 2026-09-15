@@ -28,9 +28,7 @@ dom.on(action, "click", async () => {
     }
 
     if (!tts.busy()) {
-      const source = await tts
-        .speak(heading.textContent, { type: "cache" })
-        .catch(() => null);
+      const source = await tts.speak(heading.textContent, { type: "cache" }).catch(() => null);
 
       await tts.wait(source);
     }

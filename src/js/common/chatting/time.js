@@ -17,9 +17,7 @@ const parse = (value) => {
     return new Date();
   }
 
-  return new Date(
-    source.includes("T") ? source : `${source.replace(" ", "T")}+09:00`
-  );
+  return new Date(source.includes("T") ? source : `${source.replace(" ", "T")}+09:00`);
 };
 
 export const day = (value) =>

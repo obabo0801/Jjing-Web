@@ -30,12 +30,8 @@ export const viewer = async (uid, ip, development = false) => {
   );
 
   if (!user) fail(403);
-  if (
-    process.env.MAINTENANCE === "true" &&
-    !development &&
-    !role.staff(user.role)
-  )
-    fail(503);
+  if (process.env.MAINTENANCE === "true" && !development && !role.staff(user.role)) fail(503);
+
   return user;
 };
 
@@ -65,9 +61,7 @@ export const visible = (user) => {
 };
 
 const removable = (viewer, target) =>
-  viewer.uid === target.uid ||
-  viewer.role === role.root ||
-  role.manages(viewer, target);
+  viewer.uid === target.uid || viewer.role === role.root || role.manages(viewer, target);
 
 const message = (row, user) => {
   if (row.system) {
@@ -85,6 +79,7 @@ const message = (row, user) => {
       time: row.time
     };
   }
+
   return {
     seq: row.seq,
     url: row.id,
@@ -101,10 +96,8 @@ const message = (row, user) => {
     }),
     time: row.time,
     own: row.uid === user.uid,
-    removable:
-      !row.deleted && removable(user, { uid: row.uid, role: row.author_role }),
-    ...(user.role === role.root &&
-      row.deleted && { deleted: true, deletedAt: row.deleted }),
+    removable: !row.deleted && removable(user, { uid: row.uid, role: row.author_role }),
+    ...(user.role === role.root && row.deleted && { deleted: true, deletedAt: row.deleted }),
     ...(role.staff(user.role) && { blocked: Boolean(row.blocked) })
   };
 };
@@ -129,6 +122,7 @@ const integer = (value) => {
   const number = Number(value);
 
   if (!Number.isSafeInteger(number)) fail(400);
+
   return number;
 };
 
@@ -149,11 +143,9 @@ export const list = async (user, query = {}, uid) => {
   const { search } = filters(query);
   const count = query.limit === undefined ? rules.size : integer(query.limit);
 
-  if (!count || (query.before !== undefined && query.after !== undefined))
-    fail(400);
+  if (!count || (query.before !== undefined && query.after !== undefined)) fail(400);
   const limit = Math.min(count, rules.maximum);
-  const high = (await get("SELECT COALESCE(MAX(seq), 0) AS seq FROM chatting"))
-    .seq;
+  const high = (await get("SELECT COALESCE(MAX(seq), 0) AS seq FROM chatting")).seq;
   const conditions = [visible(user), "chatting.seq <= ?"];
   const params = [high];
   const forward = query.after !== undefined;
@@ -168,14 +160,17 @@ export const list = async (user, query = {}, uid) => {
       cursor: high
     };
   }
+
   if (uid !== undefined) {
     conditions.push("chatting.uid = ? AND chatting.system IS NULL");
     params.push(uid);
   }
+
   if (query.before !== undefined || forward) {
     conditions.push(`chatting.seq ${forward ? ">" : "<"} ?`);
     params.push(integer(forward ? query.after : query.before));
   }
+
   if (query.date !== undefined) {
     const range = rules.date(query.date);
 
@@ -183,10 +178,12 @@ export const list = async (user, query = {}, uid) => {
     conditions.push("chatting.time >= ? AND chatting.time < ?");
     params.push(...range);
   }
+
   if (search) {
     conditions.push("instr(lower(chatting.text), lower(?)) > 0");
     params.push(search);
   }
+
   const total =
     uid !== undefined &&
     query.before === undefined &&
@@ -211,6 +208,7 @@ export const list = async (user, query = {}, uid) => {
   const page = rows.slice(0, limit);
 
   if (!forward) page.reverse();
+
   return {
     messages: page.map((row) => message(row, user)),
     muted: user.muted || null,
@@ -224,8 +222,7 @@ export const list = async (user, query = {}, uid) => {
 };
 
 export const recent = async (user, query = {}) => {
-  const high = (await get("SELECT COALESCE(MAX(seq), 0) AS seq FROM chatting"))
-    .seq;
+  const high = (await get("SELECT COALESCE(MAX(seq), 0) AS seq FROM chatting")).seq;
 
   const conditions = [
     visible(user),
@@ -240,6 +237,7 @@ export const recent = async (user, query = {}) => {
     conditions.push(`chatting.seq ${key === "before" ? "<" : ">"} ?`);
     params.push(integer(query[key]));
   }
+
   const rows = await all(
     `${select} WHERE ${conditions.join(" AND ")}
       ORDER BY chatting.seq DESC LIMIT ?`,
@@ -260,10 +258,7 @@ export const recent = async (user, query = {}) => {
 
 export const around = async (user, id) => {
   if (!rules.validId(id)) fail(400);
-  const row = await get(
-    `${select} WHERE chatting.id = ? AND ${visible(user)}`,
-    [id]
-  );
+  const row = await get(`${select} WHERE chatting.id = ? AND ${visible(user)}`, [id]);
 
   if (!row) fail(404);
   const before = await list(user, { before: row.seq, limit: 20 });
@@ -295,14 +290,7 @@ export const writable = async (user) => {
     });
 };
 
-export const save = async (
-  user,
-  ip,
-  text,
-  image = null,
-  audio = null,
-  attachments = []
-) => {
+export const save = async (user, ip, text, image = null, audio = null, attachments = []) => {
   if (
     typeof text !== "string" ||
     (!text.trim() && !image && !audio && !attachments.length) ||
@@ -310,6 +298,7 @@ export const save = async (
   )
     fail(400);
   await writable(user);
+
   const id = randomUUID();
   const result = await run(
     `INSERT INTO chatting (id, uid, text, image, preview, audio, attachments)
@@ -339,10 +328,7 @@ export const deliver = async (id, skip) => {
   await events.publish("chatting", async (client) => {
     if (client.uid === skip) return null;
     const user = await viewer(client.uid, client.ip, client.development);
-    const row = await get(
-      `${select} WHERE chatting.id = ? AND ${visible(user)}`,
-      [id]
-    );
+    const row = await get(`${select} WHERE chatting.id = ? AND ${visible(user)}`, [id]);
 
     return row ? message(row, user) : null;
   });
@@ -352,8 +338,7 @@ export const deliver = async (id, skip) => {
 
 export const suggest = async (query = "", lang = "ko") => {
   if (typeof query !== "string" || query.length > 80) fail(400);
-  const anonymous =
-    (locale(lang) || locale("ko"))?.["profile.anonymous"] || "{id}";
+  const anonymous = (locale(lang) || locale("ko"))?.["profile.anonymous"] || "{id}";
 
   const rows = await all(
     `SELECT uid, id, CASE WHEN google IS NOT NULL THEN name END AS name,
@@ -405,29 +390,20 @@ async function notify(id) {
 
   await Promise.allSettled(
     recipients.map(async (user) => {
-      if (
-        !settings.allows(
-          settings.read(user.settings),
-          ids.includes(user.id),
-          true
-        )
-      )
-        return;
+      if (!settings.allows(settings.read(user.settings), ids.includes(user.id), true)) return;
       if (events.viewing(user.uid)) return;
       await viewer(user.uid, user.ip);
+
       const rows = await all(
         "SELECT endpoint, data FROM web WHERE uid = ? AND active = 1 AND connected = 1",
         [user.uid]
       );
 
-      const anonymous =
-        (locale(user.lang) || locale("ko"))?.["profile.anonymous"] || "{id}";
+      const anonymous = (locale(user.lang) || locale("ko"))?.["profile.anonymous"] || "{id}";
 
       await push.send(rows, {
         title:
-          row.google && row.name
-            ? row.name
-            : anonymous.replace("{id}", row.public.slice(0, 8)),
+          row.google && row.name ? row.name : anonymous.replace("{id}", row.public.slice(0, 8)),
         body: mentions.plain(row.text).slice(0, 180),
         url: `/?message=${id}`,
         tag: `mention:${id}`

@@ -11,6 +11,7 @@ export const giphy = (value) => {
     !/^[a-zA-Z0-9]{1,80}$/.test(value.id || "")
   )
     return null;
+
   return { type: value.type, provider: "giphy", id: value.id };
 };
 
@@ -23,14 +24,13 @@ export const ogq = (value) => {
     ![80, 160, 240].includes(value.size)
   )
     return null;
+
   return {
     type: "ogq",
     ogq_id: value.ogq_id,
     number: value.number,
     size: value.size,
-    extension: ["png", "webp"].includes(value.extension)
-      ? value.extension
-      : "png",
+    extension: ["png", "webp"].includes(value.extension) ? value.extension : "png",
     version: /^[\w.-]{1,32}$/.test(value.version || "") ? value.version : "1"
   };
 };
@@ -49,6 +49,7 @@ export const valid = (items) =>
   items.every((item) => {
     if (item?.provider === "giphy") return Boolean(giphy(item));
     if (item?.type === "ogq") return Boolean(ogq(item));
+
     return (
       ["image", "gif"].includes(item?.type) &&
       [item.image, item.preview].every(

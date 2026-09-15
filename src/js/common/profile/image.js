@@ -16,8 +16,8 @@ const portrait = (source, original = source) => {
   root.className = "profile-avatar";
   mark.className = "profile-edit";
 
-  dom.set(media.root, "data-response", "");
   dom.set(media.root, "data-tooltip", "image.select");
+  dom.set(media.root, "data-response", "");
   dom.set(mark, "data-icon", "edit");
 
   root.append(media.root, mark);
@@ -31,13 +31,7 @@ const portrait = (source, original = source) => {
 
   const adjust = async (file, anchor, previous) => {
     try {
-      return await edit(file, {
-        anchor,
-        edit: previous,
-        shape: "circle",
-        width: 512,
-        height: 512
-      });
+      return await edit(file, { anchor, edit: previous, shape: "circle", width: 512, height: 512 });
     } catch {
       return null;
     }
@@ -50,8 +44,8 @@ const portrait = (source, original = source) => {
     const revise = once();
 
     stage.root.tabIndex = -1;
-    dom.set(stage.root, "data-response", "");
     dom.set(stage.root, "data-tooltip", "image.title");
+    dom.set(stage.root, "data-response", "");
 
     panel.className = "image-select";
     options.className = "group";
@@ -118,6 +112,7 @@ const portrait = (source, original = source) => {
 
           if (file.size > limit) {
             toast({ type: "error", title: "image.sizeError" });
+
             return;
           }
 
@@ -157,6 +152,7 @@ const portrait = (source, original = source) => {
         if (rev !== version || !opened || !active) return;
         if (file.size > limit) {
           toast({ type: "error", title: "image.sizeError" });
+
           return;
         }
 
@@ -183,12 +179,12 @@ const portrait = (source, original = source) => {
       input.accept = "image/jpeg,image/png,image/webp,image/gif";
       input.hidden = true;
 
+      dom.set(button, "data-background", "");
       dom.set(button, "data-icon", `${icon} center`);
       dom.set(button, "data-color", "");
       dom.set(button, "data-circle", "");
-      dom.set(button, "data-background", "");
-      dom.set(button, "data-response", "");
       dom.set(button, "data-tooltip", key);
+      dom.set(button, "data-response", "");
 
       if (capture) {
         dom.set(input, "capture", "environment");
@@ -207,6 +203,7 @@ const portrait = (source, original = source) => {
 
         if (file.size > limit) {
           toast({ type: "error", title: "image.sizeError" });
+
           return;
         }
 
@@ -235,12 +232,12 @@ const portrait = (source, original = source) => {
       const button = dom.create("button");
 
       button.type = "button";
+      dom.set(button, "data-background", "");
       dom.set(button, "data-icon", "phone center");
       dom.set(button, "data-color", "");
       dom.set(button, "data-circle", "");
-      dom.set(button, "data-background", "");
-      dom.set(button, "data-response", "");
       dom.set(button, "data-tooltip", "image.phone");
+      dom.set(button, "data-response", "");
 
       dom.on(button, "click", async () => {
         const rev = ++version;
@@ -256,6 +253,7 @@ const portrait = (source, original = source) => {
         }
 
         token = result.data.token;
+
         const url = new URL("/image", location.origin);
 
         url.searchParams.set("token", result.data.token);
@@ -271,7 +269,6 @@ const portrait = (source, original = source) => {
         code.alt = "";
 
         guide.textContent = i18n.message("image.scan") || "image.scan";
-
         dom.set(guide, "data-i18n", "image.scan");
 
         code.src = await QRCode.toDataURL(url.href, { width: 240, margin: 1 });
@@ -301,9 +298,7 @@ const portrait = (source, original = source) => {
               if (value === result.data.token) close(true);
             });
           },
-          actions: [
-            { text: "image.cancel", icon: "close", data: ["data-neutral"] }
-          ]
+          actions: [{ text: "image.cancel", icon: "close", data: ["data-neutral"] }]
         }).finally(() => off?.());
       });
 
@@ -313,9 +308,7 @@ const portrait = (source, original = source) => {
     const choices = dom.has("wearable")
       ? [phone()]
       : [
-          ...(dom.has("mobile")
-            ? [choose("camera", "image.camera", true)]
-            : []),
+          ...(dom.has("mobile") ? [choose("camera", "image.camera", true)] : []),
           choose("image", "image.gallery")
         ];
 
@@ -323,11 +316,7 @@ const portrait = (source, original = source) => {
 
     options.append(...choices.map(({ button }) => button));
 
-    panel.append(
-      stage.root,
-      options,
-      ...choices.map(({ input }) => input).filter(Boolean)
-    );
+    panel.append(stage.root, options, ...choices.map(({ input }) => input).filter(Boolean));
     show();
 
     let saved;
@@ -351,6 +340,7 @@ const portrait = (source, original = source) => {
             close: false,
             run: () => {
               update(null);
+
               return false;
             }
           },
@@ -406,6 +396,7 @@ const portrait = (source, original = source) => {
       root.className = "profile-avatar";
       image.set(url ?? source, adjustment);
       root.append(image.root);
+
       return root;
     },
     file: () => pending,

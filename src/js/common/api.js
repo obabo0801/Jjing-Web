@@ -8,9 +8,7 @@ export default async function api(path, { data, ...options } = {}) {
       })
     });
 
-    const json = response.headers
-      .get("content-type")
-      ?.includes("application/json");
+    const json = response.headers.get("content-type")?.includes("application/json");
     const body = json ? await response.json() : null;
 
     return { ok: response.ok, status: response.status, data: body };

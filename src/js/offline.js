@@ -30,9 +30,7 @@ dom.on(action, "click", async () => {
     }
 
     if (!tts.busy()) {
-      const source = await tts
-        .speak(heading.textContent, { type: "cache" })
-        .catch(() => null);
+      const source = await tts.speak(heading.textContent, { type: "cache" }).catch(() => null);
 
       await tts.wait(source);
     }
@@ -58,10 +56,7 @@ try {
   const system = navigator.language.toLowerCase();
   const lang = mode === "system" ? system : mode;
   const file =
-    languages[lang] ||
-    languages[lang.split("-")[0]] ||
-    languages.ko ||
-    Object.values(languages)[0];
+    languages[lang] || languages[lang.split("-")[0]] || languages.ko || Object.values(languages)[0];
 
   if (!file) {
     throw new Error();

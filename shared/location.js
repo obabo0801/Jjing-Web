@@ -30,11 +30,7 @@ const routes = [
   ["reports", "drawer", "/reports"],
   ["authority", "drawer", `/profile/${user}/permissions`],
   ["select", "popover", "/preferences/([a-zA-Z0-9_-]{1,80})"]
-].map(([name, type, path]) => ({
-  name,
-  type,
-  pattern: new RegExp(`^${path}/?$`)
-}));
+].map(([name, type, path]) => ({ name, type, pattern: new RegExp(`^${path}/?$`) }));
 
 export const read = (value) => {
   const url = new globalThis.URL(value, "http://localhost");
@@ -43,19 +39,17 @@ export const read = (value) => {
     const match = pattern.exec(url.pathname);
 
     if (!match) continue;
+
     return [type, name, match[1] || ""];
   }
+
   return null;
 };
 
 export const page = (value) => {
   const state = read(value);
 
-  return state
-    ? ["admin", "reports"].includes(state[1]) && !state[2]
-      ? "admin"
-      : "index"
-    : "";
+  return state ? (["admin", "reports"].includes(state[1]) && !state[2] ? "admin" : "index") : "";
 };
 
 export const href = ([, name, id]) => {
@@ -82,5 +76,6 @@ export const href = ([, name, id]) => {
 
   if (paths[name]) return `${base}/${paths[name]}`;
   if (name === "profile") return base;
+
   return "/";
 };

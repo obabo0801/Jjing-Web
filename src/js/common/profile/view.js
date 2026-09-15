@@ -80,9 +80,7 @@ const relative = (value) => {
     return "";
   }
 
-  const date = new Date(
-    value.includes("T") ? value : `${value.replace(" ", "T")}+09:00`
-  );
+  const date = new Date(value.includes("T") ? value : `${value.replace(" ", "T")}+09:00`);
   const seconds = (date.getTime() - Date.now()) / 1000;
 
   if (!Number.isFinite(seconds)) {
@@ -97,8 +95,7 @@ const relative = (value) => {
     ["minute", 60]
   ];
 
-  const [unit, size] =
-    units.find(([, size]) => Math.abs(seconds) >= size) ?? units.at(-1);
+  const [unit, size] = units.find(([, size]) => Math.abs(seconds) >= size) ?? units.at(-1);
   const lang = dom.root.lang || navigator.language;
 
   return new Intl.RelativeTimeFormat(lang, { numeric: "always" }).format(
@@ -114,21 +111,24 @@ const setState = (status, time, value, stamp, blocked) => {
   dom.remove(time, "data-i18n");
   if (blocked) {
     dom.set(time, "data-blocked", "");
-    dom.set(time, "data-i18n", "profile.blocked");
     time.textContent = i18n.message("profile.blocked") || "";
+    dom.set(time, "data-i18n", "profile.blocked");
+
     return;
   }
+
   dom.remove(time, "data-blocked");
 
   if (state === "offline") {
     time.textContent = relative(stamp);
+
     return;
   }
 
   const key = state === "online" ? "profile.active" : "profile.away";
 
-  dom.set(time, "data-i18n", key);
   time.textContent = i18n.message(key);
+  dom.set(time, "data-i18n", key);
 };
 
 const request = async (options) => {
@@ -155,9 +155,10 @@ const tabs = (options) => {
     const button = dom.create("button");
 
     button.type = "button";
+    dom.set(button, "data-background", "");
+
     button.textContent = i18n.message(tab);
     dom.set(button, "data-i18n", tab);
-    dom.set(button, "data-background", "");
 
     if (!index) {
       dom.set(button, "data-selected", "");
@@ -186,6 +187,7 @@ const content = (user, target, options, handlers) => {
   name.className = "profile-name";
   id.className = "profile-id";
   time.className = "profile-time";
+
   let admin;
   let context;
   let signature;
@@ -224,8 +226,9 @@ const content = (user, target, options, handlers) => {
     tools.hidden = (!user.manage && !user.self) || !user.details;
     button.disabled = tools.hidden;
     dom.set(button, "data-protected", String(protectedMode));
-    dom.set(label, "data-i18n", key);
+
     label.textContent = i18n.message(key);
+    dom.set(label, "data-i18n", key);
   }
 
   dom.set(media.root, "data-response", "");
@@ -242,8 +245,7 @@ const content = (user, target, options, handlers) => {
     const changed =
       user.receiving?.message !== value.receiving?.message ||
       user.self !== value.self ||
-      Boolean(user.manage && user.details) !==
-        Boolean(value.manage && value.details);
+      Boolean(user.manage && user.details) !== Boolean(value.manage && value.details);
 
     user = { ...value };
     time.hidden = user.self;
@@ -283,30 +285,32 @@ const content = (user, target, options, handlers) => {
         context = next;
         mount(context);
       }
+
       i18n.translate();
     }
+
     signature = next;
 
     const whisper = dom.query("[data-whisper]", root);
 
     if (whisper) {
       whisper.hidden =
-        !["online", "away"].includes(user.state) ||
-        user.receiving?.whisper === false;
+        !["online", "away"].includes(user.state) || user.receiving?.whisper === false;
     }
+
     protect();
   };
 
   render(user);
   dom.on(media.root, "click", () => {
-    const source =
-      user.image || user.avatar || options.image || options.avatar || "";
+    const source = user.image || user.avatar || options.image || options.avatar || "";
 
     viewer(source, media.root, "user").catch(() => {});
   });
   picture.append(media.root, status);
   head.append(picture, name, id, time);
   root.append(head);
+
   const own = user.self && user.verified ? editor(user) : null;
 
   if (own) {
@@ -339,6 +343,7 @@ const content = (user, target, options, handlers) => {
 
   root.append(member.root);
   protect();
+
   const off = dom.on(options.online, "online-update", rename);
 
   return {

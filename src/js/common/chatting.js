@@ -12,12 +12,7 @@ import listen from "./chatting/voice.js";
 import media from "./chatting/media.js";
 import { notices } from "../../../shared/chatting.js";
 
-i18n.preload(
-  "chatting.tools.image",
-  "chatting.voice",
-  "chatting.send",
-  "chatting.emoji.clear"
-);
+i18n.preload("chatting.tools.image", "chatting.voice", "chatting.send", "chatting.emoji.clear");
 
 const bound = new WeakSet();
 const groups = new WeakMap();
@@ -25,8 +20,7 @@ const observers = new WeakMap();
 const records = new WeakMap();
 const duration = 30 * 60 * 1000;
 
-export const atBottom = (list) =>
-  list.scrollHeight - list.scrollTop - list.clientHeight < 24;
+export const atBottom = (list) => list.scrollHeight - list.scrollTop - list.clientHeight < 24;
 
 export const place = (list, node, end = null) => {
   const current = records.get(node)?.current;
@@ -51,6 +45,7 @@ const follow = (list, options, current) => {
 
   if (!id) {
     groups.delete(list);
+
     return false;
   }
 
@@ -69,11 +64,12 @@ const bottom = (root, list, form) => {
   button.type = "button";
   button.className = "chatting-bottom";
 
-  dom.set(button, "data-icon", "arrow");
-  dom.set(button, "data-angle", "bottom");
-  dom.set(button, "data-circle", "");
   dom.set(button, "data-background", "");
   dom.set(button, "data-shadow", "");
+  dom.set(button, "data-icon", "arrow");
+  dom.set(button, "data-circle", "");
+  dom.set(button, "data-response", "down");
+  dom.set(button, "data-angle", "bottom");
 
   dom.on(button, "click", () => {
     root.dispatchEvent(new CustomEvent("chatting-latest"));
@@ -108,6 +104,7 @@ export const regroup = (list) => {
       if (previous) previous.id = null;
       continue;
     }
+
     const item = records.get(node);
 
     if (!item) continue;
@@ -116,6 +113,7 @@ export const regroup = (list) => {
       item.separator = null;
       continue;
     }
+
     const date = clock.day(item.current);
     const sameDay = previous?.date === date;
     const follow =
@@ -136,12 +134,14 @@ export const regroup = (list) => {
         item.separator.dateTime = date;
         item.separator.textContent = clock.label(item.current);
       }
+
       list.insertBefore(item.separator, node);
       dates.add(item.separator);
     } else {
       item.separator?.remove();
       item.separator = null;
     }
+
     previous = {
       id: item.options.system ? null : item.options.id,
       private: Boolean(item.options.private),
@@ -150,6 +150,7 @@ export const regroup = (list) => {
       start: follow ? previous.start : item.current
     };
   }
+
   dom.all(".chatting-date", list).forEach((node) => {
     if (!dates.has(node)) node.remove();
   });
@@ -171,6 +172,7 @@ const bind = (element) => {
   }
 
   bottom(element, list, form);
+
   const field = editor(input);
 
   controls(input, input.closest(".input"), send);
@@ -203,18 +205,15 @@ export const append = (target, options = {}, scroll = true) => {
     const notice = notices[options.system];
 
     if (!notice || (notice.admin && !events.isAdmin())) return null;
+
     return system(target, { ...options, ...notice, params: options, scroll });
   }
-  const list = target?.matches?.(".chatting-list")
-    ? target
-    : dom.query(".chatting-list", target);
+
+  const list = target?.matches?.(".chatting-list") ? target : dom.query(".chatting-list", target);
 
   if (
     !list ||
-    (!options.text &&
-      !options.image &&
-      !options.audio &&
-      !options.attachments?.length)
+    (!options.text && !options.image && !options.audio && !options.attachments?.length)
   ) {
     return null;
   }
@@ -240,6 +239,7 @@ export const append = (target, options = {}, scroll = true) => {
     audio.src = options.audio;
     text.append(audio);
   }
+
   media(text, options);
   time.textContent = clock.format(current);
   time.dateTime = new Date(current).toISOString();
@@ -281,10 +281,7 @@ export const append = (target, options = {}, scroll = true) => {
     message.append(time);
   }
 
-  if (
-    !options.deleted &&
-    (!options.private || options.evidence || options.kind === "message")
-  ) {
+  if (!options.deleted && (!options.private || options.evidence || options.kind === "message")) {
     action(message, options);
   }
 
@@ -302,35 +299,29 @@ export const append = (target, options = {}, scroll = true) => {
 };
 
 export function system(target, options = {}) {
-  const list = target?.matches?.(".chatting-list")
-    ? target
-    : dom.query(".chatting-list", target);
+  const list = target?.matches?.(".chatting-list") ? target : dom.query(".chatting-list", target);
 
   if (!list || !options.text) return null;
-  const stick =
-    options.scroll === true || (options.scroll !== false && atBottom(list));
+  const stick = options.scroll === true || (options.scroll !== false && atBottom(list));
   const node = dom.create("p");
   const types = ["text", "mute", "info", "success", "warning", "error"];
 
   node.className = "chatting-system";
-  dom.set(
-    node,
-    "data-type",
-    types.includes(options.type) ? options.type : "text"
-  );
+  dom.set(node, "data-type", types.includes(options.type) ? options.type : "text");
   if (options.bold) dom.set(node, "data-bold", "");
   node.textContent = (i18n.message(options.text) || options.text).replace(
     /\{(\w+)\}/g,
     (match, key) => String(options.params?.[key] ?? match)
   );
+
   const last = list.lastElementChild;
 
   list.insertBefore(node, last?.matches(".chatting-page") ? last : null);
-  if (options.time)
-    records.set(node, { options, current: clock.stamp(options.time) });
+  if (options.time) records.set(node, { options, current: clock.stamp(options.time) });
   groups.delete(list);
   if (stick) list.scrollTop = list.scrollHeight;
   updateBottom(list);
+
   return node;
 }
 

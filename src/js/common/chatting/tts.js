@@ -21,6 +21,7 @@ export default async function speak(anchor, input, send) {
   dom.set(text, "data-control", "");
   dom.set(text, "data-i18n-placeholder", "chatting.audio.text");
   root.append(text);
+
   const cancel = dom.on(window, "chatting-stop", () => controller.abort());
 
   try {
@@ -45,24 +46,20 @@ export default async function speak(anchor, input, send) {
                 cache: "no-store",
                 signal: controller.signal,
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                  text: text.value.trim(),
-                  lang: dom.root.lang
-                })
+                body: JSON.stringify({ text: text.value.trim(), lang: dom.root.lang })
               });
 
-              if (
-                !response.ok ||
-                !response.headers.get("content-type")?.startsWith("audio/")
-              )
+              if (!response.ok || !response.headers.get("content-type")?.startsWith("audio/"))
                 throw new Error("Speech synthesis failed");
               const blob = await response.blob();
 
               if (!blob.size) throw new Error("Empty speech");
+
               return blob;
             } catch {
               if (!controller.signal.aborted)
                 toast({ text: "chatting.audio.error", type: "error" });
+
               return false;
             } finally {
               button.disabled = false;
@@ -75,6 +72,6 @@ export default async function speak(anchor, input, send) {
     controller.abort();
     cancel();
   }
-  if (file instanceof Blob && !input.disabled)
-    await preview(file, anchor, send);
+
+  if (file instanceof Blob && !input.disabled) await preview(file, anchor, send);
 }

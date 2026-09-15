@@ -3,23 +3,20 @@ import { context, level } from "#common/audio";
 import { get } from "#common/storage";
 import patterns from "#common/pattern";
 
-const file = (name) =>
-  new URL(`../../assets/audio/${name}.mp3`, import.meta.url).href;
+const file = (name) => new URL(`../../assets/audio/${name}.mp3`, import.meta.url).href;
 
-const backgrounds = Object.freeze({
-  semenota: file("semenota"),
-  sunflower: file("sunflower")
-});
+const backgrounds = Object.freeze({ semenota: file("semenota"), sunflower: file("sunflower") });
 
 const effects = Object.freeze({
   bell: file("bell"),
   click: file("click"),
+  down: file("down"),
   eoheo: file("eoheo"),
   failure: file("failure"),
   noinput: file("noinput"),
   open: file("open"),
   pop: file("pop"),
-  send: file("send"),
+  send: { url: file("send"), volume: 0.2 },
   snap: file("snap"),
   success: file("success")
 });
@@ -83,10 +80,7 @@ export function beep(
   const end = start + length;
   const attack = Math.min(0.01, length / 2);
 
-  oscillator.frequency.setValueAtTime(
-    Math.max(1, Number(frequency) || 440),
-    start
-  );
+  oscillator.frequency.setValueAtTime(Math.max(1, Number(frequency) || 440), start);
   oscillator.type = waves.has(type) ? type : "sine";
   gain.gain.setValueAtTime(0, start);
   gain.gain.linearRampToValueAtTime(level(channel, volume), start + attack);
@@ -130,10 +124,7 @@ const beeps = (name, options = {}) => {
     .filter(Boolean);
 };
 
-const effect = async (
-  url,
-  { channel = "system", delay = 0, volume = 1 } = {}
-) => {
+const effect = async (url, { channel = "system", delay = 0, volume = 1 } = {}) => {
   if (get("sound", "true") === "false") {
     return null;
   }
@@ -203,10 +194,12 @@ export async function play(name, { overlap = false, ...options } = {}) {
   }
 
   const id = token;
-  const url = effects[name];
+  const preset = effects[name];
+  const url = typeof preset === "string" ? preset : preset?.url;
 
   if (url) {
-    const player = await effect(url, options);
+    const volume = preset?.volume ?? 1;
+    const player = await effect(url, { volume, ...options });
 
     if (player) {
       on(player, "ended", release, { once: true });

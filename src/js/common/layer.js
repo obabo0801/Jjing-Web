@@ -35,15 +35,7 @@ const types = {
   sheet: "data-sheet"
 };
 const opening = once();
-const inputTypes = [
-  "text",
-  "email",
-  "password",
-  "search",
-  "tel",
-  "url",
-  "number"
-];
+const inputTypes = ["text", "email", "password", "search", "tel", "url", "number"];
 
 const text = (tag, name, key) => {
   const element = dom.create(tag);
@@ -60,6 +52,7 @@ const text = (tag, name, key) => {
 const insert = (target, content, name) => {
   if (content instanceof Node) {
     target.append(content);
+
     return;
   }
 
@@ -71,21 +64,26 @@ const action = (item, wearable) => {
   const button = dom.create("button");
 
   button.type = "button";
-  dom.set(button, "data-response", "");
+
+  if (item.head) {
+    button.className = "layer-action";
+    dom.set(button, "data-blur", "");
+  }
 
   data.forEach((value) => dom.set(button, value, ""));
 
   if ((wearable || item.head) && icon) {
-    dom.set(button, "data-circle", "");
     dom.set(button, "data-icon", icon);
+    dom.set(button, "data-circle", "");
   }
 
-  button.append(text("span", "layer-label", key));
   if (item.head) {
-    button.className = "layer-action";
     dom.set(button, "data-tooltip", key);
-    dom.set(button, "data-background", "");
   }
+
+  dom.set(button, "data-response", "");
+  button.append(text("span", "layer-label", key));
+
   return button;
 };
 
@@ -100,6 +98,13 @@ const build = (type, options) => {
   const element = dom.create("dialog");
 
   dom.set(element, types[type], "");
+  dom.set(element, "data-background", "");
+
+  if (type !== "drawer") {
+    dom.set(element, "data-border", "");
+  }
+
+  dom.set(element, "data-shadow", "");
   dom.set(element, "closedby", "none");
 
   if (back) {
@@ -125,11 +130,11 @@ const build = (type, options) => {
   if (back) {
     back.type = "button";
     back.className = "layer-back";
-    dom.set(back, "data-circle", "");
-    dom.set(back, "data-background", "");
+    dom.set(back, "data-blur", "");
     dom.set(back, "data-icon", "arrow");
-    dom.set(back, "data-angle", "left");
+    dom.set(back, "data-circle", "");
     dom.set(back, "data-response", "");
+    dom.set(back, "data-angle", "left");
   }
 
   const heading = text("h2", `${name}-title`, title);
@@ -153,6 +158,7 @@ const build = (type, options) => {
   const footer = dom.create("footer");
 
   footer.className = "layer-actions";
+
   const buttons = actions.map((item) => action(item, wearable));
 
   if (submit >= 0) {
@@ -164,8 +170,7 @@ const build = (type, options) => {
     actions.forEach((item, index) => {
       const value = item.disabled;
 
-      buttons[index].disabled =
-        typeof value === "function" ? value() : Boolean(value);
+      buttons[index].disabled = typeof value === "function" ? value() : Boolean(value);
     });
   };
 
@@ -194,6 +199,7 @@ const build = (type, options) => {
   }
 
   wrap.append(element);
+
   return { wrap, element, body, buttons, back, submit };
 };
 
@@ -216,22 +222,20 @@ const fade = (element, out = false) => {
   return Promise.all(animations);
 };
 
-const anchorRect = (anchor) =>
-  anchor instanceof Element ? anchor.getBoundingClientRect() : null;
+const anchorRect = (anchor) => (anchor instanceof Element ? anchor.getBoundingClientRect() : null);
 
 const origin = (element, anchor) => {
   const rect = anchorRect(anchor);
   const box = element.getBoundingClientRect();
   const { width, height } = box;
-  const scale = rect
-    ? Math.max(0.1, Math.min(rect.width / width, rect.height / height))
-    : 0.2;
+  const scale = rect ? Math.max(0.1, Math.min(rect.width / width, rect.height / height)) : 0.2;
 
   const x = rect ? rect.left + rect.width / 2 - box.left : width / 2;
 
   const y = rect ? rect.top + rect.height / 2 - box.top : height / 2;
 
   css.set(element, { "transform-origin": `${x}px ${y}px` });
+
   return scale;
 };
 
@@ -239,9 +243,7 @@ const enter = (element, type, anchor) => {
   const fullscreen = dom.get(element, "data-fullscreen") !== null;
 
   const scale =
-    type === "popover" && (!fullscreen || anchor instanceof Element)
-      ? origin(element, anchor)
-      : 1;
+    type === "popover" && (!fullscreen || anchor instanceof Element) ? origin(element, anchor) : 1;
 
   if (reduce.matches) {
     return null;
@@ -255,20 +257,14 @@ const enter = (element, type, anchor) => {
     drawer: [
       {
         transform:
-          dom.get(element, "data-side") === "right"
-            ? "translateX(100vw)"
-            : "translateX(-100vw)"
+          dom.get(element, "data-side") === "right" ? "translateX(100vw)" : "translateX(-100vw)"
       },
       { transform: "translateX(0)" }
     ],
     sheet: [{ transform: "translateY(100dvh)" }, { transform: "translateY(0)" }]
   }[type];
 
-  return element.animate(keyframes, {
-    duration: 240,
-    easing: "ease-out",
-    fill: "both"
-  });
+  return element.animate(keyframes, { duration: 240, easing: "ease-out", fill: "both" });
 };
 
 const length = (element, axis, screen = false) => {
@@ -282,9 +278,7 @@ const length = (element, axis, screen = false) => {
     return screen ? height : element.clientHeight;
   }
 
-  return screen
-    ? Math.hypot(width, height)
-    : Math.hypot(element.clientWidth, element.clientHeight);
+  return screen ? Math.hypot(width, height) : Math.hypot(element.clientWidth, element.clientHeight);
 };
 
 const strength = (element) => {
@@ -334,12 +328,14 @@ const dismiss = (element, options) => {
     new Promise((finish) => {
       cancel();
       done = finish;
+
       const from = progress;
 
       if (reduce.matches || from === target) {
         update(target);
         done();
         done = undefined;
+
         return;
       }
 
@@ -354,6 +350,7 @@ const dismiss = (element, options) => {
 
         if (time < 1) {
           frame = requestAnimationFrame(run);
+
           return;
         }
 
@@ -385,10 +382,10 @@ const dismiss = (element, options) => {
     ratio,
     start: () => {
       finish?.();
-      animation = element.animate(
-        [{ transform: "translate(0)" }, { transform: exit }],
-        { duration: 1000, fill: "both" }
-      );
+      animation = element.animate([{ transform: "translate(0)" }, { transform: exit }], {
+        duration: 1000,
+        fill: "both"
+      });
       animation.pause();
       animation.currentTime = 0;
       dom.set(element, "data-swipe", "");
@@ -415,10 +412,7 @@ async function open(type, options) {
   const { actions = [], scroll } = options;
   const dialog = type === "dialog";
   const locked = options.locked === true;
-  const trigger =
-    document.activeElement instanceof HTMLElement
-      ? document.activeElement
-      : null;
+  const trigger = document.activeElement instanceof HTMLElement ? document.activeElement : null;
 
   const keyboard = trigger?.matches(":focus-visible") === true;
 
@@ -430,13 +424,13 @@ async function open(type, options) {
   mount(element);
 
   // 번역이 끝난 DOM을 재사용하는 호출만 대기를 생략합니다.
-  const translated =
-    options.translate === false || (await i18n.translate().catch(() => false));
+  const translated = options.translate === false || (await i18n.translate().catch(() => false));
 
   if (!translated) {
     css.remove(element);
     wrap.remove();
     await release();
+
     return false;
   }
 
@@ -516,10 +510,7 @@ async function open(type, options) {
       settle();
     };
 
-    const controls = [
-      back,
-      ...buttons.filter((_, index) => actions[index].head)
-    ].filter(Boolean);
+    const controls = [back, ...buttons.filter((_, index) => actions[index].head)].filter(Boolean);
 
     if (controls.length) {
       const shadow = () => {
@@ -532,6 +523,7 @@ async function open(type, options) {
       off.push(dom.on(element, "scroll", shadow, { passive: true }));
       shadow();
     }
+
     if (back) {
       off.push(
         dom.on(back, "click", () => {
@@ -561,11 +553,7 @@ async function open(type, options) {
           running = true;
 
           try {
-            const result = await item.run?.({
-              element,
-              button: buttons[index],
-              close
-            });
+            const result = await item.run?.({ element, button: buttons[index], close });
 
             if (item.close === false || result === false) {
               return;
@@ -634,6 +622,7 @@ async function open(type, options) {
 
             if (next) {
               next.focus();
+
               return;
             }
           }
@@ -652,9 +641,7 @@ async function open(type, options) {
 
     off.push(
       dom.on(element, "click", (event) => {
-        const button = event.target.closest?.(
-          "button:enabled[data-layer-action]"
-        );
+        const button = event.target.closest?.("button:enabled[data-layer-action]");
 
         if (!button || !element.contains(button)) {
           return;
@@ -737,8 +724,7 @@ async function open(type, options) {
 
     if (
       type === "popover" &&
-      (dom.get(element, "data-fullscreen") === null ||
-        options.anchor instanceof Element)
+      (dom.get(element, "data-fullscreen") === null || options.anchor instanceof Element)
     ) {
       const update = () => origin(element, options.anchor);
 
@@ -756,19 +742,8 @@ async function open(type, options) {
       options.route ? [type, ...options.route] : undefined
     );
 
-    if (
-      !locked &&
-      type === "sheet" &&
-      !dom.has("wearable") &&
-      options.snap !== false
-    ) {
-      off.push(
-        snap(element, {
-          stage: options.stage,
-          close,
-          finish: () => opening?.finish()
-        })
-      );
+    if (!locked && type === "sheet" && !dom.has("wearable") && options.snap !== false) {
+      off.push(snap(element, { stage: options.stage, close, finish: () => opening?.finish() }));
     } else if (!locked && options.direction) {
       off.push(
         dismiss(element, {
@@ -784,13 +759,9 @@ async function open(type, options) {
 
 export default function layer(type, options = {}) {
   const source =
-    options.anchor instanceof Element
-      ? options.anchor
-      : button.trigger || document.activeElement;
+    options.anchor instanceof Element ? options.anchor : button.trigger || document.activeElement;
 
-  const key = source?.matches?.("button, a, input, select, textarea")
-    ? source
-    : options;
+  const key = source?.matches?.("button, a, input, select, textarea") ? source : options;
 
   return opening(key, () => open(type, options));
 }

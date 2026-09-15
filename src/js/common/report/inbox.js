@@ -15,9 +15,7 @@ navigation.register(
 export default function inbox(id) {
   return opening(id || "inbox", () =>
     list({
-      url: id
-        ? `${route.profile}/${encodeURIComponent(id)}/history/report`
-        : route.report,
+      url: id ? `${route.profile}/${encodeURIComponent(id)}/history/report` : route.report,
       route: ["reports", typeof id === "string" ? id : ""],
       title: id ? "profile.reportHistory" : "report.inbox",
       types: { user: "report.user", message: "report.message" },

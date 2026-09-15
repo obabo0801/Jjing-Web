@@ -9,22 +9,18 @@ import * as i18n from "#common/i18n";
 i18n.preload("dialog.cancel");
 
 export const enter = (event) =>
-  event.key === "Enter" &&
-  !event.shiftKey &&
-  !event.isComposing &&
-  event.keyCode !== 229;
+  event.key === "Enter" && !event.shiftKey && !event.isComposing && event.keyCode !== 229;
 
 const text = (node) => {
   if (node.nodeType === Node.TEXT_NODE) return node.data;
   if (node.hasAttribute?.("data-caret")) return "";
   if (node.hasAttribute?.("data-emoji")) return dom.get(node, "data-emoji");
   if (node.nodeName === "BR") return "\n";
+
   return [...node.childNodes].reduce((value, child) => {
     const line = /^(DIV|P)$/.test(child.nodeName);
 
-    return (
-      value + (line && value && !value.endsWith("\n") ? "\n" : "") + text(child)
-    );
+    return value + (line && value && !value.endsWith("\n") ? "\n" : "") + text(child);
   }, "");
 };
 
@@ -62,6 +58,7 @@ export default function editor(field) {
 
       prefix.selectNodeContents(view);
       prefix.setEnd(node, position);
+
       return text(prefix.cloneContents()).length;
     };
 
@@ -78,14 +75,15 @@ export default function editor(field) {
       const size = text(node).length;
 
       if (offset <= passed + size) {
-        if (node.nodeType === Node.TEXT_NODE)
-          return [node, Math.max(0, offset - passed)];
+        if (node.nodeType === Node.TEXT_NODE) return [node, Math.max(0, offset - passed)];
         const index = [...view.childNodes].indexOf(node);
 
         return [view, index + (offset > passed ? 1 : 0)];
       }
+
       passed += size;
     }
+
     return [view, view.childNodes.length];
   };
 
@@ -100,7 +98,9 @@ export default function editor(field) {
       dom.set(caret, "data-caret", "");
       view.append(caret);
     }
+
     view.toggleAttribute("data-empty", !field.value);
+
     const range = document.createRange();
 
     range.setStart(...point(start));
@@ -119,14 +119,16 @@ export default function editor(field) {
       caret.contentEditable = "false";
       dom.set(caret, "data-caret", "");
       range.insertNode(caret);
+
       const rect = caret.getBoundingClientRect();
       const bounds = view.getBoundingClientRect();
 
-      if (rect.bottom > bounds.bottom)
-        view.scrollTop += rect.bottom - bounds.bottom;
+      if (rect.bottom > bounds.bottom) view.scrollTop += rect.bottom - bounds.bottom;
       else if (rect.top < bounds.top) view.scrollTop += rect.top - bounds.top;
+
       return;
     }
+
     const selected = getSelection();
 
     selected.removeAllRanges();
@@ -157,9 +159,7 @@ export default function editor(field) {
     if (field.disabled || field.readOnly || composing) return false;
     const previous = state();
     const next =
-      previous.value.slice(0, previous.start) +
-      value +
-      previous.value.slice(previous.end);
+      previous.value.slice(0, previous.start) + value + previous.value.slice(previous.end);
 
     if (field.maxLength >= 0 && next.length > field.maxLength) return false;
     remember(previous);
@@ -173,6 +173,7 @@ export default function editor(field) {
     }
 
     apply(next, previous.start + value.length);
+
     return true;
   };
 
@@ -203,10 +204,11 @@ export default function editor(field) {
       field.value = previous.value;
       field.setSelectionRange(previous.start, previous.end);
       paint();
-      if (!field.disabled && !field.readOnly)
-        toast({ text: "chatting.tooLong", type: "warning" });
+      if (!field.disabled && !field.readOnly) toast({ text: "chatting.tooLong", type: "warning" });
+
       return;
     }
+
     // DOM상의 커서를 키워드 길이 기준으로 보존한 뒤 이미지를 다시 만듭니다.
     field.value = value;
     selection();
@@ -232,6 +234,7 @@ export default function editor(field) {
       before = undefined;
       paint();
     }
+
     view.contentEditable = String(!field.disabled && !field.readOnly);
     view.tabIndex = field.disabled ? -1 : 0;
     dom.set(view, "data-placeholder", field.placeholder);
@@ -255,11 +258,14 @@ export default function editor(field) {
   dom.on(view, "beforeinput", (event) => {
     if (field.disabled || field.readOnly) {
       event.preventDefault();
+
       return;
     }
+
     if (composing || event.isComposing) return;
     selection();
     before = state();
+
     const type = event.inputType;
 
     if (type === "historyUndo" || type === "historyRedo") {
@@ -270,10 +276,7 @@ export default function editor(field) {
       if (!insert("\n")) toast({ text: "chatting.tooLong", type: "warning" });
     } else if (type?.startsWith("format")) {
       event.preventDefault();
-    } else if (
-      type === "deleteContentBackward" ||
-      type === "deleteContentForward"
-    ) {
+    } else if (type === "deleteContentBackward" || type === "deleteContentForward") {
       const offset = field.selectionStart;
       const backward = type === "deleteContentBackward";
 
@@ -292,6 +295,7 @@ export default function editor(field) {
           insert("");
           break;
         }
+
         passed += size;
       }
     }
@@ -300,6 +304,7 @@ export default function editor(field) {
   dom.on(view, "input", () => {
     if (composing) {
       compose();
+
       return;
     }
 
@@ -320,8 +325,7 @@ export default function editor(field) {
   });
 
   dom.on(view, "keydown", (event) => {
-    if (!(event.ctrlKey || event.metaKey) || event.altKey || event.isComposing)
-      return;
+    if (!(event.ctrlKey || event.metaKey) || event.altKey || event.isComposing) return;
     const key = event.key.toLowerCase();
 
     if (key === "z" || key === "y") {
@@ -341,9 +345,11 @@ export default function editor(field) {
       if (type === "cut") insert("");
     });
   }
+
   dom.on(view, "paste", (event) => {
     event.preventDefault();
     selection();
+
     const value = event.clipboardData?.getData("text/plain") || "";
 
     if (value && !insert(value.replace(/\r\n?/g, "\n")))
@@ -364,6 +370,7 @@ export default function editor(field) {
       paint();
     })
   );
+
   const observer = new MutationObserver(sync);
 
   observer.observe(field, {
@@ -376,9 +383,11 @@ export default function editor(field) {
   emoji.load().then(() => {
     if (!composing && view.isConnected) paint();
   });
+
   const release = suggest(field, view);
 
   dom.on(window, "chatting-stop", release, { once: true });
+
   return view;
 }
 
@@ -396,8 +405,9 @@ export function controls(field, root, send) {
   clear.className = "chatting-clear";
   dom.set(clear, "data-icon", "trash");
   dom.set(clear, "data-circle", "");
-  dom.set(clear, "data-action", "clear");
   dom.set(clear, "data-tooltip", "chatting.emoji.clear");
+  dom.set(clear, "data-response", "");
+  dom.set(clear, "data-action", "clear");
   actions.insertBefore(clear, voice || send);
   count.className = "input-count";
   root.append(count);
@@ -416,6 +426,7 @@ export function controls(field, root, send) {
       voice.hidden = filled || attached || pending;
       voice.disabled = field.disabled || field.readOnly || pending;
     }
+
     clear.hidden = !field.value;
     clear.disabled = field.disabled || field.readOnly || pending;
     send.disabled =
@@ -431,8 +442,7 @@ export function controls(field, root, send) {
       form.hasAttribute("data-cancel") ? "dialog.cancel" : "chatting.send"
     );
     busy.element.hidden = state !== "sending";
-    count.hidden =
-      field.maxLength < 0 || field.value.length < field.maxLength * 0.9;
+    count.hidden = field.maxLength < 0 || field.value.length < field.maxLength * 0.9;
     count.value = `${field.value.length} / ${field.maxLength}`;
   };
 
@@ -467,6 +477,7 @@ export function controls(field, root, send) {
   off.push(dom.on(form, "chatting-attachments", sync));
   off.push(dom.on(form, "chatting-state", sync));
   off.push(dom.on(form, "reset", () => queueMicrotask(sync)));
+
   const observer = new MutationObserver(sync);
 
   observer.observe(field, {
@@ -474,6 +485,7 @@ export function controls(field, root, send) {
     attributeFilter: ["disabled", "readonly", "maxlength"]
   });
   sync();
+
   return () => {
     off.forEach((remove) => remove());
     observer.disconnect();

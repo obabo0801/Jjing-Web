@@ -62,10 +62,7 @@ const place = () => {
   const under = viewport.clientHeight - target.bottom - gap - edge;
   const below = above < height && under > above;
   const center = target.left + target.width / 2;
-  const left = Math.max(
-    edge,
-    Math.min(viewport.clientWidth - width - edge, center - width / 2)
-  );
+  const left = Math.max(edge, Math.min(viewport.clientWidth - width - edge, center - width / 2));
 
   const top = Math.max(
     edge,
@@ -77,11 +74,7 @@ const place = () => {
 
   const arrow = Math.min(width - 12, Math.max(12, center - left));
 
-  css.set(tip, {
-    left: `${left}px`,
-    top: `${top}px`,
-    "--tooltip-arrow": `${arrow}px`
-  });
+  css.set(tip, { left: `${left}px`, top: `${top}px`, "--tooltip-arrow": `${arrow}px` });
   dom.set(tip, "data-side", below ? "bottom" : "top");
 };
 
@@ -105,6 +98,7 @@ const show = (element) => {
   place();
   dom.set(tip, "data-open", "");
 };
+
 const target = (event) => event.target.closest?.(selector);
 const enter = (event) => {
   const element = target(event);
@@ -160,12 +154,14 @@ export default function tooltip() {
     blocked = undefined;
     if (press) {
       cancel();
+
       return;
     }
 
     if (event.pointerType !== "touch" && event.pointerType !== "pen") return;
 
     hide();
+
     const element = target(event);
 
     if (!element || event.isPrimary === false || event.button !== 0) return;
@@ -181,8 +177,7 @@ export default function tooltip() {
 
     press = current;
     current.timer = setTimeout(() => {
-      if (press !== current || current.cancelled || !element.isConnected)
-        return;
+      if (press !== current || current.cancelled || !element.isConnected) return;
 
       show(element);
       current.shown = source === element;
@@ -192,15 +187,13 @@ export default function tooltip() {
   const move = (event) => {
     if (!press || event.pointerId !== press.id) return;
 
-    if (Math.hypot(event.clientX - press.x, event.clientY - press.y) > 8)
-      cancel();
+    if (Math.hypot(event.clientX - press.x, event.clientY - press.y) > 8) cancel();
   };
 
   const click = (event) => {
     if (!blocked || performance.now() > blocked.until) return;
     if (!event.pointerType && event.detail === 0) return;
-    if (event.pointerType && !["touch", "pen"].includes(event.pointerType))
-      return;
+    if (event.pointerType && !["touch", "pen"].includes(event.pointerType)) return;
     if (!blocked.element.contains(event.target)) return;
 
     // 롱 터치가 끝난 뒤 생성되는 클릭만 막고 다음 탭은 허용합니다.
@@ -242,6 +235,7 @@ export default function tooltip() {
     },
     true
   );
+
   const observer = new MutationObserver(() => {
     if (source && !source.isConnected) hide();
   });

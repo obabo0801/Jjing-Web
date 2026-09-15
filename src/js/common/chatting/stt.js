@@ -17,8 +17,10 @@ i18n.preload(
 export default async function record(anchor, input, send) {
   if (!window.MediaRecorder || !navigator.mediaDevices?.getUserMedia) {
     toast({ text: "chatting.tools.unavailable", type: "error" });
+
     return;
   }
+
   const root = dom.create("p");
   const off = [];
 
@@ -30,6 +32,7 @@ export default async function record(anchor, input, send) {
   let file;
 
   dom.set(root, "data-i18n", "chatting.audio.hint");
+
   const stop = () => {
     if (session?.recorder.state === "recording") session.recorder.stop();
     media.close(stream);
@@ -63,16 +66,20 @@ export default async function record(anchor, input, send) {
           run: async ({ button }) => {
             if (session) {
               stop();
+
               return;
             }
+
             if (input.disabled) return;
             button.disabled = true;
             try {
               stream = await media.microphone();
               if (!active || input.disabled) {
                 media.close(stream);
+
                 return;
               }
+
               session = media.record(stream);
               off.push(
                 dom.on(session.recorder, "error", () => {
@@ -82,23 +89,21 @@ export default async function record(anchor, input, send) {
                   finish(false);
                 })
               );
-              for (const track of stream.getTracks())
-                off.push(dom.on(track, "ended", stop));
+              for (const track of stream.getTracks()) off.push(dom.on(track, "ended", stop));
               session.done.then((blob) => {
                 stop();
                 if (active) finish(blob.size ? blob : false);
               });
+
               const label = dom.query(".layer-label", button);
 
               dom.set(label, "data-i18n", "chatting.audio.stop");
               label.textContent = i18n.message("chatting.audio.stop");
-              if (dom.get(button, "data-icon"))
-                dom.set(button, "data-icon", "wave");
+              if (dom.get(button, "data-icon")) dom.set(button, "data-icon", "wave");
               timer = setTimeout(stop, 60_000);
             } catch {
               media.close(stream);
-              if (active)
-                toast({ text: "chatting.audio.error", type: "error" });
+              if (active) toast({ text: "chatting.audio.error", type: "error" });
             } finally {
               button.disabled = false;
             }
@@ -111,6 +116,6 @@ export default async function record(anchor, input, send) {
     stop();
     off.forEach((remove) => remove());
   }
-  if (file instanceof Blob && !input.disabled)
-    await preview(file, anchor, send);
+
+  if (file instanceof Blob && !input.disabled) await preview(file, anchor, send);
 }

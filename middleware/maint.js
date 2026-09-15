@@ -4,11 +4,7 @@ import uid from "#config/uid";
 import { page, send } from "#page";
 
 export const unavailable = (res) => {
-  res.set({
-    "Cache-Control": "private, no-store",
-    "X-Maint": "true",
-    Vary: "Cookie"
-  });
+  res.set({ "Cache-Control": "private, no-store", "X-Maint": "true", Vary: "Cookie" });
 
   return send(res, "maint", 503);
 };

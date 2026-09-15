@@ -32,11 +32,13 @@ const invalid = () => {
 
 const query = (value = "") => {
   if (typeof value !== "string" || value.length > 200) invalid();
+
   return value.trim();
 };
 
 const offset = (value = "0") => {
   if (!/^\d{1,7}$/.test(String(value))) invalid();
+
   return Number(value) * 30;
 };
 
@@ -57,23 +59,19 @@ export const list = async (table, options) => {
   if (search) {
     conditions.push(
       `(${columns
-        .map(
-          (key) =>
-            `instr(lower(coalesce(CAST("${key}" AS TEXT),'')),lower(?)) > 0`
-        )
+        .map((key) => `instr(lower(coalesce(CAST("${key}" AS TEXT),'')),lower(?)) > 0`)
         .join(" OR ")})`
     );
     values.push(...columns.map(() => search));
   }
+
   if (field) {
     conditions.push(`CAST("${field}" AS TEXT) = ?`);
     values.push(value);
   }
+
   const where = conditions.length ? ` WHERE ${conditions.join(" AND ")}` : "";
-  const count = await db.get(
-    `SELECT count(*) AS total FROM "${table}"${where}`,
-    values
-  );
+  const count = await db.get(`SELECT count(*) AS total FROM "${table}"${where}`, values);
 
   const items = await db.all(
     `SELECT ${columns.map((key) => `"${key}"`).join(",")}
@@ -90,10 +88,7 @@ export const users = async (options) => {
   const where = `erased = 0 AND (instr(lower(coalesce(name,'')),lower(?)) > 0
     OR instr(id,?) > 0)`;
 
-  const count = await db.get(
-    `SELECT count(*) AS total FROM user WHERE ${where}`,
-    [search, search]
-  );
+  const count = await db.get(`SELECT count(*) AS total FROM user WHERE ${where}`, [search, search]);
 
   const rows = await db.all(
     `SELECT id,name,avatar,google IS NOT NULL AS verified FROM user
@@ -120,6 +115,7 @@ export const status = async () => {
   } catch {
     /* Keep the service status available during a database failure. */
   }
+
   return {
     server: true,
     database,

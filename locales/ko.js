@@ -42,8 +42,7 @@ export default {
     reportHistory: "신고 내역",
     blockHistory: "제재 내역",
     historyEmpty: "조회된 기록이 없습니다.",
-    historyError:
-      "기록을 불러오지 못했습니다. 권한을 확인하거나 다시 시도해 주세요.",
+    historyError: "기록을 불러오지 못했습니다. 권한을 확인하거나 다시 시도해 주세요.",
     historySearch: "검색",
     historyDate: "날짜",
     historyType: "종류",
@@ -100,8 +99,7 @@ export default {
       "삭제를 취소하지 못했습니다. 삭제 예정일을 확인하고 Google로 다시 로그인해 주세요.",
     anonymous: "익명 {id}",
     verified: "Google 계정 연결됨",
-    nameLimit:
-      "닉네임은 24시간에 한 번 변경할 수 있습니다. 이미지는 언제든 변경할 수 있습니다."
+    nameLimit: "닉네임은 24시간에 한 번 변경할 수 있습니다. 이미지는 언제든 변경할 수 있습니다."
   },
 
   setup: {
@@ -171,8 +169,8 @@ export default {
     ownerConfirm: "이 참여자에게 방장을 위임할까요?",
     endConfirm: "대화를 종료할까요? 종료 후에는 메시지를 보낼 수 없습니다.",
     title: "참여자 ({count}명)",
-    block: "차단하기",
-    unblock: "차단 해제",
+    block: "사용자 차단하기",
+    unblock: "사용자 차단 해제",
     blockConfirm: "이 사용자를 차단할까요?",
     leaveConfirm: "방을 나갈까요? 나가면 대화가 종료됩니다.",
     unavailable: "대화가 불가능한 방입니다",
@@ -221,8 +219,7 @@ export default {
     messenger: "메신저",
     message: "메시지",
     attach: {
-      clipboard:
-        "이미지 데이터를 읽지 못했습니다. GIF를 파일로 저장한 뒤 첨부해 주세요.",
+      clipboard: "이미지 데이터를 읽지 못했습니다. GIF를 파일로 저장한 뒤 첨부해 주세요.",
       limit: "첨부는 메시지당 최대 10개까지 추가할 수 있습니다.",
       description: "이미지 설명",
       spoiler: "스포일러 표시",
@@ -308,8 +305,7 @@ export default {
     },
     loadFailed: "대화를 불러오지 못했습니다. 다시 시도해 주세요.",
     unavailable: "이 메시지를 조회할 수 없습니다.",
-    sendFailed:
-      "메시지를 저장하지 못했습니다. 입력 내용을 확인하고 다시 시도해 주세요.",
+    sendFailed: "메시지를 저장하지 못했습니다. 입력 내용을 확인하고 다시 시도해 주세요.",
     tooLong: "메시지는 2,000자까지 입력할 수 있습니다.",
     rate: "메시지를 너무 자주 보냈습니다. 잠시 후 다시 시도해 주세요.",
     copied: "복사했습니다.",
@@ -407,13 +403,7 @@ export default {
     unnamed: "이름 없는 기기"
   },
 
-  theme: {
-    system: "시스템",
-    light: "라이트",
-    dark: "다크",
-    black: "블랙",
-    brightness: "밝기"
-  },
+  theme: { system: "시스템", light: "라이트", dark: "다크", black: "블랙", brightness: "밝기" },
 
   language: { system: "시스템", ko: "한국어" },
 
@@ -596,17 +586,13 @@ export default {
 
         google: {
           name: "Google 로그인 및 프로필",
-          data:
-            "Google 계정정보, 이메일, 이름, 프로필 사진, " +
-            "서비스 이용에 필요한 프로필 정보",
+          data: "Google 계정정보, 이메일, 이름, 프로필 사진, " + "서비스 이용에 필요한 프로필 정보",
           purpose: "계정 연결, 로그인 유지와 프로필 제공"
         },
 
         chat: {
           name: "채팅 및 메신저",
-          data:
-            "메시지, 대화 참여정보, 이미지, 파일, 음성 등 " +
-            "이용자가 전송한 내용",
+          data: "메시지, 대화 참여정보, 이미지, 파일, 음성 등 " + "이용자가 전송한 내용",
           purpose: "대화와 첨부 콘텐츠 전달 및 표시"
         },
 
@@ -696,10 +682,7 @@ export default {
             "임시 정보는 사용이 끝나거나 일정 시간이 지나면 삭제합니다."
         },
 
-        contact: {
-          name: "문의",
-          period: "문의와 요청을 처리하는 데 필요한 기간 동안 보관합니다."
-        }
+        contact: { name: "문의", period: "문의와 요청을 처리하는 데 필요한 기간 동안 보관합니다." }
       }
     },
     deletion: {
@@ -754,11 +737,7 @@ export default {
           data: "알림 전달정보, 기기 등록정보와 알림 내용"
         },
 
-        giphy: {
-          name: "GIPHY",
-          purpose: "GIF 및 스티커 제공",
-          data: "검색 및 콘텐츠 요청정보"
-        },
+        giphy: { name: "GIPHY", purpose: "GIF 및 스티커 제공", data: "검색 및 콘텐츠 요청정보" },
 
         soop: {
           name: "SOOPLIVE 및 OGQ",
@@ -766,11 +745,7 @@ export default {
           data: "이모티콘 및 이미지 요청정보"
         },
 
-        mail: {
-          name: "Gmail",
-          purpose: "이메일 문의",
-          data: "이메일, 문의 내용과 첨부자료"
-        }
+        mail: { name: "Gmail", purpose: "이메일 문의", data: "이메일, 문의 내용과 첨부자료" }
       }
     },
 
@@ -846,8 +821,7 @@ export default {
     changes: {
       title: "제11조 (개인정보 처리방침 변경)",
       description:
-        "개인정보 처리방침이 변경되면 적용일과 중요한 변경 내용을 " +
-        "서비스를 통해 안내합니다."
+        "개인정보 처리방침이 변경되면 적용일과 중요한 변경 내용을 " + "서비스를 통해 안내합니다."
     }
   },
 
@@ -882,8 +856,7 @@ export default {
     users: "사용자 검색",
     status: "서비스 상태",
     database: "DB 관리",
-    readonly:
-      "읽기 전용입니다. 사용자 제재와 신고 처리는 해당 관리 기능을 이용해주세요.",
+    readonly: "읽기 전용입니다. 사용자 제재와 신고 처리는 해당 관리 기능을 이용해주세요.",
     search: "검색",
     filter: "필터 값 (정확히 일치)",
     all: "전체 필드",

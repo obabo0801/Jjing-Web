@@ -21,10 +21,6 @@
     color 160ms ease;
 }
 
-.switch[data-background] {
-  background: var(--background);
-}
-
 .switch > label {
   display: flex;
   align-items: center;

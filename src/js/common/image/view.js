@@ -8,17 +8,14 @@ import * as images from "#shared/image";
 import * as giphy from "#common/giphy";
 
 route.register("image", async (id) => {
-  const source = id.startsWith("giphy-")
-    ? await giphy.resolve(id.slice(6))
-    : images.source(id);
+  const source = id.startsWith("giphy-") ? await giphy.resolve(id.slice(6)) : images.source(id);
 
   return source ? view(source, undefined, "", id) : false;
 });
 
 const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
 
-const distance = ([first, second]) =>
-  Math.hypot(second.x - first.x, second.y - first.y);
+const distance = ([first, second]) => Math.hypot(second.x - first.x, second.y - first.y);
 
 const midpoint = ([first, second]) => ({
   x: (first.x + second.x) / 2,
@@ -62,16 +59,16 @@ export default async function view(
 
   dom.set(root, "data-drag", "none");
 
+  dom.set(full, "data-background", "");
   dom.set(full, "data-icon", "full");
   dom.set(full, "data-circle", "");
-  dom.set(full, "data-background", "");
   dom.set(full, "data-response", "");
 
-  dom.set(back, "data-icon", "arrow");
-  dom.set(back, "data-angle", "left");
-  dom.set(back, "data-circle", "");
   dom.set(back, "data-background", "");
+  dom.set(back, "data-icon", "arrow");
+  dom.set(back, "data-circle", "");
   dom.set(back, "data-response", "");
+  dom.set(back, "data-angle", "left");
 
   stage.append(empty, image);
   root.append(stage, full, back);
@@ -93,8 +90,7 @@ export default async function view(
 
   const controls = (visible) => {
     back.hidden = !visible || state.closing;
-    full.hidden =
-      back.hidden || !document.fullscreenEnabled || !root.requestFullscreen;
+    full.hidden = back.hidden || !document.fullscreenEnabled || !root.requestFullscreen;
   };
 
   const paint = () => {
@@ -104,15 +100,9 @@ export default async function view(
     const imageHeight = image.naturalHeight || height;
     const fit = Math.min(width / imageWidth, height / imageHeight);
 
-    const limitX = Math.max(
-      0,
-      (imageWidth * fit * state.scale - root.clientWidth) / 2
-    );
+    const limitX = Math.max(0, (imageWidth * fit * state.scale - root.clientWidth) / 2);
 
-    const limitY = Math.max(
-      0,
-      (imageHeight * fit * state.scale - root.clientHeight) / 2
-    );
+    const limitY = Math.max(0, (imageHeight * fit * state.scale - root.clientHeight) / 2);
 
     state.x = clamp(state.x, -limitX, limitX);
     state.y = clamp(state.y, -limitY, limitY);
@@ -153,12 +143,8 @@ export default async function view(
     const rect = root.getBoundingClientRect();
 
     return {
-      x:
-        (event.clientX - rect.left) * (root.clientWidth / rect.width) -
-        root.clientWidth / 2,
-      y:
-        (event.clientY - rect.top) * (root.clientHeight / rect.height) -
-        root.clientHeight / 2
+      x: (event.clientX - rect.left) * (root.clientWidth / rect.width) - root.clientWidth / 2,
+      y: (event.clientY - rect.top) * (root.clientHeight / rect.height) - root.clientHeight / 2
     };
   };
 
@@ -252,9 +238,7 @@ export default async function view(
     } else {
       state.pan = null;
       dom.remove(root, "data-moving");
-      controls(
-        !event.defaultPrevented && (tapped ? press.hidden : state.scale <= 1.01)
-      );
+      controls(!event.defaultPrevented && (tapped ? press.hidden : state.scale <= 1.01));
     }
   };
 
@@ -313,11 +297,7 @@ export default async function view(
           state.scale *
             Math.exp(
               -event.deltaY *
-                (event.deltaMode === 1
-                  ? 0.024
-                  : event.deltaMode === 2
-                    ? 0.25
-                    : 0.0015)
+                (event.deltaMode === 1 ? 0.024 : event.deltaMode === 2 ? 0.25 : 0.0015)
             ),
           point(event)
         );
@@ -345,12 +325,7 @@ export default async function view(
           id: event.pointerId,
           ...current,
           start: state.scale <= 1.01 ? current : null,
-          press: {
-            x: event.clientX,
-            y: event.clientY,
-            time: event.timeStamp,
-            hidden
-          }
+          press: { x: event.clientX, y: event.clientY, time: event.timeStamp, hidden }
         };
         dom.set(root, "data-moving", "");
       } else if (state.pointers.size === 2) {
@@ -370,11 +345,7 @@ export default async function view(
         const points = [...state.pointers.values()].slice(0, 2);
 
         const center = midpoint(points);
-        const next = clamp(
-          state.pinch.scale * (distance(points) / state.pinch.distance),
-          1,
-          4
-        );
+        const next = clamp(state.pinch.scale * (distance(points) / state.pinch.distance), 1, 4);
         const ratio = next / state.pinch.scale;
 
         state.x = center.x + (state.pinch.x - state.pinch.center.x) * ratio;
@@ -384,16 +355,14 @@ export default async function view(
         state.scale = next;
         controls(false);
         render();
+
         return;
       }
 
       if (state.pan?.id === event.pointerId) {
         const press = state.pan.press;
 
-        if (
-          press &&
-          Math.hypot(event.clientX - press.x, event.clientY - press.y) > 8
-        ) {
+        if (press && Math.hypot(event.clientX - press.x, event.clientY - press.y) > 8) {
           state.pan.press = null;
         }
 

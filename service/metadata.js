@@ -46,26 +46,23 @@ async function read(value, redirects = 0) {
         signal: AbortSignal.timeout(5000),
         headers: { Accept: "text/html", "Accept-Encoding": "identity" },
         lookup: (_host, options, done) =>
-          done(
-            null,
-            options.all ? [{ address, family: 4 }] : address,
-            options.all ? undefined : 4
-          )
+          done(null, options.all ? [{ address, family: 4 }] : address, options.all ? undefined : 4)
       },
       (res) => {
         if (res.statusCode >= 300 && res.statusCode < 400) {
           res.resume();
           resolve({ redirect: res.headers.location });
+
           return;
         }
-        if (
-          res.statusCode !== 200 ||
-          !res.headers["content-type"]?.includes("text/html")
-        ) {
+
+        if (res.statusCode !== 200 || !res.headers["content-type"]?.includes("text/html")) {
           res.resume();
           reject(new Error("Not HTML"));
+
           return;
         }
+
         const chunks = [];
 
         let size = 0;
@@ -73,19 +70,13 @@ async function read(value, redirects = 0) {
         res.on("data", (chunk) => {
           size += chunk.length;
           if (size > 262144) {
-            resolve({
-              html: Buffer.concat(chunks).toString("utf8"),
-              url: url.href
-            });
+            resolve({ html: Buffer.concat(chunks).toString("utf8"), url: url.href });
             res.destroy();
           } else chunks.push(chunk);
         });
 
         res.on("end", () =>
-          resolve({
-            html: Buffer.concat(chunks).toString("utf8"),
-            url: url.href
-          })
+          resolve({ html: Buffer.concat(chunks).toString("utf8"), url: url.href })
         );
         res.on("error", reject);
       }
@@ -96,31 +87,25 @@ async function read(value, redirects = 0) {
 
   if (response.redirect && redirects < 3)
     return read(new URL(response.redirect, url).href, redirects + 1);
+
   return response;
 }
 
 const decode = (value = "") =>
   value
-    .replace(
-      /&(?:amp|quot|apos|lt|gt|#39|#(\d+)|#x([a-f0-9]+));/gi,
-      (match, decimal, hex) => {
-        if (decimal || hex) {
-          const code = parseInt(decimal || hex, hex ? 16 : 10);
+    .replace(/&(?:amp|quot|apos|lt|gt|#39|#(\d+)|#x([a-f0-9]+));/gi, (match, decimal, hex) => {
+      if (decimal || hex) {
+        const code = parseInt(decimal || hex, hex ? 16 : 10);
 
-          return code > 0 && code <= 0x10ffff ? String.fromCodePoint(code) : "";
-        }
-        return (
-          {
-            "&amp;": "&",
-            "&quot;": '"',
-            "&apos;": "'",
-            "&lt;": "<",
-            "&gt;": ">",
-            "&#39;": "'"
-          }[match.toLowerCase()] || ""
-        );
+        return code > 0 && code <= 0x10ffff ? String.fromCodePoint(code) : "";
       }
-    )
+
+      return (
+        { "&amp;": "&", "&quot;": '"', "&apos;": "'", "&lt;": "<", "&gt;": ">", "&#39;": "'" }[
+          match.toLowerCase()
+        ] || ""
+      );
+    })
     .slice(0, 1000);
 
 export default async function metadata(url) {
@@ -135,23 +120,17 @@ export default async function metadata(url) {
       for (const tag of page.html?.match(/<meta\b[^>]*>/gi) || []) {
         const attrs = {};
 
-        for (const match of tag.matchAll(
-          /([\w:-]+)\s*=\s*(?:"([^"]*)"|'([^']*)')/g
-        ))
+        for (const match of tag.matchAll(/([\w:-]+)\s*=\s*(?:"([^"]*)"|'([^']*)')/g))
           attrs[match[1].toLowerCase()] = decode(match[2] ?? match[3]);
         tags[attrs.property || attrs.name] = attrs.content;
       }
+
       const image = tags["og:image"] && new URL(tags["og:image"], page.url);
 
       return {
-        title:
-          tags["og:title"] ||
-          decode(page.html?.match(/<title[^>]*>([^<]*)/i)?.[1]),
+        title: tags["og:title"] || decode(page.html?.match(/<title[^>]*>([^<]*)/i)?.[1]),
         description: tags["og:description"] || tags.description || "",
-        image:
-          image && ["http:", "https:"].includes(image.protocol)
-            ? image.href
-            : ""
+        image: image && ["http:", "https:"].includes(image.protocol) ? image.href : ""
       };
     } catch {
       return { title: "", description: "", image: "" };
@@ -161,5 +140,6 @@ export default async function metadata(url) {
   cache.delete(url);
   cache.set(url, { until: Date.now() + 600000, value });
   if (cache.size > 200) cache.delete(cache.keys().next().value);
+
   return value;
 }

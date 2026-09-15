@@ -34,9 +34,7 @@ export const save = async (user, ip, data = {}) => {
     fail(400);
 
   const whisper =
-    data.evidence === undefined
-      ? null
-      : await direct.capture(user, target, data.evidence);
+    data.evidence === undefined ? null : await direct.capture(user, target, data.evidence);
 
   if (whisper && type !== "message") fail(400);
   const message = type === "message" && !whisper;
@@ -45,9 +43,7 @@ export const save = async (user, ip, data = {}) => {
     ? "chatting JOIN user AS target ON target.uid = chatting.uid"
     : "user AS target";
 
-  const condition = message
-    ? "chatting.id = ? AND chatting.system IS NULL"
-    : "target.id = ?";
+  const condition = message ? "chatting.id = ? AND chatting.system IS NULL" : "target.id = ?";
 
   const row = await get(
     `SELECT target.uid FROM ${from} WHERE ${condition}
@@ -69,6 +65,7 @@ export const save = async (user, ip, data = {}) => {
     "SELECT id, CASE WHEN google IS NOT NULL THEN name ELSE '' END AS name FROM user WHERE uid = ?",
     [user.uid]
   );
+
   // 작성자 · 본문은 DB에서 선택하며 접수 직전 사용자 상태도 재검사합니다.
   const result = await run(
     `INSERT INTO report (id,type,reporter,target,message,text,reason,detail,snapshot)
@@ -84,9 +81,7 @@ export const save = async (user, ip, data = {}) => {
     [
       id,
       type,
-      ...(whisper
-        ? [target, whisper.messages.find((item) => item.target).text]
-        : []),
+      ...(whisper ? [target, whisper.messages.find((item) => item.target).text] : []),
       reason,
       detail.trim(),
       JSON.stringify(snapshot),
@@ -97,6 +92,7 @@ export const save = async (user, ip, data = {}) => {
   );
 
   if (!result.changes) fail(403);
+
   return { id };
 };
 
@@ -112,9 +108,7 @@ export const list = async (user, query = {}, uid = null) => {
     !/^[1-9]\d*$/.test(count) ||
     !Number.isSafeInteger(+count) ||
     (before !== undefined &&
-      (typeof before !== "string" ||
-        !/^[1-9]\d*$/.test(before) ||
-        !Number.isSafeInteger(+before)))
+      (typeof before !== "string" || !/^[1-9]\d*$/.test(before) || !Number.isSafeInteger(+before)))
   )
     fail(400);
   const limit = Math.min(+count, 100);
@@ -155,11 +149,7 @@ export const list = async (user, query = {}, uid = null) => {
       target.role AS role, author.name AS author, chatting.attachments,
       chatting.image, chatting.preview, chatting.deleted ${selection}
       AND report.seq < ? ORDER BY report.seq DESC LIMIT ?`,
-    [
-      ...params,
-      before === undefined ? Number.MAX_SAFE_INTEGER : +before,
-      limit + 1
-    ]
+    [...params, before === undefined ? Number.MAX_SAFE_INTEGER : +before, limit + 1]
   );
   const page = rows.slice(0, limit);
 

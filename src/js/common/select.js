@@ -66,9 +66,7 @@ const close = (focus = false) => {
   dom.remove(element, "data-open");
 
   if (focus) {
-    dom
-      .query(":scope > .select-toggle", element)
-      ?.focus({ preventScroll: true });
+    dom.query(":scope > .select-toggle", element)?.focus({ preventScroll: true });
   }
 };
 
@@ -85,12 +83,11 @@ const place = (session) => {
 
   if (!element.isConnected) {
     close();
+
     return;
   }
 
-  const rect = dom
-    .query(":scope > .select-toggle", element)
-    .getBoundingClientRect();
+  const rect = dom.query(":scope > .select-toggle", element).getBoundingClientRect();
   const view = window.visualViewport;
   const left = (view?.offsetLeft ?? 0) + 8;
   const top = (view?.offsetTop ?? 0) + 8;
@@ -161,6 +158,7 @@ const open = (element, full = false) => {
   }
 
   close();
+
   const mode =
     full || dom.has("wearable")
       ? "fullscreen"
@@ -190,6 +188,7 @@ const open = (element, full = false) => {
     dom.set(list, "popover", "manual");
     list.showPopover();
     place(session);
+
     const update = () => {
       cancelAnimationFrame(session.frame);
       session.frame = requestAnimationFrame(() => {
@@ -334,11 +333,7 @@ export function listen() {
     document,
     "pointerdown",
     (event) => {
-      if (
-        current &&
-        current.mode !== "fullscreen" &&
-        !current.element.contains(event.target)
-      ) {
+      if (current && current.mode !== "fullscreen" && !current.element.contains(event.target)) {
         close();
       }
     },
@@ -352,10 +347,13 @@ export function listen() {
     if (!element.contains(event.target)) return;
     if (event.key === "Tab") {
       close();
+
       return;
     }
+
     if (!["ArrowDown", "ArrowUp", "Home", "End"].includes(event.key)) return;
     event.preventDefault();
+
     const options = dom.all(".select-option:enabled", list);
     const index = options.indexOf(document.activeElement);
     const next =
@@ -363,8 +361,7 @@ export function listen() {
         ? 0
         : event.key === "End"
           ? options.length - 1
-          : (index + (event.key === "ArrowDown" ? 1 : -1) + options.length) %
-            options.length;
+          : (index + (event.key === "ArrowDown" ? 1 : -1) + options.length) % options.length;
 
     options[next]?.focus({ preventScroll: true });
     options[next]?.scrollIntoView({ block: "nearest" });

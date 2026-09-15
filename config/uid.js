@@ -8,8 +8,7 @@ export const publicId = (uid) =>
 
 // 이전 기록에서 이름 대신 저장한 UID도 응답에 포함하지 않습니다.
 export const publicName = (value) =>
-  typeof value === "string" &&
-  /^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/i.test(value)
+  typeof value === "string" && /^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/i.test(value)
     ? publicId(value)
     : value || "";
 

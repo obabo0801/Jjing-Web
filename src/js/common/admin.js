@@ -62,19 +62,26 @@ i18n.preload(
 const node = (tag, className = "", key = "") => {
   const element = dom.create(tag);
 
-  if (tag === "button") dom.set(element, "data-response", "");
   element.className = className;
+
   if (key) {
     element.textContent = i18n.message(key);
     dom.set(element, "data-i18n", key);
   }
+
+  if (tag === "button") {
+    dom.set(element, "data-response", "");
+  }
+
   return element;
 };
+
 const fail = () => toast({ text: "admin.error", type: "error" });
 const group = (...rows) => {
   const root = node("div", "group");
 
   root.append(...rows.filter(Boolean));
+
   return root;
 };
 
@@ -87,18 +94,12 @@ const entry = (key, icon, run) => {
   button.append(node("span", "group-name", key));
   dom.on(button, "click", run);
   row.append(button);
+
   return row;
 };
 
 const open = (title, content, options = {}) =>
-  drawer({
-    title,
-    content,
-    back: true,
-    side: "right",
-    direction: "→",
-    ...options
-  });
+  drawer({ title, content, back: true, side: "right", direction: "→", ...options });
 
 const field = (key, type = "text") => {
   const root = node("label", "label");
@@ -109,6 +110,7 @@ const field = (key, type = "text") => {
   dom.set(input, "data-control", "");
   control.append(input);
   root.append(node("span", "label-key", key), control);
+
   return { root, input };
 };
 
@@ -117,10 +119,7 @@ async function notify() {
   const fields = Object.fromEntries(
     ["title", "body", "image", "url"].map((key) => [
       key,
-      field(
-        `admin.${key}`,
-        key === "body" ? "textarea" : key === "image" ? "file" : "text"
-      )
+      field(`admin.${key}`, key === "body" ? "textarea" : key === "image" ? "file" : "text")
     ])
   );
 
@@ -130,6 +129,7 @@ async function notify() {
   fields.url.input.value = "/";
   fields.image.input.accept = "image/png,image/jpeg,image/webp";
   root.append(...Object.values(fields).map((item) => item.root));
+
   return open("admin.heading", root, {
     actions: [
       {
@@ -149,6 +149,7 @@ async function notify() {
           )
             return;
           button.disabled = true;
+
           const loading = progress({ type: "circular", value: 25 });
 
           root.append(loading.element);
@@ -163,6 +164,7 @@ async function notify() {
               if (!result.ok) return fail();
               image = result.data.image;
             }
+
             const result = await api(path, {
               method: "POST",
               data: {
@@ -216,6 +218,7 @@ async function browse(table = "") {
   dom.set(previousButton, "data-angle", "left");
   nextButton.classList.add("icon-right");
   previousButton.disabled = nextButton.disabled = true;
+
   const filter = node("select");
   const match = field("admin.filter");
   const choice = node("div", "select");
@@ -226,6 +229,7 @@ async function browse(table = "") {
   if (table) root.append(node("p", "", "admin.readonly"), choice, match.root);
   controls.append(previousButton, page, nextButton);
   root.append(loading.element, rows, controls);
+
   let revision = 0;
   let closed = false;
   let request;
@@ -238,19 +242,17 @@ async function browse(table = "") {
     request = new AbortController();
     loading.element.hidden = false;
     previousButton.disabled = nextButton.disabled = true;
-    const params = new URLSearchParams({
-      q: search.input.value,
-      page: String(index)
-    });
+
+    const params = new URLSearchParams({ q: search.input.value, page: String(index) });
 
     if (table && filter.value) {
       params.set("field", filter.value);
       params.set("value", match.input.value);
     }
-    const response = await api(
-      `${path}/${table ? `database/${table}` : "users"}?${params}`,
-      { signal: request.signal }
-    );
+
+    const response = await api(`${path}/${table ? `database/${table}` : "users"}?${params}`, {
+      signal: request.signal
+    });
 
     if (closed || version !== revision) return;
     loading.element.hidden = true;
@@ -273,8 +275,8 @@ async function browse(table = "") {
         filter.append(option);
       }
     }
-    if (!data.items.length)
-      rows.append(node("p", "online-empty", "admin.empty"));
+
+    if (!data.items.length) rows.append(node("p", "online-empty", "admin.empty"));
     else if (table) {
       const wrap = node("div", "table-wrap");
       const grid = node("table", "admin-table");
@@ -288,6 +290,7 @@ async function browse(table = "") {
         th.textContent = key || i18n.message("admin.details");
         tr.append(th);
       }
+
       head.append(tr);
       for (const item of data.items) {
         const row = node("tr");
@@ -306,6 +309,7 @@ async function browse(table = "") {
                 dom.remove(caption, "data-i18n");
                 caption.textContent = key;
               }
+
               return element;
             })
           );
@@ -320,8 +324,10 @@ async function browse(table = "") {
           td.textContent = String(item[key] ?? "").slice(0, 160);
           row.append(td);
         }
+
         body.append(row);
       }
+
       grid.append(head, body);
       wrap.append(grid);
       rows.append(wrap);
@@ -329,10 +335,7 @@ async function browse(table = "") {
       const list = group(
         ...data.items.map((user) => {
           const row = entry("", "", () =>
-            profile(dom.query("button", row), root, {
-              id: user.id,
-              context: "chatting"
-            })
+            profile(dom.query("button", row), root, { id: user.id, context: "chatting" })
           );
           const button = dom.query("button", row);
           const picture = node("span", "avatar-wrap");
@@ -343,14 +346,17 @@ async function browse(table = "") {
           name.textContent = names.label(user);
           names.mark(name, user.verified);
           button.replaceChildren(picture, name);
+
           return row;
         })
       );
 
       rows.append(list);
     }
+
     mount(root);
   }
+
   const refresh = () => {
     index = 0;
     revision++;
@@ -363,9 +369,7 @@ async function browse(table = "") {
   dom.on(match.input, "input", refresh);
   dom.on(filter, "change", refresh);
   try {
-    return await open(table ? "admin.database" : "admin.users", root, {
-      ready: load
-    });
+    return await open(table ? "admin.database" : "admin.users", root, { ready: load });
   } finally {
     closed = true;
     request?.abort();
@@ -387,10 +391,12 @@ async function database() {
         const row = entry("", "storage", () => browse(table));
 
         dom.query(".group-name", row).textContent = table;
+
         return row;
       })
     )
   );
+
   return open("admin.database", root);
 }
 
@@ -448,11 +454,10 @@ export default function admin(anchor) {
         entry("report.inbox", "flag", () => reports()),
         entry("admin.users", "search", () => browse()),
         entry("admin.status", "info", status),
-        response.data.database
-          ? entry("admin.database", "storage", database)
-          : null
+        response.data.database ? entry("admin.database", "storage", database) : null
       )
     );
+
     return popover({
       title: "admin.panel",
       content,

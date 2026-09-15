@@ -34,11 +34,9 @@ export function listen() {
 
 const empty = Object.freeze({ show() {}, hide() {}, submit() {}, update() {} });
 
-const fields = (root) =>
-  root.matches?.("input") ? [root] : dom.all("input", root);
+const fields = (root) => (root.matches?.("input") ? [root] : dom.all("input", root));
 
-const source = (field) =>
-  field?.matches?.("input") ? field : dom.query("input", field);
+const source = (field) => (field?.matches?.("input") ? field : dom.query("input", field));
 
 const reveal = (target, keypad) => {
   if (dom.has("wearable")) {
@@ -48,11 +46,7 @@ const reveal = (target, keypad) => {
   const overflow = dom.root.style.overflow;
 
   dom.root.style.overflow = "auto";
-  target.scrollIntoView({
-    behavior: "auto",
-    block: "nearest",
-    inline: "nearest"
-  });
+  target.scrollIntoView({ behavior: "auto", block: "nearest", inline: "nearest" });
 
   const bottom = target.getBoundingClientRect().bottom;
   const top = keypad.offsetTop;
@@ -100,13 +94,7 @@ export default function keypad(root, actions = {}) {
 
   element.className = "keypad";
 
-  const state = {
-    element,
-    field: null,
-    fields: () => fields(root),
-    input: source,
-    ...actions
-  };
+  const state = { element, field: null, fields: () => fields(root), input: source, ...actions };
 
   let off;
 
@@ -249,9 +237,7 @@ export default function keypad(root, actions = {}) {
     dom.set(element, "data-close", "");
     dom.remove(element, "data-open");
 
-    const animations = element
-      .getAnimations()
-      .map((animation) => animation.finished);
+    const animations = element.getAnimations().map((animation) => animation.finished);
 
     Promise.allSettled(animations).then(() => {
       if (dom.get(element, "data-open") !== null) {
@@ -280,6 +266,7 @@ export default function keypad(root, actions = {}) {
 
     if (!next) {
       state.commit?.(field);
+
       return true;
     }
 
@@ -334,6 +321,7 @@ export default function keypad(root, actions = {}) {
       sound.play("click");
       vibrate.play("click");
       state.close?.(field);
+
       return;
     }
 
@@ -343,6 +331,7 @@ export default function keypad(root, actions = {}) {
       erase(input);
       input.dispatchEvent(new Event("input", { bubbles: true }));
       update(field);
+
       return;
     }
 
@@ -352,6 +341,7 @@ export default function keypad(root, actions = {}) {
       write(input, "-");
       input.dispatchEvent(new Event("input", { bubbles: true }));
       update(field);
+
       return;
     }
 

@@ -11,8 +11,7 @@ const resume = 60_000;
 
 let order = 0;
 
-const status = (session) =>
-  Date.now() - session.active >= idle ? "away" : "online";
+const status = (session) => (Date.now() - session.active >= idle ? "away" : "online");
 
 const write = (response, type, data = {}) => {
   if (response.writableEnded || response.destroyed) return;
@@ -25,9 +24,7 @@ const current = (item) => {
     return "offline";
   }
 
-  return [...item.responses].some(
-    (response) => status(contexts.get(response)) === "online"
-  )
+  return [...item.responses].some((response) => status(contexts.get(response)) === "online")
     ? "online"
     : "away";
 };
@@ -81,6 +78,7 @@ export const touch = (uid, session, visible, active = true) => {
       context.visible = visible;
       context.seen = Date.now();
     }
+
     if (visible === false || active === false) return true;
     context.active = Date.now();
     if (context.state !== "online") {
@@ -88,8 +86,10 @@ export const touch = (uid, session, visible, active = true) => {
       update(uid, item);
       broadcast("online");
     }
+
     return true;
   }
+
   return false;
 };
 
@@ -111,6 +111,7 @@ export const list = async () => {
 
     for (const user of rows) users.set(user.uid, user);
   }
+
   const items = [];
 
   clients.forEach((item, uid) => {
@@ -133,13 +134,12 @@ export const list = async () => {
       });
     }
   });
+
   return { items };
 };
 
 export const send = (uid, type, data) => {
-  clients
-    .get(uid)
-    ?.responses.forEach((response) => write(response, type, data));
+  clients.get(uid)?.responses.forEach((response) => write(response, type, data));
 };
 
 export const disconnect = (uid) => {
@@ -153,10 +153,12 @@ export const disconnect = (uid) => {
   for (const [key, tab] of tabs) {
     if (tab.uid === uid) tabs.delete(key);
   }
+
   for (const response of responses) {
     contexts.delete(response);
     if (!response.writableEnded && !response.destroyed) response.end();
   }
+
   update(uid, item);
   broadcast("online");
 };
@@ -188,19 +190,12 @@ export const connect = (user, response) => {
     tab = { uid: user.uid, id: randomUUID(), order: ++order };
     tabs.set(key, tab);
   }
-  const context = {
-    ...user,
-    tab,
-    session: randomUUID(),
-    active: Date.now(),
-    state: "online"
-  };
+
+  const context = { ...user, tab, session: randomUUID(), active: Date.now(), state: "online" };
 
   contexts.set(response, context);
-  const item = clients.get(user.uid) ?? {
-    responses: new Set(),
-    state: "offline"
-  };
+
+  const item = clients.get(user.uid) ?? { responses: new Set(), state: "offline" };
 
   // 재연결은 같은 탭의 연결만 교체합니다. 늦은 close는 새 연결과 무관합니다.
   const previous = tab.response;
@@ -210,10 +205,12 @@ export const connect = (user, response) => {
     contexts.delete(previous);
     if (!previous.writableEnded && !previous.destroyed) previous.end();
   }
+
   tab.response = response;
   tab.expires = 0;
   item.responses.add(response);
   clients.set(user.uid, item);
+
   let closed = false;
 
   const close = () => {
@@ -229,6 +226,7 @@ export const connect = (user, response) => {
       tab.response = null;
       tab.expires = Date.now() + resume;
     }
+
     update(user.uid, item);
     if (!item.responses.size) clients.delete(user.uid);
     broadcast("online");
@@ -239,6 +237,7 @@ export const connect = (user, response) => {
   write(response, "ready", { session: context.session, admin: user.role < 0 });
   update(user.uid, item);
   broadcast("online");
+
   return close;
 };
 
@@ -248,6 +247,7 @@ const timer = setInterval(() => {
   for (const [key, tab] of tabs) {
     if (!tab.response && tab.expires <= Date.now()) tabs.delete(key);
   }
+
   clients.forEach((item, uid) => {
     for (const response of item.responses) {
       const context = contexts.get(response);
@@ -257,6 +257,7 @@ const timer = setInterval(() => {
       context.state = next;
       changed = true;
     }
+
     update(uid, item);
   });
   if (changed) broadcast("online");

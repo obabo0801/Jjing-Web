@@ -9,8 +9,10 @@ export const brightness = (value = get("brightness", 100)) => {
   if (!set("brightness", level)) return false;
   css.set(dom.root, { "--brightness": `${level}%` });
   sync();
+
   return true;
 };
+
 const scheme = matchMedia("(prefers-color-scheme: dark)");
 const colors = new Map();
 
@@ -36,21 +38,15 @@ function sync() {
 
   const source = [...colors.values()].at(-1) || dom.root;
   const target =
-    source === dom.root || (source instanceof Element && !source.isConnected)
-      ? background
-      : source;
+    source === dom.root || (source instanceof Element && !source.isConnected) ? background : source;
 
-  const color =
-    target instanceof Element
-      ? getComputedStyle(target).backgroundColor
-      : target;
+  const color = target instanceof Element ? getComputedStyle(target).backgroundColor : target;
 
   dom.set(meta, "content", color);
 }
 
 const apply = () => {
-  const value =
-    selected === "system" ? (scheme.matches ? "dark" : "light") : selected;
+  const value = selected === "system" ? (scheme.matches ? "dark" : "light") : selected;
 
   if (dom.get(dom.root, "data-theme") !== value) {
     dom.set(dom.root, "data-theme", value);
@@ -92,12 +88,10 @@ export default function theme(mode) {
         apply();
       }
     });
+
     const observer = new MutationObserver(sync);
 
-    observer.observe(dom.root, {
-      attributes: true,
-      attributeFilter: ["data-theme", "class"]
-    });
+    observer.observe(dom.root, { attributes: true, attributeFilter: ["data-theme", "class"] });
     listening = true;
   }
 

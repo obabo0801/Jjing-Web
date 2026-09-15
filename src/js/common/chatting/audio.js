@@ -17,8 +17,10 @@ export default async function preview(file, anchor, send) {
   if (!file?.size) return;
   if (file.size > maximum) {
     toast({ text: "chatting.audio.size", type: "error" });
+
     return;
   }
+
   const root = dom.create("div");
   const audio = dom.create("audio");
   const url = URL.createObjectURL(file);
@@ -52,18 +54,14 @@ export default async function preview(file, anchor, send) {
           run: async ({ button }) => {
             button.disabled = true;
             audio.pause();
-            const loading = progress({
-              target: root,
-              type: "circular",
-              value: 25,
-              show: false
-            });
+
+            const loading = progress({ target: root, type: "circular", value: 25, show: false });
 
             try {
               return (await send(file)) && active;
             } catch {
-              if (active)
-                toast({ text: "chatting.audio.error", type: "error" });
+              if (active) toast({ text: "chatting.audio.error", type: "error" });
+
               return false;
             } finally {
               loading.destroy();

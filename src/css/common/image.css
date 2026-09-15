@@ -21,8 +21,7 @@ dialog[data-popover][data-fullscreen]:has(> .layer-content > .image-editor) {
 dialog[data-popover] > .layer-content:has(> .image-editor) {
   flex: 1 1 0;
   min-height: 0;
-  padding: 8px max(16px, env(safe-area-inset-right)) 8px
-    max(16px, env(safe-area-inset-left));
+  padding: 8px max(16px, env(safe-area-inset-right)) 8px max(16px, env(safe-area-inset-left));
   overflow: hidden;
 }
 
@@ -151,8 +150,7 @@ button:is(.image-view-full, .image-view-back) {
   max-width: none;
 
   object-fit: contain;
-  transform: translate3d(var(--image-x), var(--image-y), 0)
-    scale(var(--image-scale));
+  transform: translate3d(var(--image-x), var(--image-y), 0) scale(var(--image-scale));
   transform-origin: center;
 
   -webkit-user-drag: none;
@@ -206,8 +204,7 @@ button:is(.image-view-full, .image-view-back) {
   pointer-events: none;
   transform-origin: center;
 
-  transform: translate(var(--image-x), var(--image-y))
-    rotate(var(--image-angle));
+  transform: translate(var(--image-x), var(--image-y)) rotate(var(--image-angle));
 }
 
 .image-preview {
@@ -232,8 +229,8 @@ button:is(.image-view-full, .image-view-back) {
   display: grid;
   justify-items: center;
   gap: 8px;
-  padding: 8px max(24px, env(safe-area-inset-right))
-    max(12px, env(safe-area-inset-bottom)) max(24px, env(safe-area-inset-left));
+  padding: 8px max(24px, env(safe-area-inset-right)) max(12px, env(safe-area-inset-bottom))
+    max(24px, env(safe-area-inset-left));
 }
 
 .image-tools > .toolbar {
@@ -275,11 +272,7 @@ button:is(.image-view-full, .image-view-back) {
 .image-tools .range[data-drag] .range-track {
   height: 20px;
   border-radius: 0;
-  background: repeating-linear-gradient(
-    to right,
-    var(--mute) 0 1px,
-    transparent 1px 10px
-  );
+  background: repeating-linear-gradient(to right, var(--mute) 0 1px, transparent 1px 10px);
 }
 
 .image-tools .range-thumb,
@@ -369,16 +362,14 @@ button:is(.image-view-full, .image-view-back) {
   text-align: center;
 }
 
-:is(.small, .wearable)
-  dialog[data-popover]:has(> .layer-content > .image-editor) {
+:is(.small, .wearable) dialog[data-popover]:has(> .layer-content > .image-editor) {
   height: 100dvh;
 }
 
 :is(.small, .wearable) .image-tools {
   gap: 2px;
   padding-block: 2px max(4px, env(safe-area-inset-bottom));
-  padding-inline: max(16px, env(safe-area-inset-left))
-    max(16px, env(safe-area-inset-right));
+  padding-inline: max(16px, env(safe-area-inset-left)) max(16px, env(safe-area-inset-right));
 }
 
 :is(.small, .wearable) .image-controls > .range {
@@ -395,16 +386,11 @@ button:is(.image-view-full, .image-view-back) {
   padding-inline: 16dvw;
 }
 
-:is(.small, .wearable)
-  dialog:has(> .layer-content > .image-editor)
-  > .layer-head
-  .layer-title {
+:is(.small, .wearable) dialog:has(> .layer-content > .image-editor) > .layer-head .layer-title {
   font-size: 0.875rem;
 }
 
-.small:not(.wearable)
-  dialog:has(> .layer-content > .image-editor)
-  > .layer-head {
+.small:not(.wearable) dialog:has(> .layer-content > .image-editor) > .layer-head {
   padding-block: max(4px, env(safe-area-inset-top)) 4px;
 }
 

@@ -94,14 +94,16 @@ export function listen(target) {
     } catch {
       return;
     }
+
     if (!["whisper", "message"].includes(item.kind) || !item.token) return;
-    const peer =
-      item.kind === "message" ? item.room : item.own ? item.peer : item.id;
+    const peer = item.kind === "message" ? item.room : item.own ? item.peer : item.id;
 
     if (item.kind === "whisper") {
       receive(item);
+
       return;
     }
+
     let shown = false;
 
     listeners.forEach((listener) => {
@@ -136,6 +138,7 @@ export function receive(item) {
     chat.place(list, node, dom.query(".chatting-page ~ .chatting-page", list));
     dom.set(node, "data-private", "whisper");
     node.tabIndex = 0;
+
     const reply = (event) => {
       if (event.defaultPrevented || event.target.closest("button, a")) return;
       if (event.type === "keydown" && event.key !== "Enter") return;
@@ -147,6 +150,7 @@ export function receive(item) {
 
     dom.on(node, "click", reply);
     dom.on(node, "keydown", reply);
+
     const title = dom.create("span");
 
     title.className = "whisper-label";
@@ -154,6 +158,7 @@ export function receive(item) {
     dom.set(title, "data-i18n", "direct.whisper");
     dom.query(".chatting-profile", node).append(title);
   }
+
   chat.regroup(list);
   if (follow) list.scrollTop = list.scrollHeight;
 }
@@ -165,16 +170,22 @@ async function select(id) {
   if (version !== selection || !chatRoot) return false;
   if (!result.ok || result.data.self) {
     problem(result);
+
     return false;
   }
+
   if (result.data.receiving?.whisper === false) {
     problem({ status: 409 });
+
     return false;
   }
+
   if (!["online", "away"].includes(result.data.state)) {
     problem({ status: 409, data: { code: "offline" } });
+
     return false;
   }
+
   const form = dom.query(".chatting-form", chatRoot);
 
   let target = dom.query(".whisper-target", form);
@@ -185,6 +196,7 @@ async function select(id) {
     dom.remove(form, "data-whisper");
     unbind?.();
     unbind = undefined;
+
     return true;
   };
 
@@ -202,12 +214,16 @@ async function select(id) {
     dom.query(".input-actions", form).prepend(target);
     mount(target);
   }
+
   unbind?.();
+
   const render = (user) => {
     if (user.receiving?.whisper === false) {
       clear();
+
       return;
     }
+
     dom.query("span:not(.icon)", target).textContent = names.label(user);
   };
 
@@ -216,25 +232,28 @@ async function select(id) {
   target.hidden = false;
   dom.set(form, "data-whisper", id);
   dom.query(".chatting-editor", form)?.focus({ preventScroll: true });
+
   return true;
 }
 
 export function open(kind, id) {
   if (kind === "whisper") return select(id);
+
   return opening(`${kind}:${id}`, async () => {
     const response =
-      kind === "room"
-        ? await rooms.read(id)
-        : await api(`${path}/direct/message/${id}/room`);
+      kind === "room" ? await rooms.read(id) : await api(`${path}/direct/message/${id}/room`);
 
     if (!response.ok) {
       problem(response);
+
       return false;
     }
+
     let room = response.data;
 
     id = room.id;
     kind = "message";
+
     const root = dom.create("section");
     const list = dom.create("div");
     const form = dom.create("form");
@@ -246,12 +265,9 @@ export function open(kind, id) {
     const more = dom.create("button");
 
     root.className = "chatting direct";
+
     const top = toolbar.default([
-      {
-        icon: "menu",
-        text: "menu.chatMenu",
-        run: () => menus.chatSettings(false, room.id)
-      }
+      { icon: "menu", text: "menu.chatMenu", run: () => menus.chatSettings(false, room.id) }
     ]);
 
     top.classList.add("chatting-toolbar");
@@ -288,6 +304,7 @@ export function open(kind, id) {
     field.append(input, actions);
     form.append(field);
     root.append(top, list, form);
+
     const seen = new Map();
     const read = new Set();
     const deleted = new Map();
@@ -315,9 +332,7 @@ export function open(kind, id) {
       if (position.bottom) list.scrollTop = list.scrollHeight;
       else if (node)
         list.scrollTop +=
-          node.getBoundingClientRect().top -
-          list.getBoundingClientRect().top -
-          position.offset;
+          node.getBoundingClientRect().top - list.getBoundingClientRect().top - position.offset;
     };
 
     const remember = () => {
@@ -347,38 +362,27 @@ export function open(kind, id) {
     const interact = () => {
       restoring = false;
     };
+
     const wheel = dom.on(root, "wheel", interact, { passive: true });
     const touch = dom.on(root, "pointerdown", interact);
     const key = dom.on(root, "keydown", interact);
-    const images = dom.on(
-      list,
-      "load",
-      () => requestAnimationFrame(restore),
-      true
-    );
+    const images = dom.on(list, "load", () => requestAnimationFrame(restore), true);
     const resize = new ResizeObserver(restore);
 
     resize.observe(list);
 
     const markRead = async () => {
       if (closed || document.hidden || !last) return;
-      await api(`${path}/direct/message/${id}/read`, {
-        method: "POST",
-        data: { token: last }
-      });
+      await api(`${path}/direct/message/${id}/read`, { method: "POST", data: { token: last } });
     };
 
     const notice = (item) =>
-      chat.system(list, {
-        text: "direct.deleted",
-        time: item.time,
-        system: true,
-        scroll: false
-      });
+      chat.system(list, { text: "direct.deleted", time: item.time, system: true, scroll: false });
 
     const removed = (item) => {
       if (deleted.has(item.token)) return;
       deleted.set(item.token, Boolean(item.retained));
+
       const node = seen.get(item.token);
 
       if (!node || closed) return;
@@ -393,9 +397,7 @@ export function open(kind, id) {
     };
 
     const remove = async (item) => {
-      const result = await api(`${path}/direct/message/${item.token}`, {
-        method: "DELETE"
-      });
+      const result = await api(`${path}/direct/message/${item.token}`, { method: "DELETE" });
 
       if (result.ok) removed({ ...item, ...result.data });
       toast({
@@ -423,6 +425,7 @@ export function open(kind, id) {
           if (older && node) list.insertBefore(node, anchor);
           continue;
         }
+
         const removed = item.deleted || deleted.has(item.token);
         const retained = item.retained || deleted.get(item.token);
         const node =
@@ -442,11 +445,7 @@ export function open(kind, id) {
 
         seen.set(item.token, node);
         if (!removed && node && item.remaining && !read.has(item.token))
-          dom.set(
-            dom.query(".chatting-time", node),
-            "data-unread",
-            String(item.remaining)
-          );
+          dom.set(dom.query(".chatting-time", node), "data-unread", String(item.remaining));
         if (older && node) list.insertBefore(node, anchor);
         if (!removed && initial && item.unseen && node && !unread) {
           unread = dom.create("div");
@@ -456,6 +455,7 @@ export function open(kind, id) {
           list.insertBefore(unread, node);
         }
       }
+
       chat.regroup(list);
       if (older) list.scrollTop = top + list.scrollHeight - height;
     };
@@ -464,6 +464,7 @@ export function open(kind, id) {
       if (loading) return;
       loading = true;
       more.disabled = true;
+
       const result = await api(
         `${path}/direct/message?id=${id}` + (cursor ? `&before=${cursor}` : "")
       );
@@ -474,8 +475,10 @@ export function open(kind, id) {
       if (!result.ok) {
         problem(result);
         more.hidden = false;
+
         return;
       }
+
       const initial = !cursor;
 
       append(result.data.items.slice().reverse(), !initial, initial);
@@ -483,53 +486,45 @@ export function open(kind, id) {
         last = result.data.items[0].token;
         markRead();
       }
+
       cursor = result.data.next;
       more.hidden = !cursor;
-      if (
-        restoring &&
-        !position.bottom &&
-        !seen.has(position.token) &&
-        cursor
-      ) {
+      if (restoring && !position.bottom && !seen.has(position.token) && cursor) {
         await load();
+
         return;
       }
+
       ready = true;
       if (restoring) {
         if (!position.bottom && !seen.has(position.token)) restoring = false;
         else {
           requestAnimationFrame(restore);
+
           return;
         }
       }
+
       if (initial && unread) {
         requestAnimationFrame(() => {
           if (closed || !unread.isConnected) return;
-          list.scrollTop +=
-            unread.getBoundingClientRect().top -
-            list.getBoundingClientRect().top;
+          list.scrollTop += unread.getBoundingClientRect().top - list.getBoundingClientRect().top;
         });
       }
     };
 
     dom.on(more, "click", load);
+
     const transmit = async (file) => {
       const text = input.value;
       const batch = file ? [] : attached.snapshot();
 
-      if (
-        busy ||
-        closed ||
-        input.disabled ||
-        (!file && !text.trim() && !batch.length)
-      )
+      if (busy || closed || input.disabled || (!file && !text.trim() && !batch.length))
         return false;
       busy = true;
       transfer = new AbortController();
-      const signal = AbortSignal.any([
-        transfer.signal,
-        AbortSignal.timeout(60000)
-      ]);
+
+      const signal = AbortSignal.any([transfer.signal, AbortSignal.timeout(60000)]);
 
       let success = false;
 
@@ -543,6 +538,7 @@ export function open(kind, id) {
         input.value = "";
         input.dispatchEvent(new Event("input", { bubbles: true }));
       }
+
       attached.busy(true);
       state("sending", true);
       try {
@@ -550,8 +546,10 @@ export function open(kind, id) {
 
         if (!prepared.ok || signal.aborted || closed) {
           if (!signal.aborted && !closed) problem(prepared);
+
           return false;
         }
+
         const result = file
           ? await upload(`${path}/direct/message/${id}/audio`, file, { signal })
           : await api(`${path}/direct/message/${id}`, {
@@ -561,29 +559,29 @@ export function open(kind, id) {
             });
 
         if (!result.ok) {
-          if (result.status === 400)
-            batch.forEach((item) => attached.receipt(item, null));
+          if (result.status === 400) batch.forEach((item) => attached.receipt(item, null));
           if (!closed && !signal.aborted) problem(result);
+
           return false;
         }
+
         success = true;
         if (closed) return true;
         attached.clear(batch);
         append([result.data]);
         listeners.forEach((listener) => listener(result.data, id));
         state("success");
-        void sound.play("send", { volume: 0.2 });
+        void sound.play("send");
         form.dispatchEvent(new Event("chatting-sent"));
         await new Promise((resolve) => setTimeout(resolve, 400));
+
         return true;
       } finally {
         if (!success && !file && !closed) {
-          input.value =
-            input.value && text
-              ? `${text}\n${input.value}`
-              : input.value || text;
+          input.value = input.value && text ? `${text}\n${input.value}` : input.value || text;
           input.dispatchEvent(new Event("input", { bubbles: true }));
         }
+
         busy = false;
         transfer = undefined;
         if (!closed) {
@@ -598,15 +596,18 @@ export function open(kind, id) {
       transmit();
     });
     dom.on(form, "chatting-cancel", () => transfer?.abort());
+
     const receive = (item, peer) => {
       if (item.room !== id || item.kind !== kind || closed) return false;
       append([item]);
       last = item.token;
       markRead();
+
       return true;
     };
 
     listeners.add(receive);
+
     const removal = dom.on(events(), "direct-remove", (event) => {
       let data;
 
@@ -615,6 +616,7 @@ export function open(kind, id) {
       } catch {
         return;
       }
+
       if (!closed && data.room === id) removed(data);
     });
 
@@ -626,6 +628,7 @@ export function open(kind, id) {
       } catch {
         return;
       }
+
       if (closed || data.room !== id || !Array.isArray(data.tokens)) return;
       for (const token of data.tokens) {
         if (!data.counts?.[token]) read.add(token);
@@ -634,8 +637,7 @@ export function open(kind, id) {
         if (node && !deleted.has(token)) {
           const time = dom.query(".chatting-time", node);
 
-          if (data.counts?.[token])
-            dom.set(time, "data-unread", String(data.counts[token]));
+          if (data.counts?.[token]) dom.set(time, "data-unread", String(data.counts[token]));
           else dom.remove(time, "data-unread");
         }
       }
@@ -669,6 +671,7 @@ export function open(kind, id) {
       else room = { ...room, available: false };
       update();
     };
+
     const state = dom.on(events(), "direct-state", refreshRoom);
     const connected = dom.on(events(), "ready", refreshRoom);
     const changed = dom.on(events(), "profile-update", refreshRoom);
@@ -691,13 +694,10 @@ export function open(kind, id) {
             dom.remove(heading, "data-i18n");
             heading.textContent = rooms.title(room);
           }
+
           mount(root);
           attached = attachments.default(input);
-          closeTools = tools(root, {
-            image: attached.add,
-            attach: attached.add,
-            audio: transmit
-          });
+          closeTools = tools(root, { image: attached.add, attach: attached.add, audio: transmit });
           closeViewport = viewport(root);
           mount(root);
           load();
@@ -730,12 +730,7 @@ const menu = (item, refresh) =>
     const group = dom.create("div");
     const entries = [
       ["pin", item.pinned ? "unpin" : "pin", "pin", !item.pinned],
-      [
-        "mute",
-        item.muted ? "unmute" : "mute",
-        item.muted ? "notify" : "notify-mute",
-        !item.muted
-      ],
+      ["mute", item.muted ? "unmute" : "mute", item.muted ? "notify" : "notify-mute", !item.muted],
       ["read", "readAll", "check"],
       ["leave", "leave", "logout"]
     ];
@@ -759,14 +754,17 @@ const menu = (item, refresh) =>
       row.append(button);
       group.append(row);
     }
+
     const action = await sheet({ content: group, direction: "→" });
     const entry = entries.find((item) => item[0] === action);
 
     if (!entry) return;
     if (action === "leave") {
       if (await rooms.leave(item.room)) refresh();
+
       return;
     }
+
     const result =
       action === "read"
         ? await api(`${path}/direct/message/${item.room}/read`, {
@@ -794,15 +792,18 @@ export function inbox() {
     more.type = "button";
     more.textContent = i18n.message("direct.more");
     dom.set(more, "data-i18n", "direct.more");
+
     const footer = dom.create("footer");
     const add = dom.create("button");
 
     footer.className = "messenger-footer";
     add.type = "button";
+    dom.set(add, "data-blur", "");
+    dom.set(add, "data-shadow", "");
     dom.set(add, "data-icon", "plus");
     dom.set(add, "data-circle", "");
     dom.set(add, "data-tooltip", "room.start");
-    dom.set(add, "data-shadow", "");
+    dom.set(add, "data-response", "");
     dom.on(add, "click", async () => {
       const selected = await rooms.select();
 
@@ -810,6 +811,7 @@ export function inbox() {
     });
     footer.append(add);
     root.append(list, more);
+
     let cursor;
     let closed = false;
 
@@ -819,22 +821,25 @@ export function inbox() {
     const load = async (reset = false) => {
       if (loading) {
         refresh ||= reset;
+
         return;
       }
+
       loading = true;
       if (reset) cursor = undefined;
       more.disabled = true;
-      const result = await api(
-        `${path}/direct/message` + (cursor ? `?before=${cursor}` : "")
-      );
+
+      const result = await api(`${path}/direct/message` + (cursor ? `?before=${cursor}` : ""));
 
       loading = false;
       if (closed) return;
       more.disabled = false;
       if (!result.ok) {
         problem(result);
+
         return;
       }
+
       if (reset) list.replaceChildren();
       for (const item of result.data.items) {
         const row = dom.create("div");
@@ -867,11 +872,9 @@ export function inbox() {
           dom.set(status, "data-tooltip", label);
           time.append(status);
         }
+
         preview.className = "chatting-text";
-        emoji.render(
-          preview,
-          item.system ? rooms.notice(item.system) : summary(item)
-        );
+        emoji.render(preview, item.system ? rooms.notice(item.system) : summary(item));
         heading.append(picture.root, name);
         button.append(heading, time, preview);
         if (item.unread) toolbar.badge(button, item.unread);
@@ -884,6 +887,7 @@ export function inbox() {
         row.append(button);
         list.append(row);
       }
+
       mount(list);
       cursor = result.data.next;
       more.hidden = !cursor;
@@ -894,6 +898,7 @@ export function inbox() {
     };
 
     dom.on(more, "click", () => load());
+
     const changes = dom.on(events(), "direct-read", () => load(true));
     const preferences = dom.on(events(), "direct-change", () => load(true));
     const removals = dom.on(events(), "direct-remove", () => load(true));

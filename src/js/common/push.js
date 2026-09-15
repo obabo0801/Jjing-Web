@@ -153,11 +153,7 @@ export async function subscribe(registration) {
     method: "POST",
     data: {
       subscription,
-      device: dom.has("wearable")
-        ? "wearable"
-        : dom.has("mobile")
-          ? "mobile"
-          : "desktop"
+      device: dom.has("wearable") ? "wearable" : dom.has("mobile") ? "mobile" : "desktop"
     }
   });
 
@@ -195,10 +191,7 @@ export async function notify(title, options = {}) {
       return false;
     }
 
-    await registration.showNotification(title, {
-      icon: "/icons/icon-192.png",
-      ...options
-    });
+    await registration.showNotification(title, { icon: "/icons/icon-192.png", ...options });
 
     return true;
   } catch {

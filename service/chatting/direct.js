@@ -36,18 +36,10 @@ const signature = (item) =>
     )
     .digest("hex");
 
-export const send = async (
-  user,
-  kind,
-  id,
-  text,
-  { attachments = [], audio = null } = {}
-) => {
+export const send = async (user, kind, id, text, { attachments = [], audio = null } = {}) => {
   if (
     !["whisper", "message"].includes(kind) ||
-    !(kind === "message"
-      ? validId(id) || /^[a-f0-9]{32}$/.test(id)
-      : /^[a-f0-9]{32}$/.test(id)) ||
+    !(kind === "message" ? validId(id) || /^[a-f0-9]{32}$/.test(id) : /^[a-f0-9]{32}$/.test(id)) ||
     typeof text !== "string" ||
     (!text.trim() && !attachments.length && !audio) ||
     (kind === "whisper" && (attachments.length || audio)) ||
@@ -59,6 +51,7 @@ export const send = async (
 
     return sendRoom(user, current, text, attachments, audio);
   }
+
   const target = await db.get(
     `SELECT uid, id, settings FROM user WHERE id = ?
       AND deletion IS NULL AND erased = 0
@@ -68,11 +61,9 @@ export const send = async (
   );
 
   if (!target || target.uid === user.uid) fail(404, "unavailable");
-  if ((await room.policy(user.uid, target.uid)).unavailable)
-    fail(409, "unavailable");
+  if ((await room.policy(user.uid, target.uid)).unavailable) fail(409, "unavailable");
   if (!settings.read(target.settings)[kind]) fail(409, "refused");
-  if (kind === "whisper" && events.state(target.uid) === "offline")
-    fail(409, "offline");
+  if (kind === "whisper" && events.state(target.uid) === "offline") fail(409, "offline");
   const sender = await db.get(
     `SELECT id, name, avatar, google FROM user WHERE uid = ?
       AND deletion IS NULL AND erased = 0`,
@@ -98,16 +89,17 @@ export const send = async (
   );
 
   if (!fresh || !settings.read(fresh.settings).whisper) fail(409, "refused");
-  if ((await room.policy(user.uid, target.uid)).unavailable)
-    fail(409, "unavailable");
+  if ((await room.policy(user.uid, target.uid)).unavailable) fail(409, "unavailable");
   if (events.state(target.uid) === "offline") fail(409, "offline");
   if (kind === "whisper") {
     item.recipient = target.id;
     item.verified = Boolean(sender.google);
     item.proof = signature(item);
   }
+
   events.send(target.uid, "direct", { ...item, own: false });
   events.send(user.uid, "direct", { ...item, own: true, peer: target.id });
+
   return { ...item, own: true, peer: target.id };
 };
 
@@ -123,17 +115,10 @@ const output = (row, user) => ({
   time: row.time,
   unseen: row.sender !== user.uid && !row.seen && !row.deleted,
   remaining: row.deleted ? 0 : Number(row.remaining || 0),
-  ...(row.deleted && {
-    deleted: true,
-    ...(user.role === role.root && { retained: true })
-  }),
+  ...(row.deleted && { deleted: true, ...(user.role === role.root && { retained: true }) }),
   text: !row.deleted || user.role === role.root ? row.text : "",
-  attachments:
-    !row.deleted || user.role === role.root
-      ? attachment.read(row.attachments)
-      : [],
-  ...((!row.deleted || user.role === role.root) &&
-    row.audio && { audio: media.resolve(row.audio) })
+  attachments: !row.deleted || user.role === role.root ? attachment.read(row.attachments) : [],
+  ...((!row.deleted || user.role === role.root) && row.audio && { audio: media.resolve(row.audio) })
 });
 
 async function sendRoom(user, id, text, attachments, audio) {
@@ -141,9 +126,7 @@ async function sendRoom(user, id, text, attachments, audio) {
     const current = await room.read(user, id);
 
     if (!current.available) fail(409, "unavailable");
-    const users = (await room.members(id)).filter(
-      (item) => !item.left && !item.erased
-    );
+    const users = (await room.members(id)).filter((item) => !item.left && !item.erased);
     const sender = users.find((item) => item.uid === user.uid);
     const recipient = users.find((item) => item.uid !== user.uid);
 
@@ -166,10 +149,12 @@ async function sendRoom(user, id, text, attachments, audio) {
       ]
     );
     for (const member of users)
-      await db.run(
-        "INSERT INTO message_receipt(message,uid,read) VALUES(?,?,?)",
-        [token, member.uid, member.uid === user.uid ? time : null]
-      );
+      await db.run("INSERT INTO message_receipt(message,uid,read) VALUES(?,?,?)", [
+        token,
+        member.uid,
+        member.uid === user.uid ? time : null
+      ]);
+
     return {
       token,
       room: id,
@@ -186,10 +171,10 @@ async function sendRoom(user, id, text, attachments, audio) {
 
   for (const member of users) {
     if (member.left) continue;
-    const receipt = await db.get(
-      "SELECT 1 FROM message_receipt WHERE message = ? AND uid = ?",
-      [item.token, member.uid]
-    );
+    const receipt = await db.get("SELECT 1 FROM message_receipt WHERE message = ? AND uid = ?", [
+      item.token,
+      member.uid
+    ]);
 
     if (receipt)
       events.send(member.uid, "direct", {
@@ -198,16 +183,13 @@ async function sendRoom(user, id, text, attachments, audio) {
         ...(member.muted && { muted: true })
       });
   }
+
   return { ...item, own: true };
 }
 
 export const list = async (user, id, before) => {
   if (before !== undefined && !/^\d+$/.test(before)) fail(400, "invalid");
-  const current = id
-    ? validId(id)
-      ? id
-      : (await room.ensure(user, id)).id
-    : "";
+  const current = id ? (validId(id) ? id : (await room.ensure(user, id)).id) : "";
 
   if (current) await room.find(user, current);
   const rows = current
@@ -237,6 +219,7 @@ export const list = async (user, id, before) => {
       items.push(output(row, user));
       continue;
     }
+
     const info = await room.read(user, row.rid);
     const last = row.token
       ? await db.get(
@@ -266,13 +249,11 @@ export const list = async (user, id, before) => {
       muted: Boolean(row.muted)
     });
   }
+
   return {
     ...(current && { room: await room.read(user, current) }),
     items,
-    next:
-      rows.length > 30
-        ? String(current ? rows[29].seq : (Number(before) || 0) + 30)
-        : null
+    next: rows.length > 30 ? String(current ? rows[29].seq : (Number(before) || 0) + 30) : null
   };
 };
 
@@ -280,6 +261,7 @@ export const read = async (user, id, token) => {
   const current = validId(id) ? id : (await room.ensure(user, id)).id;
 
   await room.find(user, current);
+
   const changed = await db.transaction(async () => {
     const edge = token
       ? await db.get(
@@ -303,14 +285,13 @@ export const read = async (user, id, token) => {
         "UPDATE message SET read = coalesce(read,datetime('now','+9 hours')) WHERE id = ?",
         [row.message]
       );
+
     return rows;
   });
 
   events.send(user.uid, "direct-read", { room: current });
   for (let index = 0; index < changed.length; index += 256) {
-    const tokens = changed
-      .slice(index, index + 256)
-      .map((item) => item.message);
+    const tokens = changed.slice(index, index + 256).map((item) => item.message);
     const counts = {};
 
     for (const token of tokens)
@@ -337,11 +318,8 @@ export const unread = async (user) =>
   );
 
 export const capture = async (user, token, items) => {
-  if (!Array.isArray(items) || !items.length || items.length > 500)
-    fail(400, "invalid");
-  const reporter = await db.get("SELECT id FROM user WHERE uid = ?", [
-    user.uid
-  ]);
+  if (!Array.isArray(items) || !items.length || items.length > 500) fail(400, "invalid");
+  const reporter = await db.get("SELECT id FROM user WHERE uid = ?", [user.uid]);
 
   if (!reporter) fail(403, "unavailable");
   const seen = new Set();
@@ -360,6 +338,7 @@ export const capture = async (user, token, items) => {
       fail(400, "invalid");
     seen.add(item.token);
   }
+
   const target = items.find((item) => item.token === token);
 
   if (!target || target.recipient !== reporter.id || target.id === reporter.id)
@@ -374,6 +353,7 @@ export const capture = async (user, token, items) => {
     )
   )
     fail(403, "unavailable");
+
   return {
     version: 1,
     kind: "whisper",
@@ -398,6 +378,7 @@ export const configure = async (user, id, action, value) => {
   const current = validId(id) ? id : (await room.ensure(user, id)).id;
 
   if (action === "leave") return room.leave(user, current);
+
   return room.configure(user, current, action, value);
 };
 
@@ -425,5 +406,6 @@ export const remove = async (user, token) => {
       retained: member.role === role.root,
       time: row.time
     });
+
   return { retained: user.role === role.root };
 };

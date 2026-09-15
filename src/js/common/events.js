@@ -69,6 +69,7 @@ const reserve = (id) =>
         .request(`jjing-events:${id}`, { ifAvailable: true }, (lock) => {
           resolve(Boolean(lock));
           if (!lock) return;
+
           return new Promise((done) => {
             release = done;
           });
@@ -81,8 +82,7 @@ const reserve = (id) =>
 
 export const start = () => {
   starting ??= (async () => {
-    if (initialized || typeof EventSource === "undefined")
-      return initialized ? stream : undefined;
+    if (initialized || typeof EventSource === "undefined") return initialized ? stream : undefined;
     if (!globalThis.crypto?.randomUUID) return events();
     let id = crypto.randomUUID();
 
@@ -110,8 +110,10 @@ export const start = () => {
     try {
       storage.set("tab", tab, "session");
     } catch {}
+
     return events();
   })();
+
   return starting;
 };
 
@@ -143,6 +145,7 @@ const activity = (force = false, engaged = true) => {
   }
 
   touched = now;
+
   const current = source;
   const active = session;
 
@@ -168,6 +171,7 @@ const disconnect = () => {
 
 const connect = () => {
   disconnect();
+
   const query = tab ? `?${new URLSearchParams({ tab })}` : "";
   const current = new EventSource(`/api${path}${query}`);
 
@@ -216,6 +220,7 @@ const restrict = async (event) => {
   stopped = true;
   suspend();
   window.dispatchEvent(new Event("chatting-stop"));
+
   const details = data(event);
   const content = dom.create("div");
   const detail = dom.create("p");
@@ -227,23 +232,15 @@ const restrict = async (event) => {
     .message(`chatting.${key}Detail`)
     .replace("{handler}", details.handler || i18n.message("chatting.handler"));
 
-  reason.textContent = i18n
-    .message("chatting.reason")
-    .replace("{reason}", details.reason || "-");
+  reason.textContent = i18n.message("chatting.reason").replace("{reason}", details.reason || "-");
   content.append(detail, reason);
+
   const result = await dialog({
     title: `chatting.${key}Title`,
     content,
     direction: "→",
     locked: true,
-    actions: [
-      {
-        text: "dialog.confirm",
-        icon: "check",
-        value: true,
-        data: ["data-confirm"]
-      }
-    ]
+    actions: [{ text: "dialog.confirm", icon: "check", value: true, data: ["data-confirm"] }]
   });
 
   if (result === true) location.replace("/");
@@ -251,12 +248,7 @@ const restrict = async (event) => {
 
 const watch = () => {
   dom.on(window, "pagehide", (event) => {
-    if (session)
-      api(path, {
-        method: "POST",
-        data: { session, visible: false },
-        keepalive: true
-      });
+    if (session) api(path, { method: "POST", data: { session, visible: false }, keepalive: true });
     suspend();
     if (!event.persisted) release?.();
   });
@@ -276,6 +268,7 @@ const watch = () => {
     if (document.visibilityState === "visible") {
       check(true);
     }
+
     activity(true);
   });
 };
@@ -291,6 +284,7 @@ const removed = (event) => {
   registry.storedAll(payload.id).forEach((element) => {
     if (payload.message) {
       dom.set(element, "data-deleted", "");
+
       return;
     }
 
@@ -336,12 +330,14 @@ export default function events() {
 
   stream.addEventListener("ready", (event) => {
     settings.load();
+
     const payload = data(event);
     const next = payload.admin === true;
 
     session = payload.session;
     touched = 0;
     activity(true);
+
     const previous = value;
 
     value = next;
@@ -365,9 +361,7 @@ export default function events() {
     const { id } = data(event);
 
     blocks.delete(id);
-    registry
-      .messageAll(id)
-      .forEach((element) => dom.remove(element, "data-blocked"));
+    registry.messageAll(id).forEach((element) => dom.remove(element, "data-blocked"));
   });
   stream.addEventListener("presence", presence);
   stream.addEventListener("heartbeat", () => activity(false, false));
@@ -406,5 +400,6 @@ export default function events() {
 
   connect();
   timer = setInterval(check, 10_000);
+
   return stream;
 }

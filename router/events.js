@@ -51,18 +51,11 @@ router.post("/", async (req, res) => {
 router.get("/list", async (req, res) => {
   res.set({ "Cache-Control": "private, no-store", Vary: "Cookie" });
   try {
-    await viewer(
-      identity(req),
-      address(req),
-      req.app.get("env") === "development"
-    );
+    await viewer(identity(req), address(req), req.app.get("env") === "development");
+
     const result = await events.list();
 
-    await viewer(
-      identity(req),
-      address(req),
-      req.app.get("env") === "development"
-    );
+    await viewer(identity(req), address(req), req.app.get("env") === "development");
     res.json(result);
   } catch (error) {
     if (error.status) return res.status(error.status).end();
@@ -75,8 +68,7 @@ router.get("/", async (req, res) => {
 
   if (
     tab !== undefined &&
-    (typeof tab !== "string" ||
-      !/^[\da-f]{8}(-[\da-f]{4}){3}-[\da-f]{12}$/i.test(tab))
+    (typeof tab !== "string" || !/^[\da-f]{8}(-[\da-f]{4}){3}-[\da-f]{12}$/i.test(tab))
   )
     return res.status(400).end();
   const user = await find(req);
@@ -94,12 +86,7 @@ router.get("/", async (req, res) => {
   res.write("retry: 3000\n\n");
 
   const close = events.connect(
-    {
-      ...user,
-      tab,
-      ip: address(req),
-      development: req.app.get("env") === "development"
-    },
+    { ...user, tab, ip: address(req), development: req.app.get("env") === "development" },
     res
   );
 
@@ -109,6 +96,7 @@ router.get("/", async (req, res) => {
   }, 25_000);
 
   ping.unref?.();
+
   const cleanup = () => {
     clearInterval(ping);
     close();

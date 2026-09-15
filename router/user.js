@@ -22,6 +22,7 @@ const router = Router();
 
 router.use(google);
 router.use("/settings", settings);
+
 const allowed = limit(120);
 const clear = {
   httpOnly: session.cookie.httpOnly,
@@ -127,6 +128,7 @@ router.post("/", async (req, res) => {
 
   if (kicked) {
     await session.remember(res, uid);
+
     return res.status(403).json(kicked);
   }
 

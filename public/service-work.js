@@ -1,10 +1,7 @@
 const offline = "offline";
 const page = "/offline";
 const prepare = async (locale, content) => {
-  const response = await fetch(page, {
-    cache: "no-store",
-    headers: { "x-pwa-cache": "true" }
-  });
+  const response = await fetch(page, { cache: "no-store", headers: { "x-pwa-cache": "true" } });
 
   if (!response.ok) {
     throw new Error();
@@ -73,10 +70,7 @@ const openDatabase = () =>
       const database = request.result;
 
       if (!database.objectStoreNames.contains("requests")) {
-        database.createObjectStore("requests", {
-          keyPath: "id",
-          autoIncrement: true
-        });
+        database.createObjectStore("requests", { keyPath: "id", autoIncrement: true });
       }
     };
 
@@ -210,9 +204,7 @@ self.addEventListener("fetch", (event) => {
   }
 
   if (url.pathname === page) {
-    event.respondWith(
-      caches.match(page).then((response) => response || fetch(request))
-    );
+    event.respondWith(caches.match(page).then((response) => response || fetch(request)));
 
     return;
   }
@@ -236,9 +228,7 @@ self.addEventListener("fetch", (event) => {
   }
 
   if (url.pathname.startsWith("/api/")) {
-    event.respondWith(
-      request.cache === "no-store" ? fetch(request) : fetchApi(request)
-    );
+    event.respondWith(request.cache === "no-store" ? fetch(request) : fetchApi(request));
 
     return;
   }
@@ -268,10 +258,7 @@ self.addEventListener("message", (event) => {
 });
 
 const sendToast = async (data) => {
-  const pages = await self.clients.matchAll({
-    type: "window",
-    includeUncontrolled: true
-  });
+  const pages = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
 
   pages.forEach((page) => {
     page.postMessage({ type: "notify", data });
@@ -311,14 +298,12 @@ const openPage = async (path) => {
   if (target.origin !== self.location.origin) {
     target.href = self.location.origin;
   }
+
   if (target.searchParams.has("message")) {
     target.searchParams.set("push", "1");
   }
 
-  const [client] = await self.clients.matchAll({
-    type: "window",
-    includeUncontrolled: true
-  });
+  const [client] = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
 
   if (!client) {
     return self.clients.openWindow(target.href);

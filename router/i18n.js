@@ -9,11 +9,9 @@ import string from "#shared/string";
 const router = Router();
 const key = (value) => hash(8, value.toLowerCase());
 
-const encode = (value) =>
-  Buffer.from(JSON.stringify(value), "utf8").toString("base64");
+const encode = (value) => Buffer.from(JSON.stringify(value), "utf8").toString("base64");
 
-const decode = (value) =>
-  JSON.parse(Buffer.from(value, "base64").toString("utf8"));
+const decode = (value) => JSON.parse(Buffer.from(value, "base64").toString("utf8"));
 
 const files = Object.fromEntries(langs.map((lang) => [key(lang), lang]));
 
@@ -65,16 +63,11 @@ router.post("/", async (req, res) => {
   );
 
   const keys = Array.isArray(body.keys)
-    ? [...new Set(body.keys.filter((key) => typeof key === "string"))].slice(
-        0,
-        256
-      )
+    ? [...new Set(body.keys.filter((key) => typeof key === "string"))].slice(0, 256)
     : [];
 
   const text = Object.fromEntries(
-    keys
-      .filter((key) => Object.hasOwn(source, key))
-      .map((key) => [key, source[key]])
+    keys.filter((key) => Object.hasOwn(source, key)).map((key) => [key, source[key]])
   );
 
   res.json({ [content]: encode({ lang, text }) });

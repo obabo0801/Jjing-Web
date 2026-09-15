@@ -62,11 +62,11 @@ router.patch("/", account, async (req, res) => {
   if (name !== current.name && !validName(name)) {
     return res.status(400).end();
   }
+
   if (
     name !== current.name &&
     current.renamed &&
-    Date.now() - Date.parse(`${current.renamed.replace(" ", "T")}+09:00`) <
-      86400000
+    Date.now() - Date.parse(`${current.renamed.replace(" ", "T")}+09:00`) < 86400000
   )
     return res.status(429).end();
 
@@ -129,8 +129,7 @@ router.patch("/", account, async (req, res) => {
 
 router.post("/complete", account, async (req, res) => {
   const uid = identity(req);
-  const image =
-    req.body?.image === null ? "clear" : (req.body?.image ?? "keep");
+  const image = req.body?.image === null ? "clear" : (req.body?.image ?? "keep");
   const token = string(req.body?.token);
 
   if (!uid) {
@@ -206,6 +205,7 @@ router.post("/complete", account, async (req, res) => {
   }
 
   events.broadcast("online");
+
   const user = await profile.find(uid);
 
   events.broadcast("profile-update", { id: user.id });

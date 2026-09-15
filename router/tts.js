@@ -101,9 +101,7 @@ router.post("/", async (req, res) => {
   }
 
   if (!result) {
-    return body.type === "cache"
-      ? res.status(204).end()
-      : res.status(503).end();
+    return body.type === "cache" ? res.status(204).end() : res.status(503).end();
   }
 
   if (body.type !== "cache") {

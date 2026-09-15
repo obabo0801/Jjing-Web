@@ -17,14 +17,7 @@ export const busy = () =>
   Boolean(requests.size || sources.size || synth?.speaking || synth?.pending);
 
 const key = (text, { lang, pitch, rate, voice, type }) =>
-  JSON.stringify({
-    text,
-    lang,
-    pitch,
-    rate,
-    voice: voice || "",
-    type: type || ""
-  });
+  JSON.stringify({ text, lang, pitch, rate, voice: voice || "", type: type || "" });
 
 const record = (text, options) => {
   const id = key(text, options);
@@ -209,6 +202,7 @@ export const wait = (source) =>
   new Promise((resolve) => {
     if (!source) {
       resolve();
+
       return;
     }
 

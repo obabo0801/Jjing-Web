@@ -46,11 +46,7 @@ router.get("/google", async (req, res) => {
   const verifier = random();
   const binding = createHash("sha256").update(req.uid).digest("base64url");
 
-  res.cookie(
-    key,
-    { state, nonce, verifier, binding, popup, redirect, time: Date.now() },
-    cookie
-  );
+  res.cookie(key, { state, nonce, verifier, binding, popup, redirect, time: Date.now() }, cookie);
 
   res.redirect(
     config.client.generateAuthUrl({
@@ -96,20 +92,20 @@ router.get("/google/callback", async (req, res) => {
 
     if (pending) {
       res.cookie(recovery, pending, cookie);
+
       return done("pending");
     }
 
     if (uid !== req.uid) {
-      const previous = await db.get("SELECT google FROM user WHERE uid = ?", [
-        req.uid
-      ]);
+      const previous = await db.get("SELECT google FROM user WHERE uid = ?", [req.uid]);
 
-      if (previous && !previous.google)
-        await session.remember(res, req.uid, session.anonymous);
+      if (previous && !previous.google) await session.remember(res, req.uid, session.anonymous);
     }
+
     if (!(await session.remember(res, uid))) return done("error");
     res.clearCookie(recovery, clear);
     events.broadcast("online");
+
     return done("success");
   } catch {
     // OAuth tokens and provider responses must not enter logs or responses.
@@ -125,11 +121,13 @@ router.delete("/account", async (req, res) => {
   if (!user) return res.status(403).end();
   await guest(req, res);
   res.clearCookie(recovery, clear);
+
   return res.status(204).end();
 });
 
 router.get("/account", async (req, res) => {
   res.set("Cache-Control", "private, no-store");
+
   const user = await deletion.pending(req.signedCookies?.[recovery]);
 
   return res.json({ deletion: user?.deletion || null });
@@ -144,6 +142,7 @@ router.post("/account", async (req, res) => {
   if (!user) return res.status(409).end();
   await session.remember(res, user.uid);
   events.broadcast("online");
+
   return res.status(204).end();
 });
 
@@ -157,8 +156,7 @@ async function guest(req, res) {
       [saved.uid]
     ));
 
-  const uid =
-    user?.uid || (await session.create(address(req), client(req).lang));
+  const uid = user?.uid || (await session.create(address(req), client(req).lang));
 
   await session.remember(res, uid, session.anonymous);
   await session.remember(res, uid);

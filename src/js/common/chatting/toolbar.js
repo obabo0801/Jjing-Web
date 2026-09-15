@@ -35,12 +35,7 @@ export default function tools(root, history) {
   ];
 
   const menu = toolbar(
-    entries.map(([icon, name, run]) => ({
-      icon,
-      color: true,
-      text: `chatting.tools.${name}`,
-      run
-    }))
+    entries.map(([icon, name, run]) => ({ icon, color: true, text: `chatting.tools.${name}`, run }))
   );
 
   toggle.className = "chatting-more";
@@ -48,6 +43,7 @@ export default function tools(root, history) {
   dom.set(toggle, "data-icon", "plus");
   dom.set(toggle, "data-circle", "");
   dom.set(toggle, "data-tooltip", "chatting.tools.open");
+  dom.set(toggle, "data-response", "");
   menu.classList.add("chatting-toolbar");
   dom.set(menu, "data-position", "bottom");
   entries.forEach(([, name], index) => {
@@ -63,11 +59,14 @@ export default function tools(root, history) {
   } else {
     field.before(menu);
   }
+
   const off = dom.on(toggle, "click", () => {
     if (root.hasAttribute("data-emotes")) {
       form.dispatchEvent(new Event("chatting-emotes-close"));
+
       return;
     }
+
     const opened = dom.get(form, "data-expanded") === "true";
     const stick = atBottom(list);
 
@@ -82,18 +81,17 @@ export default function tools(root, history) {
       button.disabled = input.disabled || input.readOnly;
     }
   };
+
   const observer = new MutationObserver(update);
 
-  observer.observe(input, {
-    attributes: true,
-    attributeFilter: ["disabled", "readonly"]
-  });
+  observer.observe(input, { attributes: true, attributeFilter: ["disabled", "readonly"] });
 
   const preserve = dom.on(menu, "pointerdown", (event) => {
     if (event.target.closest("button")) event.preventDefault();
   });
 
   update();
+
   return () => {
     preserve();
     off();

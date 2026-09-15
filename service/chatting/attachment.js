@@ -8,20 +8,14 @@ import maximum from "#shared/upload";
 
 // 경로나 MIME을 돌려받아 신뢰하지 않고, 현재 사용자의 업로드 영수증만 받습니다.
 const uploads = new Map();
-const mime = {
-  jpeg: "image/jpeg",
-  png: "image/png",
-  webp: "image/webp",
-  gif: "image/gif"
-};
+const mime = { jpeg: "image/jpeg", png: "image/png", webp: "image/webp", gif: "image/gif" };
 
 const fail = (status) => {
   throw Object.assign(new Error("Invalid attachment"), { status });
 };
 
 const clean = () => {
-  for (const [key, value] of uploads)
-    if (value.expires <= Date.now()) uploads.delete(key);
+  for (const [key, value] of uploads) if (value.expires <= Date.now()) uploads.delete(key);
 };
 
 const timer = setInterval(clean, 60_000);
@@ -29,8 +23,7 @@ const timer = setInterval(clean, 60_000);
 timer.unref();
 
 export const upload = async (user, data, type, adjustment) => {
-  if (!Buffer.isBuffer(data) || !data.length || !rules.types.includes(type))
-    fail(415);
+  if (!Buffer.isBuffer(data) || !data.length || !rules.types.includes(type)) fail(415);
   if (data.length > maximum) fail(413);
   clean();
   if (
@@ -49,6 +42,7 @@ export const upload = async (user, data, type, adjustment) => {
   } catch {
     fail(415);
   }
+
   if (mime[metadata.format] !== type) fail(415);
   let edit;
 
@@ -58,6 +52,7 @@ export const upload = async (user, data, type, adjustment) => {
     } catch {
       fail(400);
     }
+
     if (
       !edit ||
       !["width", "height", "angle", "scale", "x", "y"].every(
@@ -77,21 +72,18 @@ export const upload = async (user, data, type, adjustment) => {
     if (edit.shape === "original") {
       const swap = metadata.orientation >= 5 && metadata.orientation <= 8;
       const width = swap ? metadata.height : metadata.width;
-      const height = swap
-        ? metadata.width
-        : metadata.pageHeight || metadata.height;
+      const height = swap ? metadata.width : metadata.pageHeight || metadata.height;
       const ratio = Math.min(1, 1024 / Math.max(width, height));
 
       edit.width = Math.max(1, Math.round(width * ratio));
       edit.height = Math.max(1, Math.round(height * ratio));
     }
+
     edit = Object.fromEntries(
-      ["width", "height", "shape", "angle", "scale", "x", "y"].map((key) => [
-        key,
-        edit[key]
-      ])
+      ["width", "height", "shape", "angle", "scale", "x", "y"].map((key) => [key, edit[key]])
     );
   }
+
   const saved = await store(data, "images", {
     width: 1280,
     height: 1280,
@@ -117,12 +109,14 @@ export const upload = async (user, data, type, adjustment) => {
       ...(edit && { edit })
     }
   });
+
   return { token, expires };
 };
 
 export const resolve = async (user, items = []) => {
   if (!Array.isArray(items) || items.length > rules.maximum) fail(400);
   clean();
+
   const result = [];
 
   for (const value of items) {
@@ -133,6 +127,7 @@ export const resolve = async (user, items = []) => {
       result.push(item);
       continue;
     }
+
     if (value?.type === "ogq") {
       const item = await accept(value);
 
@@ -140,6 +135,7 @@ export const resolve = async (user, items = []) => {
       result.push(item);
       continue;
     }
+
     const entry = uploads.get(value?.token);
 
     if (
@@ -151,12 +147,9 @@ export const resolve = async (user, items = []) => {
       typeof value.spoiler !== "boolean"
     )
       fail(400);
-    result.push({
-      ...entry.item,
-      description: value.description.trim(),
-      spoiler: value.spoiler
-    });
+    result.push({ ...entry.item, description: value.description.trim(), spoiler: value.spoiler });
   }
+
   return result;
 };
 

@@ -20,11 +20,7 @@ const limit = (input, value) => {
 const valid = (input) => {
   const value = Number(input.value);
 
-  return (
-    input.value !== "" &&
-    Number.isFinite(value) &&
-    value === limit(input, value)
-  );
+  return input.value !== "" && Number.isFinite(value) && value === limit(input, value);
 };
 
 const paint = (input) => {
@@ -43,8 +39,7 @@ const paint = (input) => {
   }
 };
 
-const keyboard = (input) =>
-  keypad(input.closest(".stepper"), { close, commit, valid });
+const keyboard = (input) => keypad(input.closest(".stepper"), { close, commit, valid });
 
 const hide = (input) => {
   const display = input.closest(".stepper-value");
@@ -189,6 +184,7 @@ export function listen() {
     if (event.key === "Enter") {
       event.preventDefault();
       keyboard(input).submit(input);
+
       return;
     }
 
@@ -198,9 +194,7 @@ export function listen() {
   });
 
   dom.on(document, "pointerdown", (event) => {
-    const button = event.target.closest?.(
-      ".stepper " + "button[data-step]:enabled"
-    );
+    const button = event.target.closest?.(".stepper " + "button[data-step]:enabled");
 
     if (!button) {
       return;
@@ -224,9 +218,7 @@ export function listen() {
   dom.on(document, "pointerup", stop);
   dom.on(document, "pointercancel", stop);
   dom.on(document, "click", (event) => {
-    const button = event.target.closest?.(
-      ".stepper " + "button[data-step]:enabled"
-    );
+    const button = event.target.closest?.(".stepper " + "button[data-step]:enabled");
 
     if (!button) {
       return;

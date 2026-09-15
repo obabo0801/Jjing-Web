@@ -1,6 +1,4 @@
 import * as dom from "#common/dom";
-import sound from "#common/sound";
-import vibrate from "#common/vibrate";
 
 let resizeId;
 
@@ -33,7 +31,5 @@ export default function segment() {
 
     dom.remove(selected, "data-selected");
     dom.set(button, "data-selected", "");
-    sound.play("click");
-    vibrate.play("segment");
   });
 }

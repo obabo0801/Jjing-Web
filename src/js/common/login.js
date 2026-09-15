@@ -23,17 +23,17 @@ const google = () => {
 
   if (standalone || typeof BroadcastChannel === "undefined") {
     location.assign(url);
+
     return;
   }
+
   if (popup && !popup.closed) {
     popup.focus();
+
     return;
   }
-  popup = window.open(
-    `${url}&popup=1`,
-    "jjing-login",
-    "popup,width=500,height=700"
-  );
+
+  popup = window.open(`${url}&popup=1`, "jjing-login", "popup,width=500,height=700");
   if (!popup) location.assign(url);
 };
 
@@ -63,8 +63,8 @@ export const pending = async () => {
   const text = dom.create("p");
   const time = dom.create("time");
 
-  dom.set(text, "data-i18n", "profile.deletionInfo");
   text.textContent = i18n.message("profile.deletionInfo");
+  dom.set(text, "data-i18n", "profile.deletionInfo");
   time.dateTime = new Date(date).toISOString();
   time.textContent = new Intl.DateTimeFormat(document.documentElement.lang, {
     dateStyle: "long",
@@ -81,13 +81,11 @@ export const pending = async () => {
         text: "profile.restore",
         icon: "check",
         run: async () => {
-          const result = await api(`${user}/account`, {
-            method: "POST",
-            data: {}
-          });
+          const result = await api(`${user}/account`, { method: "POST", data: {} });
 
           if (result.ok) location.replace("/");
           else toast({ title: "profile.restoreError", type: "error" });
+
           return result.ok;
         }
       }
@@ -103,16 +101,17 @@ export const links = () => {
     const link = dom.create("a");
 
     link.href = `/${name}`;
-    dom.set(link, "data-i18n", `${name}.title`);
     link.textContent = i18n.message(`${name}.title`);
+    dom.set(link, "data-i18n", `${name}.title`);
+
     dom.on(link, "click", (event) => {
-      if (event.ctrlKey || event.metaKey || event.shiftKey || event.altKey)
-        return;
+      if (event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
       event.preventDefault();
       legal(name);
     });
     root.append(link);
   }
+
   return root;
 };
 
@@ -127,13 +126,11 @@ export const remove = async () => {
         text: "profile.delete",
         data: ["data-danger"],
         run: async () => {
-          const result = await api(`${user}/account`, {
-            method: "DELETE",
-            data: {}
-          });
+          const result = await api(`${user}/account`, { method: "DELETE", data: {} });
 
           if (result.ok) location.assign("/");
           else toast({ title: "profile.deleteError", type: "error" });
+
           return result.ok;
         }
       }
@@ -159,16 +156,19 @@ export default async function login(anchor) {
   root.className = "login";
   button.className = "login-google";
   button.type = "button";
+  dom.set(button, "data-shadow", "");
   dom.set(button, "data-icon", "google");
   dom.set(button, "data-color", "");
   dom.set(button, "data-circle", "");
-  dom.set(button, "data-shadow", "");
   dom.set(button, "data-tooltip", "login.google");
+  dom.set(button, "data-response", "");
   dom.on(button, "click", google);
-  dom.set(text, "data-i18n", "login.google");
+
   text.textContent = i18n.message("login.google");
+  dom.set(text, "data-i18n", "login.google");
   button.append(text);
   root.append(button, links());
+
   return popover({
     route: ["login", ""],
     title: "login.title",

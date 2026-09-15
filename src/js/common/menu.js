@@ -84,21 +84,23 @@ i18n.preload(...keys);
 const node = (tag, name, key) => {
   const element = dom.create(tag);
 
-  if (tag === "button") dom.set(element, "data-response", "");
   if (name) element.className = name;
   if (key) text(element, key);
+  if (tag === "button") dom.set(element, "data-response", "");
+
   return element;
 };
 
 function text(element, key) {
-  dom.set(element, "data-i18n", key);
   element.textContent = i18n.message(key);
+  dom.set(element, "data-i18n", key);
 }
 
 const mark = (element, name, color = false) => {
   dom.set(element, "data-icon", name);
   element.toggleAttribute("data-color", color);
 };
+
 const fail = () => toast({ title: "menu.error", type: "error" });
 const on = (key) => storage.get(key, "true") !== "false";
 const group = (...items) => {
@@ -110,6 +112,7 @@ const group = (...items) => {
     row.append(item);
     root.append(row);
   }
+
   return root;
 };
 
@@ -117,6 +120,7 @@ const section = (key, content) => {
   const root = node("section", "group-section");
 
   root.append(node("h3", "group-title", key), content);
+
   return root;
 };
 
@@ -151,15 +155,7 @@ const field = (type, key, icon, value, save) => {
     mark(
       title,
       icon,
-      [
-        "kr",
-        "sun",
-        "moon",
-        "moon-full",
-        "chat",
-        "mention",
-        "notify-ring"
-      ].includes(icon)
+      ["kr", "sun", "moon", "moon-full", "chat", "mention", "notify-ring"].includes(icon)
     );
   input.type = type === "radio" ? "radio" : "checkbox";
   input.checked = value;
@@ -182,6 +178,7 @@ const field = (type, key, icon, value, save) => {
         input.disabled = false;
       }
     });
+
   return { root, input, title };
 };
 
@@ -195,21 +192,19 @@ const master = (key, icon, value, save, expand, current) => {
       async (enabled) => {
         const ok = await save(enabled);
 
-        text(
-          control.title,
-          (ok ? enabled : !enabled) ? "toggle.on" : "toggle.off"
-        );
+        text(control.title, (ok ? enabled : !enabled) ? "toggle.on" : "toggle.off");
+
         return ok;
       }
     );
 
     return control.root;
   }
+
   const root = node("div", "toggle");
   const head = node("div", "toggle-head");
   const button = node("button", "toggle-button");
   const title = node("span", "group-name", key);
-
   const control = field("switch", key, "", value, save);
 
   control.root.classList.add("toggle-switch");
@@ -231,6 +226,7 @@ const master = (key, icon, value, save, expand, current) => {
   });
   head.append(button, control.root);
   root.append(head);
+
   return root;
 };
 
@@ -243,6 +239,7 @@ const entry = (key, icon, run, current) => {
   button.type = "button";
   mark(button, icon, true);
   mark(arrow, "arrow");
+
   const update = async () => {
     if (current) value.textContent = await current();
   };
@@ -261,6 +258,7 @@ const entry = (key, icon, run, current) => {
       await update();
     }
   });
+
   return button;
 };
 
@@ -275,21 +273,25 @@ const options = (values, selected, type, save) => {
       choices.forEach((choice) => {
         choice.input.disabled = true;
       });
+
       let ok = false;
 
       try {
         ok = await save(value);
       } catch {}
+
       if (ok) selected = value;
       else {
         selected = old;
         fail();
       }
+
       choices.forEach((choice) => {
         choice.input.disabled = false;
         choice.input.checked = choice.value === selected;
       });
     });
+
     return { ...item, value };
   });
 
@@ -313,10 +315,12 @@ const language = () => {
         if (!storage.set("lang", value)) return false;
         if (await i18n.translate(value)) return true;
         await i18n.translate(previous);
+
         return false;
       }
     )
   );
+
   return open("menu.language", content);
 };
 
@@ -336,12 +340,9 @@ const slider = (key, value, min, save, icon) => {
   input.max = 100;
   input.step = 1;
   input.value = value;
+
   const update = () => {
-    mark(
-      symbol,
-      typeof icon === "function" ? icon(Number(input.value)) : icon,
-      true
-    );
+    mark(symbol, typeof icon === "function" ? icon(Number(input.value)) : icon, true);
   };
 
   dom.on(input, "input", () => {
@@ -350,6 +351,7 @@ const slider = (key, value, min, save, icon) => {
       input.value = value;
       fail();
     }
+
     update();
   });
   track.append(fill);
@@ -357,25 +359,17 @@ const slider = (key, value, min, save, icon) => {
   line.append(symbol, range);
   root.append(label, line);
   update();
+
   return { root, input };
 };
 
 const appearance = () => {
   const content = node("div", "settings");
-  const icons = {
-    system: "setting",
-    light: "sun",
-    dark: "moon-full",
-    black: "moon"
-  };
+  const icons = { system: "setting", light: "sun", dark: "moon-full", black: "moon" };
 
   content.append(
     options(
-      theme.modes.map((mode) => [
-        mode,
-        `theme.${mode}`,
-        icons[mode] || "theme"
-      ]),
+      theme.modes.map((mode) => [mode, `theme.${mode}`, icons[mode] || "theme"]),
       theme.default(),
       "radio",
       (value) => theme.default(value) === value
@@ -385,22 +379,12 @@ const appearance = () => {
 
   content.append(
     group(
-      slider(
-        "theme.brightness",
-        storage.get("brightness", 100),
-        70,
-        theme.brightness,
-        (value) =>
-          value < 80
-            ? "moon-full"
-            : value < 90
-              ? "moon"
-              : value < 96
-                ? "sun-low"
-                : "sun"
+      slider("theme.brightness", storage.get("brightness", 100), 70, theme.brightness, (value) =>
+        value < 80 ? "moon-full" : value < 90 ? "moon" : value < 96 ? "sun-low" : "sun"
       ).root
     )
   );
+
   return open("menu.theme", content);
 };
 
@@ -408,6 +392,7 @@ const setSound = (enabled) => {
   const ok = storage.set("sound", enabled);
 
   if (ok && !enabled) sound.stop();
+
   return ok;
 };
 
@@ -434,6 +419,7 @@ const audio = () => {
   const controls = group(...items.map((item) => item.root));
 
   controls.classList.add("toggle-content");
+
   const update = () => {
     controls.inert = !on("sound");
     items.forEach(({ input }) => {
@@ -447,12 +433,14 @@ const audio = () => {
         const ok = setSound(value);
 
         update();
+
         return ok;
       })
     ),
     controls
   );
   update();
+
   return open("menu.sound", content);
 };
 
@@ -477,6 +465,7 @@ const confirm = (title, content, run) =>
 const deviceIcon = (device) => (device === "desktop" ? "theme" : "phone");
 const registration = async () => {
   if (!("serviceWorker" in navigator)) return null;
+
   return navigator.serviceWorker.getRegistration().catch(() => null);
 };
 
@@ -485,22 +474,20 @@ const currentDevice = async (worker) => {
 
   if (!subscription) return null;
   if (Notification.permission !== "granted") {
-    await api(routes.push, {
-      method: "DELETE",
-      data: { endpoint: subscription.endpoint }
-    });
+    await api(routes.push, { method: "DELETE", data: { endpoint: subscription.endpoint } });
     await subscription.unsubscribe().catch(() => false);
+
     return null;
   }
+
   const result = await push.refresh(subscription);
 
-  if (result.status === 404)
-    await subscription.unsubscribe().catch(() => false);
+  if (result.status === 404) await subscription.unsubscribe().catch(() => false);
+
   return result.ok ? result.data : result.status === 404 ? null : undefined;
 };
 
-const deviceName = (device) =>
-  device.name || device.os || i18n.message("menu.unnamed");
+const deviceName = (device) => device.name || device.os || i18n.message("menu.unnamed");
 
 const deviceSettings = (device, refresh) => {
   const content = node("div", "settings");
@@ -516,6 +503,7 @@ const deviceSettings = (device, refresh) => {
     label("profile.browser", device.browser || "—")
   );
   content.append(heading, info);
+
   const path = `${routes.push}/devices/${device.id}`;
   const tools = toolbar([
     {
@@ -529,6 +517,7 @@ const deviceSettings = (device, refresh) => {
         input.value = deviceName(device);
         input.maxLength = 60;
         field.append(input);
+
         return dialog({
           title: "menu.rename",
           content: field,
@@ -546,11 +535,14 @@ const deviceSettings = (device, refresh) => {
 
                 if (!result.ok) {
                   fail();
+
                   return false;
                 }
+
                 device.name = input.value.trim();
                 name.textContent = device.name;
                 await refresh();
+
                 return true;
               }
             }
@@ -566,18 +558,20 @@ const deviceSettings = (device, refresh) => {
         confirm(`menu.${action}`, `menu.${action}Info`, async () => {
           const result = await api(path, {
             method: action === "disconnect" ? "PATCH" : "DELETE",
-            data:
-              action === "disconnect" ? { connected: false, active: false } : {}
+            data: action === "disconnect" ? { connected: false, active: false } : {}
           });
 
           if (!result.ok) {
             fail();
+
             return false;
           }
+
           await refresh();
           tools.querySelectorAll("button").forEach((button) => {
             button.disabled = true;
           });
+
           return true;
         })
     }))
@@ -596,23 +590,26 @@ const notification = async () => {
     save: async (value) => {
       if (value && Notification.permission === "denied") {
         await blocked();
+
         return false;
       }
+
       const active = await push.default(value, worker);
 
       if (active !== value) {
         if (value && Notification.permission === "denied") await blocked();
+
         return false;
       }
-      if (
-        value &&
-        !settings.read().web &&
-        !(await settings.save("web", true))
-      ) {
+
+      if (value && !settings.read().web && !(await settings.save("web", true))) {
         await push.default(false, worker);
+
         return false;
       }
+
       device.value = value;
+
       return true;
     }
   };
@@ -626,29 +623,20 @@ const notifications = async (device) => {
   const devices = node("div", "menu-devices");
   const registered = section("menu.devices", devices);
   const details = ["chat", "mention"].map((key) => {
-    const item = field(
-      "switch",
-      `menu.${key}`,
-      key,
-      settings.read()[key],
-      (enabled) => settings.save(key, enabled)
+    const item = field("switch", `menu.${key}`, key, settings.read()[key], (enabled) =>
+      settings.save(key, enabled)
     );
 
     return item;
   });
 
-  const pushControl = field(
-    "switch",
-    "menu.web",
-    "notify-ring",
-    device.value,
-    async (value) => {
-      const ok = await device.save(value);
+  const pushControl = field("switch", "menu.web", "notify-ring", device.value, async (value) => {
+    const ok = await device.save(value);
 
-      await refresh();
-      return ok;
-    }
-  );
+    await refresh();
+
+    return ok;
+  });
 
   const controls = group(
     ...details.map((item) => item.root),
@@ -656,6 +644,7 @@ const notifications = async (device) => {
   );
 
   controls.classList.add("toggle-content");
+
   const update = () => {
     controls.inert = !loaded || !settings.read().notification;
     details.forEach(({ input }) => {
@@ -664,17 +653,13 @@ const notifications = async (device) => {
     pushControl.input.disabled = controls.inert || !device.supported;
   };
 
-  const all = master(
-    "menu.notification",
-    "notify",
-    settings.read().notification,
-    async (value) => {
-      const ok = await settings.save("notification", value);
+  const all = master("menu.notification", "notify", settings.read().notification, async (value) => {
+    const ok = await settings.save("notification", value);
 
-      update();
-      return ok;
-    }
-  );
+    update();
+
+    return ok;
+  });
   const input = dom.query("input", all);
 
   input.disabled = !loaded;
@@ -690,13 +675,13 @@ const notifications = async (device) => {
   async function refresh() {
     if (refreshing) return;
     refreshing = true;
+
     const current = await currentDevice(device.worker);
     const result = await api(`${routes.push}/devices`);
 
     refreshing = false;
 
-    if (current !== undefined)
-      device.value = Boolean(current?.active && current?.connected);
+    if (current !== undefined) device.value = Boolean(current?.active && current?.connected);
     pushControl.input.checked = device.value;
     update();
     registered.hidden = result.ok && !result.data.length;
@@ -704,8 +689,10 @@ const notifications = async (device) => {
     if (!result.ok) {
       devices.append(loading.element);
       retries.schedule();
+
       return;
     }
+
     retries.reset();
     if (!result.data.length) return;
     for (const device of result.data) {
@@ -717,19 +704,20 @@ const notifications = async (device) => {
 
       button.type = gear.type = "button";
       mark(button, deviceIcon(device.device), true);
+      mark(gear, "setting", true);
+
       title.textContent = deviceName(device);
       button.append(title);
+
       item.toggleAttribute("data-active", device.active && device.connected);
-      mark(gear, "setting", true);
+
       dom.on(button, "click", async (event) => {
         event.stopPropagation();
         button.disabled = true;
+
         const result = await api(`${routes.push}/devices/${device.id}`, {
           method: "PATCH",
-          data: {
-            active: !(device.active && device.connected),
-            connected: true
-          }
+          data: { active: !(device.active && device.connected), connected: true }
         });
 
         if (!result.ok) fail();
@@ -765,14 +753,13 @@ const data = async () => {
 
         amount.textContent = value[key];
 
-        row.append(
-          node("span", "", key === "total" ? "data.usage" : `data.${key}`),
-          amount
-        );
+        row.append(node("span", "", key === "total" ? "data.usage" : `data.${key}`), amount);
+
         return row;
       })
     )
   );
+
   return open("menu.data", content);
 };
 
@@ -783,6 +770,7 @@ const contact = () => {
   link.href = "mailto:obabo0801@gmail.com";
   link.textContent = "obabo0801@gmail.com";
   content.append(node("p", "", "menu.contactInfo"), link);
+
   return open("menu.contact", content);
 };
 
@@ -801,10 +789,12 @@ export async function chatSettings(nested = false, roomId = "") {
     ["login", "direct.leave"]
   ].map(([icon, key]) => {
     const button = node("button", "icon-center");
+    const label = node("span", "menu-label", key);
 
-    button.append(node("span", "menu-label", key));
     button.type = "button";
     mark(button, icon);
+    button.append(label);
+
     return button;
   });
   const shortcuts = group(...buttons);
@@ -812,16 +802,12 @@ export async function chatSettings(nested = false, roomId = "") {
   const update = (value) => {
     const enabled = current ? !current.muted : value.chat;
 
-    text(
-      dom.query(".menu-label", buttons[0]),
-      enabled ? "direct.mute" : "direct.unmute"
-    );
+    text(dom.query(".menu-label", buttons[0]), enabled ? "direct.mute" : "direct.unmute");
     mark(buttons[0], enabled ? "sound" : "volume-mute");
     exit.disabled = !current || current.closed || current.departed;
     if (roomId)
       buttons[2].disabled =
-        !current.available ||
-        (current.multiple && !current.owner && !current.deputy);
+        !current.available || (current.multiple && !current.owner && !current.deputy);
   };
 
   shortcuts.classList.add("chatting-menu");
@@ -835,10 +821,10 @@ export async function chatSettings(nested = false, roomId = "") {
       let saved;
 
       if (current) {
-        const result = await api(
-          `${routes.chatting}/direct/message/${current.id}`,
-          { method: "PATCH", data: { action: "mute", value: !current.muted } }
-        );
+        const result = await api(`${routes.chatting}/direct/message/${current.id}`, {
+          method: "PATCH",
+          data: { action: "mute", value: !current.muted }
+        });
 
         saved = result.ok;
         if (saved) current.muted = !current.muted;
@@ -846,9 +832,7 @@ export async function chatSettings(nested = false, roomId = "") {
       if (!saved) fail();
       else
         toast({
-          text: (current ? !current.muted : settings.read().chat)
-            ? "menu.chatOn"
-            : "menu.chatOff",
+          text: (current ? !current.muted : settings.read().chat) ? "menu.chatOn" : "menu.chatOff",
           type: "info"
         });
     } finally {
@@ -885,6 +869,7 @@ export async function chatSettings(nested = false, roomId = "") {
       );
     }
   }
+
   const management = group(
     entry("room.name", "edit", () => rooms.manage(roomId, "name")),
     entry("room.end", "logout", () => rooms.manage(roomId, "end"))
@@ -892,6 +877,7 @@ export async function chatSettings(nested = false, roomId = "") {
 
   if (roomId) content.append(management);
   management.hidden = !current?.owner || current.closed;
+
   let active = true;
   let revision = 0;
 
@@ -913,20 +899,18 @@ export async function chatSettings(nested = false, roomId = "") {
   ]
     .filter(([key]) => !roomId || key !== "message")
     .map(([key, title, icon]) => {
-      const control = field(
-        "switch",
-        title,
-        icon,
-        settings.read()[key],
-        (value) => settings.save(key, value)
+      const control = field("switch", title, icon, settings.read()[key], (value) =>
+        settings.save(key, value)
       );
 
       control.input.disabled = !loaded;
+
       return { key, ...control };
     });
 
   if (!loaded) fail();
   content.append(group(...controls.map((control) => control.root)));
+
   const off = settings.subscribe((value) => {
     update(value);
     controls.forEach(({ key, input }) => (input.checked = value[key]));
@@ -935,11 +919,7 @@ export async function chatSettings(nested = false, roomId = "") {
   try {
     return await open("menu.chatSettings", content, {
       title: nested ? "menu.chatSettings" : "menu.chatMenu",
-      route: roomId
-        ? undefined
-        : nested
-          ? ["settings-section", "chat"]
-          : ["chat-settings", ""]
+      route: roomId ? undefined : nested ? ["settings-section", "chat"] : ["chat-settings", ""]
     });
   } finally {
     active = false;
@@ -950,6 +930,7 @@ export async function chatSettings(nested = false, roomId = "") {
 
 export default async function menu(anchor) {
   await i18n.translate();
+
   const content = node("div", "settings menu");
   const loaded = await settings.load();
   const info = node("div", "label");
@@ -958,7 +939,11 @@ export default async function menu(anchor) {
   if (!loaded) fail();
   number.textContent = version;
   info.append(node("span", "", "menu.version"), number);
+
   const footer = group(info);
+
+  dom.set(footer, "data-background", "");
+
   const device = await notification();
   const notice = master(
     "menu.notification",
@@ -971,20 +956,15 @@ export default async function menu(anchor) {
 
   dom.query("input", notice).disabled = !loaded;
 
-  dom.set(footer, "data-background", "");
   content.append(
     group(
-      entry("menu.language", "language", language, () =>
-        i18n.message(`language.${dom.root.lang}`)
-      ),
+      entry("menu.language", "language", language, () => i18n.message(`language.${dom.root.lang}`)),
       entry("menu.theme", "theme", appearance, () =>
         i18n.message(`theme.${dom.get(dom.root, "data-theme")}`)
       )
     ),
     group(
-      master("menu.sound", "sound", on("sound"), setSound, audio, () =>
-        on("sound")
-      ),
+      master("menu.sound", "sound", on("sound"), setSound, audio, () => on("sound")),
       notice
     ),
     group(
@@ -1001,6 +981,7 @@ export default async function menu(anchor) {
     ),
     footer
   );
+
   return popover({
     route: ["settings", ""],
     title: "menu.title",

@@ -28,6 +28,7 @@ export const request = async (uid) => {
   await db.run("UPDATE web SET connected = 0 WHERE uid = ?", [uid]);
   await db.run("DELETE FROM fcm WHERE uid = ?", [uid]);
   events.broadcast("online");
+
   return user;
 };
 
@@ -74,21 +75,15 @@ const logs = async (uid, collect = false) => {
       if (error.code === "ENOENT") continue;
       throw error;
     }
+
     for (const file of files.filter((name) => /^\d{8}\.db$/.test(name))) {
       const log = connect(path.log(folder, file));
 
       try {
-        const tables = await log.all(
-          "SELECT name FROM sqlite_master WHERE type = 'table'"
-        );
+        const tables = await log.all("SELECT name FROM sqlite_master WHERE type = 'table'");
 
         for (const { name } of tables) {
-          if (
-            !["access", "block", "sanction", "notify", "stt", "tts"].includes(
-              name
-            )
-          )
-            continue;
+          if (!["access", "block", "sanction", "notify", "stt", "tts"].includes(name)) continue;
           if (collect) {
             if (!["block", "sanction"].includes(name)) continue;
             const rows = await log.all(
@@ -108,10 +103,7 @@ const logs = async (uid, collect = false) => {
             await log.exec("PRAGMA secure_delete = ON");
             await log.run(`DELETE FROM ${name} WHERE uid = ?`, [uid]);
             if (["block", "sanction"].includes(name))
-              await log.run(
-                `UPDATE ${name} SET actor = '', handler = '' WHERE actor = ?`,
-                [uid]
-              );
+              await log.run(`UPDATE ${name} SET actor = '', handler = '' WHERE actor = ?`, [uid]);
             const columns = await log.all(`PRAGMA table_info(${name})`);
 
             if (columns.some((column) => column.name === "snapshot")) {
@@ -122,10 +114,10 @@ const logs = async (uid, collect = false) => {
               );
 
               for (const row of rows)
-                await log.run(
-                  `UPDATE ${name} SET snapshot = ? WHERE rowid = ?`,
-                  [history.redact(row.snapshot, id), row.rowid]
-                );
+                await log.run(`UPDATE ${name} SET snapshot = ? WHERE rowid = ?`, [
+                  history.redact(row.snapshot, id),
+                  row.rowid
+                ]);
             }
           }
         }
@@ -136,22 +128,21 @@ const logs = async (uid, collect = false) => {
       }
     }
   }
+
   return records;
 };
 
 const erase = async (uid) => {
-  const user = await db.get(
-    "SELECT * FROM user WHERE uid = ? AND deletion <= ? AND erased = 0",
-    [uid, Date.now()]
-  );
+  const user = await db.get("SELECT * FROM user WHERE uid = ? AND deletion <= ? AND erased = 0", [
+    uid,
+    Date.now()
+  ]);
 
   if (!user) return;
   events.disconnect(uid);
+
   const records = await logs(uid, true);
-  const reports = await db.all(
-    "SELECT id, reason, time FROM report WHERE target = ?",
-    [uid]
-  );
+  const reports = await db.all("SELECT id, reason, time FROM report WHERE target = ?", [uid]);
 
   // A report is an allegation, not a confirmed sanction. Keep no message copy.
   records.push(
@@ -162,10 +153,8 @@ const erase = async (uid) => {
       time: row.time
     }))
   );
-  const blocks = await db.all(
-    "SELECT rowid, reason, time FROM block WHERE uid = ?",
-    [uid]
-  );
+
+  const blocks = await db.all("SELECT rowid, reason, time FROM block WHERE uid = ?", [uid]);
 
   records.push(
     ...blocks.map((row) => ({
@@ -178,9 +167,8 @@ const erase = async (uid) => {
   await evidence.save(user, records);
   await logs(uid);
   await evidence.forget(uid);
-  const files = await db.all("SELECT file FROM profile_file WHERE uid = ?", [
-    uid
-  ]);
+
+  const files = await db.all("SELECT file FROM profile_file WHERE uid = ?", [uid]);
   const draft = JSON.parse(user.draft || "null");
 
   for (const file of new Set([
@@ -192,8 +180,7 @@ const erase = async (uid) => {
   ])) {
     const url = media.resolve(file);
     const route = media.routes.find(
-      (item) =>
-        item.directory.startsWith("users/") && url.startsWith(`${item.prefix}/`)
+      (item) => item.directory.startsWith("users/") && url.startsWith(`${item.prefix}/`)
     );
 
     if (!route) continue;
@@ -212,49 +199,32 @@ const erase = async (uid) => {
       [uid, name, name, name, uid, name, name, name, name, name]
     );
 
-    if (!shared)
-      await path.rm(path.upload(route.directory, name), { force: true });
+    if (!shared) await path.rm(path.upload(route.directory, name), { force: true });
   }
+
   await db.run("DELETE FROM profile_file WHERE uid = ?", [uid]);
   for (const folder of ["stt", "tts"]) {
-    const cached = await db.all(`SELECT file FROM ${folder} WHERE uid = ?`, [
-      uid
-    ]);
+    const cached = await db.all(`SELECT file FROM ${folder} WHERE uid = ?`, [uid]);
 
     for (const { file } of cached) {
       if (!/^[a-f0-9]{32}\.(?:mp3|webm|ogg|m4a)$/.test(file)) continue;
-      const shared = await db.get(
-        `SELECT 1 FROM ${folder} WHERE file = ? AND uid <> ? LIMIT 1`,
-        [file, uid]
-      );
+      const shared = await db.get(`SELECT 1 FROM ${folder} WHERE file = ? AND uid <> ? LIMIT 1`, [
+        file,
+        uid
+      ]);
 
       if (!shared) await path.rm(path[folder](file), { force: true });
     }
   }
-  for (const table of [
-    "web",
-    "fcm",
-    "sanction",
-    "block",
-    "authority",
-    "stt",
-    "tts"
-  ])
-    await db.run(`DELETE FROM ${table} WHERE uid = ?`, [uid]);
-  await db.run("DELETE FROM report WHERE target = ? OR reporter = ?", [
-    uid,
-    uid
-  ]);
 
-  await db.run("DELETE FROM conversation WHERE uid = ? OR peer = ?", [
-    uid,
-    uid
-  ]);
+  for (const table of ["web", "fcm", "sanction", "block", "authority", "stt", "tts"])
+    await db.run(`DELETE FROM ${table} WHERE uid = ?`, [uid]);
+  await db.run("DELETE FROM report WHERE target = ? OR reporter = ?", [uid, uid]);
+
+  await db.run("DELETE FROM conversation WHERE uid = ? OR peer = ?", [uid, uid]);
   await db.run("DELETE FROM user_block WHERE uid = ? OR peer = ?", [uid, uid]);
-  const memberships = await db.all(
-    "SELECT room FROM room_member WHERE uid = ?",
-    [uid]
-  );
+
+  const memberships = await db.all("SELECT room FROM room_member WHERE uid = ?", [uid]);
 
   for (const { room } of memberships) {
     await db.transaction(async () => {
@@ -273,16 +243,14 @@ const erase = async (uid) => {
           [room]
         );
       if (current.owner === uid) {
-        await db.run("UPDATE room SET owner = ? WHERE id = ?", [
-          successor?.uid || null,
-          room
-        ]);
+        await db.run("UPDATE room SET owner = ? WHERE id = ?", [successor?.uid || null, room]);
         if (successor)
-          await db.run(
-            "UPDATE room_member SET deputy = 0 WHERE room = ? AND uid = ?",
-            [room, successor.uid]
-          );
+          await db.run("UPDATE room_member SET deputy = 0 WHERE room = ? AND uid = ?", [
+            room,
+            successor.uid
+          ]);
       }
+
       await db.run(
         `UPDATE room_member SET left = datetime('now','+9 hours'), reason = 'account',
           deputy = 0
@@ -292,6 +260,7 @@ const erase = async (uid) => {
     });
     await rooms.notify(room);
   }
+
   const condition = `sender = ? OR (recipient = ? AND room IN
     (SELECT id FROM room WHERE multiple = 0))`;
 
@@ -307,10 +276,10 @@ const erase = async (uid) => {
     [uid, uid, uid]
   );
   await db.run(`DELETE FROM message WHERE ${condition}`, [uid, uid]);
-  const snapshots = await db.all(
-    "SELECT seq, snapshot FROM report WHERE instr(snapshot, ?)",
-    [user.id]
-  );
+
+  const snapshots = await db.all("SELECT seq, snapshot FROM report WHERE instr(snapshot, ?)", [
+    user.id
+  ]);
 
   for (const row of snapshots)
     await db.run("UPDATE report SET snapshot = ? WHERE seq = ?", [
@@ -318,10 +287,7 @@ const erase = async (uid) => {
       row.seq
     ]);
   for (const table of ["block", "authority"])
-    await db.run(
-      `UPDATE ${table} SET actor = NULL, handler = NULL WHERE actor = ?`,
-      [uid]
-    );
+    await db.run(`UPDATE ${table} SET actor = NULL, handler = NULL WHERE actor = ?`, [uid]);
   // Retain only the anonymous author reference needed by existing chat messages.
   await db.run(
     `UPDATE user SET google = NULL, email = NULL, name = NULL, avatar = NULL,
@@ -346,6 +312,7 @@ export const finalize = (uid) => {
       uid,
       erase(uid).finally(() => jobs.delete(uid))
     );
+
   return jobs.get(uid);
 };
 
@@ -353,10 +320,9 @@ let running;
 
 export const clean = () =>
   (running ||= (async () => {
-    const rows = await db.all(
-      "SELECT uid FROM user WHERE deletion <= ? AND erased = 0",
-      [Date.now()]
-    );
+    const rows = await db.all("SELECT uid FROM user WHERE deletion <= ? AND erased = 0", [
+      Date.now()
+    ]);
 
     let failed = false;
 
@@ -367,6 +333,7 @@ export const clean = () =>
         failed = true;
       }
     }
+
     await evidence.clean();
     await db.run(
       `UPDATE user SET recovery = NULL, recovery_until = NULL
@@ -381,8 +348,6 @@ export const clean = () =>
 export const start = async () => {
   await clean();
   setInterval(() => {
-    clean().catch(() =>
-      console.error("Account cleanup failed; retry scheduled")
-    );
+    clean().catch(() => console.error("Account cleanup failed; retry scheduled"));
   }, 60000).unref();
 };

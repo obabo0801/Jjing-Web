@@ -32,11 +32,7 @@ const display = (target) => {
   const action = dom.query(".voice", element);
   const view = {};
   const original = control
-    ? {
-        value: target.value,
-        placeholder: target.placeholder,
-        readOnly: target.readOnly
-      }
+    ? { value: target.value, placeholder: target.placeholder, readOnly: target.readOnly }
     : null;
 
   views.set(element, view);

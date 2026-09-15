@@ -36,8 +36,7 @@ export default function double(element, { scale, point, zoom }) {
     frame = requestAnimationFrame(step);
   };
 
-  const moved = (event, from) =>
-    Math.hypot(event.clientX - from.x, event.clientY - from.y) > 8;
+  const moved = (event, from) => Math.hypot(event.clientX - from.x, event.clientY - from.y) > 8;
 
   const release = (event) => {
     if (!pointers.delete(event.pointerId)) {
@@ -57,6 +56,7 @@ export default function double(element, { scale, point, zoom }) {
       event.timeStamp - current.time > 300
     ) {
       tap = null;
+
       return;
     }
 
@@ -70,12 +70,7 @@ export default function double(element, { scale, point, zoom }) {
       event.preventDefault();
       animate(point(event));
     } else {
-      tap = {
-        x: event.clientX,
-        y: event.clientY,
-        time: event.timeStamp,
-        type: event.pointerType
-      };
+      tap = { x: event.clientX, y: event.clientY, time: event.timeStamp, type: event.pointerType };
     }
   };
 
@@ -93,12 +88,7 @@ export default function double(element, { scale, point, zoom }) {
         pointers.add(event.pointerId);
         press =
           pointers.size === 1
-            ? {
-                id: event.pointerId,
-                x: event.clientX,
-                y: event.clientY,
-                time: event.timeStamp
-              }
+            ? { id: event.pointerId, x: event.clientX, y: event.clientY, time: event.timeStamp }
             : null;
 
         if (!press) {

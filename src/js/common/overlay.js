@@ -81,6 +81,7 @@ export default function overlay(element) {
         paint(target);
         done();
         done = undefined;
+
         return;
       }
 
@@ -95,6 +96,7 @@ export default function overlay(element) {
 
         if (time < 1) {
           frame = requestAnimationFrame(run);
+
           return;
         }
 
