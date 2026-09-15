@@ -34,12 +34,7 @@ export default function init() {
 
   loading.className = "loading";
 
-  const type = "circular";
-  const value = 25;
-  const show = false;
-  const target = loading;
-
-  progress({ type, value, show, target });
+  progress({ type: "circular", value: 25, show: false, target: loading });
 
   dom.body.append(loading);
 
