@@ -95,8 +95,8 @@ export default async function rendition(id, size, automatic = false) {
 
   if (!source.startsWith(`${directory}${sep}`)) fail(404, "Invalid image");
 
-  const folder = path.data("renditions", `v${rules.version}`);
-  const output = path.data("renditions", `v${rules.version}`, `${id}-${size}.webp`);
+  const folder = path.upload("images", "cache", `v${rules.version}`);
+  const output = path.upload("images", "cache", `v${rules.version}`, `${id}-${size}.webp`);
 
   // 원본 존재 여부를 먼저 검사하므로 삭제된 원본의 캐시를 제공하지 않습니다.
   if (!automatic && (await regular(output))) return output;
