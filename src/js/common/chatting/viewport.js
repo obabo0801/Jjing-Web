@@ -48,7 +48,6 @@ export default function viewport(root) {
       full = Math.max(full, window.innerHeight, visible);
 
       const keyboard = editing && visible < full - 2;
-      const pinned = keyboard || (dom.has("wearable") && root.hasAttribute("data-emotes"));
       const offset = zoom ? 0 : view?.offsetTop || 0;
       const next = [
         width,
@@ -57,7 +56,6 @@ export default function viewport(root) {
         offset,
         window.scrollY,
         keyboard,
-        pinned,
         zoom
       ].join(":");
 
@@ -71,11 +69,11 @@ export default function viewport(root) {
 
       if (app) {
         css.set(app, {
-          "--chatting-page-height": pinned ? `${Math.ceil(origin + window.innerHeight)}px` : null
+          "--chatting-page-height": keyboard ? `${Math.ceil(origin + window.innerHeight)}px` : null
         });
       }
 
-      if (pinned && app && !zoom) {
+      if (keyboard && app && !zoom) {
         const top = Math.max(0, origin - offset);
 
         if (Math.abs(window.scrollY - top) > 1) {
