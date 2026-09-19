@@ -978,10 +978,7 @@ const menu = (item, refresh) =>
       dom.set(button, "data-response", "");
       dom.set(button, "data-layer-action", action);
 
-      const key =
-        action === "leave" && item.roomInfo.contact
-          ? "contact.end"
-          : `direct.${text}`;
+      const key = action === "leave" && item.roomInfo.contact ? "contact.end" : `direct.${text}`;
 
       label.textContent = i18n.message(key);
       dom.set(label, "data-i18n", key);

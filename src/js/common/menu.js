@@ -884,10 +884,7 @@ export async function chatSettings(nested = false, roomId = "") {
     mark(buttons[0], enabled ? "sound" : "volume-mute");
     exit.disabled = !current || current.closed || current.departed;
     exit.parentElement.hidden = !roomId;
-    text(
-      dom.query(".menu-label", exit),
-      current?.contact ? "contact.end" : "direct.leave"
-    );
+    text(dom.query(".menu-label", exit), current?.contact ? "contact.end" : "direct.leave");
 
     if (current?.contact) {
       handler.replaceChildren(
