@@ -42,7 +42,7 @@ function create(audio) {
   audio.className = "";
   dom.set(root, "data-background", "");
   button.type = "button";
-  for (const key of ["data-response", "data-circle", "data-color"]) dom.set(button, key, "");
+  for (const key of ["data-response", "data-circle"]) dom.set(button, key, "");
   seek.className = "player-seek";
   name.className = "player-label";
   name.textContent = i18n.message("player.seek");

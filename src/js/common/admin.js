@@ -164,6 +164,7 @@ async function notify() {
   root.append(group(fields.title.root, fields.body.root), group(attachment, fields.url.root));
 
   return open("admin.heading", root, {
+    closing: () => fields.image.destroy(),
     toolbar: toolbar([
       {
         text: "admin.send",

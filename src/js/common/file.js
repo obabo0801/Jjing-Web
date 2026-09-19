@@ -10,6 +10,16 @@ export default function file({ accept = "", multiple = false } = {}) {
   const choose = dom.create("button");
   const clear = dom.create("button");
   const name = dom.create("span");
+  const preview = dom.create("div");
+  const image = dom.create("img");
+
+  let url;
+
+  preview.className = "file-preview";
+  image.alt = "";
+  clear.className = "file-close";
+  dom.set(clear, "data-circle", "");
+  dom.set(clear, "data-background", "");
 
   root.className = "file";
   input.type = "file";
@@ -27,6 +37,11 @@ export default function file({ accept = "", multiple = false } = {}) {
     dom.set(button, "data-response", "");
     dom.set(button, "data-tooltip", key);
 
+    if (button === clear) {
+      button.title = i18n.message(key);
+      continue;
+    }
+
     const text = dom.create("span");
 
     text.textContent = i18n.message(key);
@@ -37,6 +52,19 @@ export default function file({ accept = "", multiple = false } = {}) {
   const update = () => {
     const files = [...input.files];
 
+    if (url) URL.revokeObjectURL(url);
+
+    url = undefined;
+    image.removeAttribute("src");
+
+    const selected = files.find((item) => item.type.startsWith("image/"));
+
+    image.hidden = !selected;
+    if (selected) {
+      url = URL.createObjectURL(selected);
+      image.src = url;
+    }
+
     name.textContent = files.length
       ? files.map((item) => item.name).join("\n")
       : i18n.message("file.empty");
@@ -44,7 +72,8 @@ export default function file({ accept = "", multiple = false } = {}) {
     if (files.length) dom.remove(name, "data-i18n");
     else dom.set(name, "data-i18n", "file.empty");
 
-    clear.hidden = !files.length;
+    preview.hidden = !files.length;
+    name.hidden = Boolean(selected);
     root.toggleAttribute("data-selected", Boolean(files.length));
   };
 
@@ -56,7 +85,15 @@ export default function file({ accept = "", multiple = false } = {}) {
   dom.on(choose, "click", () => input.click());
   dom.on(clear, "click", reset);
   dom.on(input, "change", update);
-  root.append(input, choose, name, clear);
+  preview.append(image, clear);
+  root.append(input, choose, name, preview);
   update();
-  return { root, input, reset };
+
+  const destroy = () => {
+    if (url) URL.revokeObjectURL(url);
+
+    url = undefined;
+  };
+
+  return { root, input, reset, destroy };
 }

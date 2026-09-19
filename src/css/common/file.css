@@ -1,6 +1,6 @@
 .file {
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-columns: auto minmax(0, 1fr);
   align-items: center;
   gap: 0.75rem;
   min-width: 0;
@@ -15,6 +15,36 @@
 
 .file > [hidden] {
   display: none;
+}
+
+.file-preview {
+  position: relative;
+  grid-column: 1 / -1;
+  width: 100%;
+  min-height: var(--control-size);
+}
+
+.file-preview > img {
+  display: block;
+  width: 100%;
+  max-height: 16rem;
+  border-radius: 0.5rem;
+  object-fit: contain;
+}
+
+.file-preview > img[hidden] {
+  display: none;
+}
+
+.file-preview > .file-close {
+  position: absolute;
+  inset-block-start: 0.25rem;
+  inset-inline-end: 0.25rem;
+  width: var(--control-size);
+  height: var(--control-size);
+  min-height: var(--control-size);
+  padding: 0;
+  z-index: 1;
 }
 
 :is(.small, .wearable) .file {
