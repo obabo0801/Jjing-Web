@@ -17,6 +17,7 @@ import profile from "#common/profile/view";
 import reports from "#common/report/inbox";
 import label from "#common/profile/label";
 import toolbar from "#common/toolbar";
+import file from "./file.js";
 import "../../css/common/admin.css";
 
 const opening = once();
@@ -134,11 +135,11 @@ const field = (key, type = "text") => {
 };
 
 async function notify() {
-  const root = node("div", "profile admin");
+  const root = node("div", "profile admin admin-notify");
   const fields = Object.fromEntries(
-    ["title", "body", "image", "url"].map((key) => [
+    ["title", "body", "url"].map((key) => [
       key,
-      field(`admin.${key}`, key === "body" ? "textarea" : key === "image" ? "file" : "text")
+      field(`admin.${key}`, key === "body" ? "textarea" : "text")
     ])
   );
 
@@ -146,20 +147,32 @@ async function notify() {
   fields.title.input.maxLength = 100;
   fields.body.input.maxLength = 500;
   fields.url.input.value = "/";
-  fields.image.input.accept = "image/png,image/jpeg,image/webp";
-  root.append(
-    group(fields.title.root, fields.body.root),
-    group(fields.image.root, fields.url.root)
-  );
+  fields.image = file({ accept: "image/png,image/jpeg,image/webp" });
+
+  const attachment = node("div", "label");
+
+  attachment.append(node("span", "label-key", "admin.image"), fields.image.root);
+  fields.body.input.rows = 4;
+  for (const [key, icon] of [
+    ["title", "notify"],
+    ["body", "chat"],
+    ["url", "link"]
+  ]) {
+    dom.set(fields[key].root.firstChild, "data-icon", icon);
+    dom.set(fields[key].root.firstChild, "data-color", "");
+  }
+  root.append(group(fields.title.root, fields.body.root), group(attachment, fields.url.root));
 
   return open("admin.heading", root, {
-    actions: [
+    toolbar: toolbar([
       {
         text: "admin.send",
         icon: "send",
-        submit: true,
-        close: false,
-        run: async ({ button }) => {
+        color: true,
+        run: async (button) => {
+          for (const key of ["title", "body", "url"]) {
+            if (!fields[key].input.reportValidity()) return;
+          }
           if (
             !(await dialog({
               title: "admin.heading",
@@ -211,14 +224,14 @@ async function notify() {
                 .replace("{failed}", result.data.failed)
             });
 
-            fields.image.input.value = "";
+            fields.image.reset();
           } finally {
             loading.destroy();
             button.disabled = false;
           }
         }
       }
-    ]
+    ])
   });
 }
 

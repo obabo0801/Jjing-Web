@@ -934,7 +934,10 @@ export default {
     confirm: "등록된 기기에 알림을 발송할까요?"
   },
 
+  file: { select: "파일 선택", empty: "선택한 파일이 없습니다.", clear: "선택 해제" },
+
   player: {
+    volume: "볼륨",
     play: "재생",
     pause: "일시정지",
     seek: "재생 위치",

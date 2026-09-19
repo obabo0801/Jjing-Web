@@ -32,6 +32,29 @@
 
 .player-seek {
   min-width: 0;
+  padding-inline: 0.5625rem;
+  box-sizing: border-box;
+}
+
+.player .range-fill {
+  background: var(--text);
+}
+
+.player-volume {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 1rem;
+  grid-column: 1 / -1;
+  width: 100%;
+  min-width: 0;
+  font-size: 0.875rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.player-volume > output {
+  min-width: 4ch;
+  text-align: end;
 }
 
 .player-time,

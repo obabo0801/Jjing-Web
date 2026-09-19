@@ -7,7 +7,7 @@ const players = new Map();
 
 let observer;
 
-i18n.preload("player.play", "player.pause", "player.seek", "player.error");
+i18n.preload("player.play", "player.pause", "player.seek", "player.error", "player.volume");
 
 const clock = (value) => {
   if (!Number.isFinite(value) || value < 0) return "--:--";
@@ -53,8 +53,8 @@ function create(audio) {
   thumb.className = "range-thumb";
   input.type = "range";
   input.min = "0";
-  input.max = "0";
-  input.step = "0.1";
+  input.max = "1000";
+  input.step = "1";
   input.value = "0";
   time.className = "player-time";
   error.className = "player-error";
@@ -64,12 +64,52 @@ function create(audio) {
   track.append(fill);
   slider.append(track, thumb, input);
   seek.append(name, slider);
+
+  const volume = seek.cloneNode(true);
+  const level = dom.query("input", volume);
+  const caption = dom.query(".player-label", volume);
+  const speaker = dom.create("span");
+  const amount = dom.create("output");
+
+  volume.className = "player-volume";
+  caption.textContent = i18n.message("player.volume");
+  dom.set(caption, "data-i18n", "player.volume");
+  level.max = "100";
+  volume.prepend(speaker);
+  volume.append(amount);
+
+  const loudness = () => {
+    const value = audio.muted ? 0 : Math.round(audio.volume * 100);
+
+    level.value = String(value);
+    amount.textContent = `${value}%`;
+    dom.set(
+      speaker,
+      "data-icon",
+      value ? (value > 50 ? "volume-high" : "volume-low") : "volume-mute"
+    );
+
+    range(volume);
+  };
+
+  off.push(
+    dom.on(level, "input", () => {
+      audio.volume = Number(level.value) / 100;
+      audio.muted = false;
+      loudness();
+    })
+  );
+
+  off.push(dom.on(audio, "volumechange", loudness));
   audio.before(root);
-  root.append(audio, button, seek, time, error);
+  root.append(audio, button, seek, time, volume, error);
   audio.controls = false;
   audio.hidden = true;
   audio.preload = "metadata";
   range(root);
+  loudness();
+
+  const position = () => (Number(input.value) / 1000) * duration;
 
   const update = () => {
     if (Number.isFinite(audio.duration)) duration = audio.duration;
@@ -83,13 +123,15 @@ function create(audio) {
     error.hidden = !audio.error && !failed;
     button.disabled = Boolean(audio.error);
     input.disabled = !Number.isFinite(duration) || duration <= 0 || Boolean(audio.error);
-    input.max = input.disabled ? "0" : String(duration);
     if (!moving && !probing) {
-      input.value = String(audio.currentTime || 0);
+      input.value = String(
+        input.disabled ? 0 : audio.ended ? 1000 : (audio.currentTime / duration) * 1000
+      );
+
       range(root);
     }
 
-    time.textContent = `${clock(probing ? 0 : moving ? Number(input.value) : audio.currentTime)} / ${clock(duration)}`;
+    time.textContent = `${clock(probing ? 0 : moving ? position() : audio.currentTime)} / ${clock(duration)}`;
   };
 
   off.push(
@@ -112,13 +154,13 @@ function create(audio) {
   off.push(
     dom.on(input, "input", () => {
       moving = true;
-      time.textContent = `${clock(Number(input.value))} / ${clock(duration)}`;
+      time.textContent = `${clock(position())} / ${clock(duration)}`;
     })
   );
 
   off.push(
     dom.on(input, "change", () => {
-      if (!input.disabled) audio.currentTime = Number(input.value);
+      if (!input.disabled) audio.currentTime = position();
 
       moving = false;
       update();

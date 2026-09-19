@@ -22,3 +22,27 @@
   max-height: 50dvh;
   object-fit: contain;
 }
+
+.admin-notify > .group {
+  padding: 1rem;
+  gap: 1.25rem;
+}
+
+.admin-notify .label-key {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.admin-notify textarea {
+  min-height: 7rem;
+  resize: vertical;
+}
+
+:is(.small, .wearable) .admin-notify .label-key {
+  justify-content: center;
+}
+
+:is(.small, .wearable) .admin-notify > .group {
+  padding: 0.75rem;
+}
