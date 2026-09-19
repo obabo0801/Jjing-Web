@@ -210,6 +210,31 @@
   --caption-inset: max(24px, calc(var(--caption-height, 100dvh) * 0.18));
 }
 
+:is(.small, .wearable) .captions {
+  justify-content: safe flex-end;
+  overflow-y: auto;
+  pointer-events: auto;
+  overscroll-behavior: contain;
+}
+
+:is(.small, .wearable) .caption[data-name] {
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: auto minmax(0, 1fr);
+}
+
+:is(.small, .wearable) .caption-name::after {
+  inset-block: auto 0;
+  inset-inline: 0.75rem;
+  width: auto;
+  height: 1px;
+}
+
+:is(.small, .wearable) .caption-text {
+  overflow-y: auto;
+  pointer-events: auto;
+  overscroll-behavior: contain;
+}
+
 .wearable .caption {
   font-size: 1rem;
   line-height: 1.4;

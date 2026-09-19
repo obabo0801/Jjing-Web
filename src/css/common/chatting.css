@@ -1423,6 +1423,15 @@
   padding-inline: 0;
 }
 
+:is(.small, .wearable) .chatting[data-chatting="stream"] .chatting-avatar {
+  align-self: center;
+}
+
+:is(.small, .wearable) .chatting[data-chatting="stream"] .chatting-name {
+  text-align: center;
+  white-space: normal;
+}
+
 :is(.small, .wearable)
   .chatting[data-chatting="stream"]:not(.chatting-preview)
   .chatting-message[data-follow] {
@@ -1560,6 +1569,27 @@
 
 .wearable .chatting[data-chatting] .chatting-message .chatting-time {
   font-size: 1rem;
+}
+
+.wearable
+  .chatting[data-chatting="stream"]
+  > .chatting-list
+  > .chatting-message
+  :is(.chatting-text, .chatting-time, .embed) {
+  text-align: center;
+}
+
+.wearable
+  .chatting[data-chatting="stream"]
+  > .chatting-list
+  > .chatting-message
+  .chatting-text
+  > :is(.chatting-image, .chatting-image-group, .chatting-audio, .embed, picture, video, iframe) {
+  margin-inline: auto;
+}
+
+.wearable .chatting[data-chatting="stream"] > .chatting-list > .chatting-message .chatting-time {
+  justify-self: center;
 }
 
 :is(.small, .wearable) .chatting-input,

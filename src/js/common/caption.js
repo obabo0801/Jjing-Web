@@ -49,7 +49,7 @@ const render = (element, value) => {
 
 i18n.register("data-caption-key", render);
 
-const place = () => {
+const place = (latest = false) => {
   cancelAnimationFrame(frame);
   frame = requestAnimationFrame(() => {
     frame = undefined;
@@ -66,6 +66,8 @@ const place = () => {
       "--caption-width": `${width}px`,
       "--caption-height": `${height}px`
     });
+
+    if (latest === true) stack.scrollTop = stack.scrollHeight;
   });
 };
 
@@ -312,7 +314,7 @@ export default function caption(value = {}) {
       timer = setTimeout(close, Math.min(duration, 2147483647));
     }
 
-    place();
+    place(true);
 
     return true;
   };
