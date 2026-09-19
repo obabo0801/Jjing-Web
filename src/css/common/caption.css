@@ -205,6 +205,14 @@
   padding: 8px 12px;
 }
 
+.small:not(.wearable) .captions {
+  --caption-limit: calc(var(--caption-height, 100dvh) * 0.7);
+}
+
+.small:not(.wearable) .caption-name {
+  padding-block: 0.25rem;
+}
+
 .wearable .captions {
   --caption-margin: max(24px, calc(var(--caption-width, 100vw) * 0.14));
   --caption-inset: max(24px, calc(var(--caption-height, 100dvh) * 0.18));
