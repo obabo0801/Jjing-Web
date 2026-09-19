@@ -28,7 +28,6 @@ const keys = [
   "url",
   "send",
   "users",
-  "status",
   "database",
   "readonly",
   "search",
@@ -39,17 +38,25 @@ const keys = [
   "details",
   "empty",
   "error",
-  "server",
-  "uptime",
-  "push",
-  "fcm",
-  "ready",
-  "unavailable",
-  "configured",
-  "disabled",
   "sent",
   "confirm",
-  "refresh"
+  "operations",
+  "data",
+  "files",
+  "upload",
+  "tts",
+  "stt",
+  "service",
+  "log",
+  "evidence",
+  "filename",
+  "size",
+  "time",
+  "text",
+  "preview",
+  "folder",
+  "table",
+  "fields"
 ];
 
 i18n.preload(
@@ -80,7 +87,15 @@ const fail = () => toast({ text: "admin.error", type: "error" });
 const group = (...rows) => {
   const root = node("div", "group");
 
-  root.append(...rows.filter(Boolean));
+  for (const row of rows.filter(Boolean)) {
+    if (row.classList.contains("group-item")) root.append(row);
+    else {
+      const item = node("div", "group-item");
+
+      item.append(row);
+      root.append(item);
+    }
+  }
 
   return root;
 };
@@ -91,6 +106,7 @@ const entry = (key, icon, run) => {
 
   button.type = "button";
   dom.set(button, "data-icon", icon);
+  dom.set(button, "data-color", "");
   button.append(node("span", "group-name", key));
   dom.on(button, "click", run);
   row.append(button);
@@ -116,7 +132,7 @@ const field = (key, type = "text") => {
 };
 
 async function notify() {
-  const root = node("div", "profile");
+  const root = node("div", "profile admin");
   const fields = Object.fromEntries(
     ["title", "body", "image", "url"].map((key) => [
       key,
@@ -129,7 +145,10 @@ async function notify() {
   fields.body.input.maxLength = 500;
   fields.url.input.value = "/";
   fields.image.input.accept = "image/png,image/jpeg,image/webp";
-  root.append(...Object.values(fields).map((item) => item.root));
+  root.append(
+    group(fields.title.root, fields.body.root),
+    group(fields.image.root, fields.url.root)
+  );
 
   return open("admin.heading", root, {
     actions: [
@@ -201,8 +220,8 @@ async function notify() {
   });
 }
 
-async function browse(table = "") {
-  const root = node("div", "profile online");
+async function browse(table = "", scope = {}) {
+  const root = node("div", "profile online admin");
   const search = field("admin.search", "search");
   const rows = node("div");
   const controls = node("nav", "admin-pages");
@@ -224,16 +243,31 @@ async function browse(table = "") {
 
   dom.set(previousButton, "data-angle", "left");
   nextButton.classList.add("icon-right");
+  for (const [button, key] of [
+    [previousButton, "admin.previous"],
+    [nextButton, "admin.next"]
+  ]) {
+    dom.set(button, "data-circle", "");
+    dom.set(button, "data-tooltip", key);
+  }
   previousButton.disabled = nextButton.disabled = true;
 
   const filter = node("select");
   const match = field("admin.filter");
-  const choice = node("div", "select");
+  const choice = node("div");
   const loading = progress({ type: "circular", value: 25, show: false });
 
+  choice.hidden = true;
   choice.append(filter);
+  if (table) root.append(label("admin.table", table));
+
   root.append(search.root);
-  if (table) root.append(node("p", "", "admin.readonly"), choice, match.root);
+  if (table) {
+    const selection = node("label", "label");
+
+    selection.append(node("span", "label-key", "admin.fields"), choice);
+    root.append(node("p", "", "admin.readonly"), group(selection, match.root));
+  }
 
   controls.append(previousButton, page, nextButton);
   root.append(loading.element, rows, controls);
@@ -251,7 +285,7 @@ async function browse(table = "") {
     loading.element.hidden = false;
     previousButton.disabled = nextButton.disabled = true;
 
-    const params = new URLSearchParams({ q: search.input.value, page: String(index) });
+    const params = new URLSearchParams({ ...scope, q: search.input.value, page: String(index) });
 
     if (table && filter.value) {
       params.set("field", filter.value);
@@ -283,64 +317,33 @@ async function browse(table = "") {
         option.value = option.textContent = key;
         filter.append(option);
       }
+      choice.classList.add("select");
+      choice.hidden = false;
     }
 
     if (!data.items.length) rows.append(node("p", "online-empty", "admin.empty"));
     else if (table) {
-      const wrap = node("div", "table-wrap");
-      const grid = node("table", "admin-table");
-      const head = node("thead");
-      const tr = node("tr");
-      const body = node("tbody");
+      rows.append(
+        group(
+          ...data.items.map((item, index) => {
+            const row = entry("", "storage", () => details(item, data.columns));
+            const name = dom.query(".group-name", row);
+            const summary = node("span", "admin-summary");
+            const key = data.columns.find((key) => item[key] !== null && item[key] !== "");
 
-      for (const key of ["", ...data.columns]) {
-        const th = node("th");
+            name.textContent = String(item[key] ?? index + 1);
+            summary.textContent = data.columns
+              .filter((column) => column !== key && item[column] != null && item[column] !== "")
+              .slice(0, 2)
+              .map((column) => String(item[column]))
+              .join("\n");
 
-        th.textContent = key || i18n.message("admin.details");
-        tr.append(th);
-      }
-
-      head.append(tr);
-      for (const item of data.items) {
-        const row = node("tr");
-        const cell = node("td");
-        const button = node("button", "", "admin.details");
-
-        button.type = "button";
-        dom.on(button, "click", () => {
-          const details = group(
-            ...data.columns.map((key) => {
-              const element = label("admin.details", item[key]);
-
-              if (element) {
-                const caption = dom.query(".label-key", element);
-
-                dom.remove(caption, "data-i18n");
-                caption.textContent = key;
-              }
-
-              return element;
-            })
-          );
-
-          void open("admin.details", details);
-        });
-
-        cell.append(button);
-        row.append(cell);
-        for (const key of data.columns) {
-          const td = node("td");
-
-          td.textContent = String(item[key] ?? "").slice(0, 160);
-          row.append(td);
-        }
-
-        body.append(row);
-      }
-
-      grid.append(head, body);
-      wrap.append(grid);
-      rows.append(wrap);
+            dom.query("button", row).append(summary);
+            row.classList.add("admin-record");
+            return row;
+          })
+        )
+      );
     } else {
       const list = group(
         ...data.items.map((user) => {
@@ -388,20 +391,46 @@ async function browse(table = "") {
   }
 }
 
-async function database() {
-  const response = await api(`${path}/database`);
+function details(item, columns) {
+  const content = group(
+    ...columns.map((key) => {
+      const row = label("admin.details", item[key] === "" || item[key] == null ? "—" : item[key]);
+      const caption = dom.query(".label-key", row);
+
+      dom.remove(caption, "data-i18n");
+      caption.textContent = key;
+      return row;
+    })
+  );
+
+  content.classList.add("admin");
+  return open("admin.details", content);
+}
+
+const section = (key, ...rows) => {
+  const root = node("section", "group-section");
+
+  root.append(node("h3", "group-title", key), group(...rows));
+  return root;
+};
+
+async function database(scope = {}) {
+  const response = await api(`${path}/database?${new URLSearchParams(scope)}`);
 
   if (!response.ok) return fail();
-  const root = node("div", "profile");
+  const root = node("div", "profile admin");
 
   root.append(node("p", "", "admin.readonly"));
+  if (!response.data.length) root.append(node("p", "online-empty", "admin.empty"));
+
   root.append(
     group(
-      ...response.data.map((table) => {
-        const row = entry("", "storage", () => browse(table));
+      ...response.data.map((item) => {
+        const row = entry(item.key || "", "storage", () =>
+          item.table ? browse(item.table, scope) : database(item.scope)
+        );
 
-        dom.query(".group-name", row).textContent = table;
-
+        if (!item.key) dom.query(".group-name", row).textContent = item.name || item.table;
         return row;
       })
     )
@@ -410,46 +439,154 @@ async function database() {
   return open("admin.database", root);
 }
 
-async function status() {
-  const root = node("div", "profile");
-  const load = async () => {
-    const response = await api(`${path}/status`);
+async function preview(kind, item) {
+  const root = node("div", "profile admin");
+  const media = node(item.type === "image" ? "img" : "audio", "admin-preview");
 
+  if (item.type === "image") media.alt = item.name;
+  else {
+    media.controls = true;
+    media.preload = "none";
+  }
+
+  media.src = `/api${path}/files/${kind}/content?${new URLSearchParams({ file: item.file })}`;
+
+  const error = node("p", "", "admin.error");
+
+  error.hidden = true;
+  dom.on(media, "error", () => {
+    error.hidden = false;
+  });
+
+  root.append(
+    media,
+    error,
+    group(
+      label("admin.filename", item.file),
+      label("admin.size", `${item.size.toLocaleString()} B`),
+      label("admin.time", item.time, { date: true }),
+      label("admin.text", item.text)
+    )
+  );
+
+  try {
+    return await open("admin.preview", root);
+  } finally {
+    if (item.type === "audio") media.pause();
+
+    media.removeAttribute("src");
+    if (item.type === "audio") media.load();
+  }
+}
+
+async function files(kind, folder = "") {
+  const root = node("div", "profile admin");
+  const search = field("admin.search", "search");
+  const rows = node("div");
+  const controls = node("nav", "admin-pages");
+  const page = node("output");
+  const loading = progress({ type: "circular", value: 25, show: false });
+
+  let index = 0;
+  let revision = 0;
+  let request;
+  let timer;
+  let closed = false;
+
+  const previous = dom.query(
+    "button",
+    entry("admin.previous", "arrow", () => {
+      index--;
+      void load();
+    })
+  );
+
+  const next = dom.query(
+    "button",
+    entry("admin.next", "arrow", () => {
+      index++;
+      void load();
+    })
+  );
+
+  dom.set(previous, "data-angle", "left");
+  for (const [button, key] of [
+    [previous, "admin.previous"],
+    [next, "admin.next"]
+  ]) {
+    dom.set(button, "data-circle", "");
+    dom.set(button, "data-tooltip", key);
+    button.disabled = true;
+  }
+  controls.append(previous, page, next);
+  if (folder) root.append(label("admin.folder", folder));
+
+  root.append(search.root, loading.element, rows, controls);
+
+  async function load() {
+    const version = ++revision;
+
+    request?.abort();
+    request = new AbortController();
+    previous.disabled = next.disabled = true;
+    loading.element.hidden = false;
+
+    const params = new URLSearchParams({ folder, q: search.input.value, page: String(index) });
+    const response = await api(`${path}/files/${kind}?${params}`, { signal: request.signal });
+
+    if (closed || version !== revision) return;
+
+    loading.element.hidden = true;
+    rows.replaceChildren();
     if (!response.ok) return fail();
     const data = response.data;
 
-    root.replaceChildren(
-      group(
-        ...["server", "database", "push", "fcm"].map((key) =>
-          label(
-            `admin.${key}`,
-            i18n.message(
-              `admin.${
-                ["push", "fcm"].includes(key)
-                  ? data[key]
-                    ? "configured"
-                    : "disabled"
-                  : data[key]
-                    ? "ready"
-                    : "unavailable"
-              }`
-            )
-          )
-        ),
-        label(
-          "admin.uptime",
-          `${Math.floor(data.uptime / 3600)}:${String(Math.floor(data.uptime / 60) % 60).padStart(2, "0")}:${String(data.uptime % 60).padStart(2, "0")}`
+    previous.disabled = index === 0;
+    next.disabled = (index + 1) * 30 >= data.total;
+    page.textContent = `${index + 1} / ${Math.max(1, Math.ceil(data.total / 30))}`;
+    if (!data.items.length) rows.append(node("p", "online-empty", "admin.empty"));
+    else
+      rows.append(
+        group(
+          ...data.items.map((item) => {
+            const row = entry(
+              "",
+              item.type === "image" ? "image" : item.type === "audio" ? "voice" : "storage",
+              () => (item.type === "folder" ? files(kind, item.file) : preview(kind, item))
+            );
+            const title = dom.query(".group-name", row);
+            const summary = node("span", "admin-summary");
+
+            title.textContent = item.name;
+            summary.textContent =
+              item.text || (item.type === "folder" ? "" : `${item.size.toLocaleString()} B`);
+
+            dom.query("button", row).append(summary);
+            row.classList.add("admin-record");
+            return row;
+          })
         )
-      )
-    );
+      );
 
     mount(root);
-  };
+  }
 
-  return open("admin.status", root, {
-    ready: load,
-    actions: [{ text: "admin.refresh", close: false, run: load }]
+  dom.on(search.input, "input", () => {
+    index = 0;
+    revision++;
+    request?.abort();
+    clearTimeout(timer);
+    timer = setTimeout(load, 200);
   });
+
+  try {
+    return await open(`admin.${kind}`, root, { ready: load });
+  } finally {
+    closed = true;
+    request?.abort();
+    clearTimeout(timer);
+    loading.destroy();
+  }
 }
 
 export default function admin(anchor) {
@@ -457,17 +594,34 @@ export default function admin(anchor) {
     const response = await api(path);
 
     if (!response.ok) return fail();
-    const content = node("div", "profile");
+    const content = node("div", "profile admin");
 
+    content.classList.add("admin");
     content.append(
-      group(
+      section(
+        "admin.operations",
         entry("admin.heading", "notify-ring", notify),
-        entry("report.inbox", "flag", () => reports()),
-        entry("admin.users", "search", () => browse()),
-        entry("admin.status", "info", status),
-        response.data.database ? entry("admin.database", "storage", database) : null
+        entry("admin.users", "search", () => browse())
+      ),
+      section(
+        "report.inbox",
+        entry("report.inbox", "flag", () => reports())
       )
     );
+
+    if (response.data.database)
+      content.append(
+        section(
+          "admin.data",
+          entry("admin.database", "storage", () => database())
+        ),
+        section(
+          "admin.files",
+          entry("admin.upload", "image", () => files("upload")),
+          entry("admin.tts", "voice", () => files("tts")),
+          entry("admin.stt", "voice", () => files("stt"))
+        )
+      );
 
     return popover({
       title: "admin.panel",

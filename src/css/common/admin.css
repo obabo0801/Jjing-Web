@@ -2,14 +2,17 @@
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
   align-items: center;
-  gap: 8px;
+  gap: 0.5rem;
 }
 
 .admin-pages > button {
+  width: 100%;
+  height: auto;
   min-width: 0;
-  min-height: 44px;
-  padding: 8px;
+  min-height: var(--control-size);
+  padding: 0.5rem;
   border: 0;
+  border-radius: 0.5rem;
   font-size: 0.875rem;
 }
 
@@ -19,48 +22,71 @@
   white-space: nowrap;
 }
 
-.table-wrap:has(> .admin-table) {
-  overflow-x: auto;
-  overflow-y: hidden;
+.admin-record > button {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  text-align: start;
 }
 
-.admin-table {
-  table-layout: auto;
-  width: max-content;
-  min-width: 100%;
+.admin-record > button > .icon {
+  grid-row: span 2;
+}
+
+.admin-record .group-name,
+.admin-summary {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+}
+
+.admin-summary {
+  grid-column: 2;
+  color: var(--mute);
   font-size: 0.875rem;
+  white-space: pre-line;
 }
 
-.admin-table th,
-.admin-table td {
-  min-width: max-content;
-  padding: 8px 12px;
-
-  overflow-wrap: normal;
-  word-break: normal;
-  text-wrap: nowrap;
-  white-space: nowrap;
+.admin-preview {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  max-height: 50dvh;
+  object-fit: contain;
 }
 
-.admin-table th:first-child,
-.admin-table td:first-child {
-  position: sticky;
-  inset-inline-start: 0;
-  z-index: 1;
-
-  background: var(--background);
+.admin .label-value {
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
 }
 
-.admin-table th:first-child {
-  z-index: 2;
-  background: var(--surface);
+:is(.small, .wearable) .admin-pages {
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  justify-items: center;
 }
 
-:is(.small, .wearable) .admin-table {
-  font-size: 0.75rem;
+:is(.small, .wearable) .admin-pages > button {
+  width: var(--control-size);
+  height: var(--control-size);
+  padding: 0;
+  border-radius: 50%;
 }
 
-:is(.small, .wearable) .admin-table th,
-:is(.small, .wearable) .admin-table td {
-  padding: 6px 8px;
+:is(.small, .wearable) .admin-pages > button > span {
+  display: none;
+}
+
+:is(.small, .wearable) .admin-record > button {
+  grid-template-columns: minmax(0, 1fr);
+  justify-items: center;
+  text-align: center;
+}
+
+:is(.small, .wearable) .admin-record > button > .icon {
+  grid-row: auto;
+}
+
+:is(.small, .wearable) .admin-summary {
+  grid-column: 1;
 }

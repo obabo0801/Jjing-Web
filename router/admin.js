@@ -10,6 +10,7 @@ import string from "../shared/string.js";
 
 import admin from "../middleware/admin.js";
 import * as management from "#service/admin";
+import * as files from "#service/admin/files";
 import * as role from "#shared/role";
 
 const upload = raw({ type: ["image/jpeg", "image/png", "image/webp"], limit: "5mb" });
@@ -66,19 +67,28 @@ router.get("/users", async (req, res) => {
   res.json(await management.users(req.query));
 });
 
-router.get("/status", async (_, res) => {
-  res.json(await management.status());
-});
-
-router.use("/database", (req, res, next) => {
+router.use(["/database", "/files"], (req, res, next) => {
   if (req.user.role !== role.root) return res.status(403).end();
 
   next();
 });
 
-router.get("/database", (_, res) => res.json(management.catalogue()));
+router.get("/database", async (req, res) => res.json(await management.catalogue(req.query)));
 router.get("/database/:table", async (req, res) => {
   res.json(await management.list(req.params.table, req.query));
+});
+
+router.get("/files/:kind", async (req, res) => {
+  res.json(await files.list(req.params.kind, req.query));
+});
+
+router.get("/files/:kind/content", async (req, res) => {
+  const file = await files.content(req.params.kind, req.query.file);
+
+  res.set("X-Content-Type-Options", "nosniff");
+  res.sendFile(file, { cacheControl: false }, (error) => {
+    if (error && !res.headersSent) res.status(error.status || 500).end();
+  });
 });
 
 router.post("/image", upload, async (req, res) => {

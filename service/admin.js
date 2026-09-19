@@ -1,7 +1,6 @@
 import * as db from "#db";
 import * as media from "#config/media";
-import * as push from "#service/push";
-import * as firebase from "#service/fcm";
+import * as data from "./admin/data.js";
 
 // Only explicitly approved columns may be returned to the management UI.
 const tables = {
@@ -42,11 +41,9 @@ const offset = (value = "0") => {
   return Number(value) * 30;
 };
 
-export const catalogue = () => Object.keys(tables);
+export const catalogue = (options = {}) => data.catalogue(tables, options);
 
-export const list = async (table, options) => {
-  if (!Object.hasOwn(tables, table)) invalid();
-  const columns = tables[table];
+const browse = async (connection, table, columns, options) => {
   const search = query(options.q);
   const field = query(options.field);
   const value = query(options.value);
@@ -72,15 +69,25 @@ export const list = async (table, options) => {
   }
 
   const where = conditions.length ? ` WHERE ${conditions.join(" AND ")}` : "";
-  const count = await db.get(`SELECT count(*) AS total FROM "${table}"${where}`, values);
+  const count = await connection.get(`SELECT count(*) AS total FROM "${table}"${where}`, values);
 
-  const items = await db.all(
+  const items = await connection.all(
     `SELECT ${columns.map((key) => `"${key}"`).join(",")}
     FROM "${table}"${where} ORDER BY rowid DESC LIMIT 30 OFFSET ?`,
     [...values, start]
   );
 
   return { columns, items, total: count.total };
+};
+
+export const list = async (table, options) => {
+  if (options.source && options.source !== "service")
+    return data.read(table, options, (connection, columns) =>
+      browse(connection, table, columns, options)
+    );
+
+  if (!Object.hasOwn(tables, table)) invalid();
+  return browse(db, table, tables[table], options);
 };
 
 export const users = async (options) => {
@@ -105,23 +112,5 @@ export const users = async (options) => {
       avatar: media.resolve(row.avatar),
       verified: Boolean(row.verified)
     }))
-  };
-};
-
-export const status = async () => {
-  let database = false;
-
-  try {
-    database = (await db.get("SELECT 1 AS ready")).ready === 1;
-  } catch {
-    /* Keep the service status available during a database failure. */
-  }
-
-  return {
-    server: true,
-    database,
-    uptime: Math.floor(process.uptime()),
-    push: push.enabled,
-    fcm: firebase.enabled
   };
 };
