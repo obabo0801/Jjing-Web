@@ -36,7 +36,7 @@
 }
 
 .chatting.direct[data-viewport] {
-  height: 100%;
+  height: var(--chatting-height);
   min-height: 0;
 }
 
@@ -67,8 +67,26 @@
   font-size: 0.75rem;
 }
 
+.whisper-head {
+  grid-area: name;
+  display: flex;
+  align-items: center;
+  justify-self: start;
+  gap: 8px;
+  min-width: 0;
+}
+
+.whisper-head > .chatting-name {
+  min-width: 0;
+}
+
+:is(.small, .wearable) .whisper-head {
+  flex-direction: column;
+  gap: 2px;
+}
+
 .chatting[data-chatting] .chatting-message[data-private="whisper"] {
-  background: color-mix(in srgb, var(--focus) 8%, var(--background));
+  background: color-mix(in srgb, var(--focus) 24%, var(--background));
 }
 
 .chatting.inbox-list {
@@ -79,26 +97,38 @@
 }
 
 .chatting.inbox-list[data-chatting] .message-preview {
-  grid-template-columns: auto auto minmax(0, 1fr) auto;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
   grid-template-areas:
-    "profile time . badge"
+    "avatar name . badge"
+    "avatar time . badge"
     "text text text badge";
+  align-items: center;
   justify-content: start;
+  direction: ltr;
   text-align: start;
 
   background-color: var(--canvas);
 }
 
-.inbox-list .chatting-profile {
-  justify-self: start;
-  justify-content: start;
+.chatting.inbox-list[data-chatting] .message-preview > .chatting-profile {
+  display: contents;
 }
 
-.inbox-list .chatting-avatar {
+.chatting.inbox-list[data-chatting] .message-preview .chatting-avatar {
+  grid-area: avatar;
+  justify-self: start;
   background: var(--background);
 }
 
-.inbox-list .chatting-time {
+.chatting.inbox-list[data-chatting] .message-preview .chatting-name {
+  grid-area: name;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.chatting.inbox-list[data-chatting] .message-preview > .chatting-time {
+  grid-area: time;
   display: inline-flex;
   align-items: center;
   gap: 4px;

@@ -7,11 +7,13 @@ export const badge = (button, count) => {
   const show = Number.isSafeInteger(count) && count >= 0;
 
   if (!node && !show) return;
+
   if (!node) {
     node = dom.create("span");
     node.className = "toolbar-badge";
     button.append(node);
   }
+
   node.hidden = !show;
   node.textContent = show ? (count > 99 ? "99+" : String(count)) : "";
 };
@@ -20,6 +22,8 @@ export default function toolbar(items = []) {
   const root = dom.create("div");
 
   root.className = "toolbar";
+  dom.set(root, "data-blur", "");
+  dom.set(root, "data-shadow", "");
 
   for (const { icon, text, run, disabled = false, color = false } of items) {
     const button = dom.create("button");
@@ -27,18 +31,21 @@ export default function toolbar(items = []) {
 
     button.type = "button";
     button.disabled = disabled;
-    label.textContent = i18n.message(text);
-    i18n.preload(text);
     dom.set(button, "data-icon", icon);
     button.toggleAttribute("data-color", color);
     dom.set(button, "data-response", "");
+
+    label.textContent = i18n.message(text);
     dom.set(label, "data-i18n", text);
+    i18n.preload(text);
+
     button.append(label);
 
     let running = false;
 
     dom.on(button, "click", async () => {
       if (running || button.disabled) return;
+
       running = true;
 
       try {
@@ -49,6 +56,7 @@ export default function toolbar(items = []) {
         running = false;
       }
     });
+
     root.append(button);
   }
 

@@ -93,10 +93,7 @@ const cloud = async (value) => {
   const [response] = await client.synthesizeSpeech(
     {
       input: { text: value.text },
-      voice: {
-        languageCode: value.lang,
-        ...(value.voice && { name: value.voice })
-      },
+      voice: { languageCode: value.lang, ...(value.voice && { name: value.voice }) },
       audioConfig: {
         audioEncoding: "MP3",
         ...(!chirp && { speakingRate: value.rate, pitch: value.pitch })
@@ -111,9 +108,7 @@ const cloud = async (value) => {
     throw new Error();
   }
 
-  return typeof audio === "string"
-    ? Buffer.from(audio, "base64")
-    : Buffer.from(audio);
+  return typeof audio === "string" ? Buffer.from(audio, "base64") : Buffer.from(audio);
 };
 
 const google = async (value) => {
@@ -173,11 +168,7 @@ export default async function synthesize(value, options) {
 
   if (enabled && Date.now() >= retry) {
     try {
-      return await cache("cloud", request, {
-        create: () => cloud(request),
-        uid,
-        time
-      });
+      return await cache("cloud", request, { create: () => cloud(request), uid, time });
     } catch (error) {
       if (error?.code === "SQLITE_BUSY") {
         throw error;

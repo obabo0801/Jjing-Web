@@ -8,14 +8,18 @@
 }
 
 .group.chatting-menu[data-view="grid"] {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
 .group.chatting-menu[data-view="grid"][data-room] {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.group.chatting-menu[data-view="grid"][data-room][data-multiple] {
   grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
-:is(.small, .wearable) .group.chatting-menu[data-room] {
+:is(.small, .wearable) .group.chatting-menu[data-view="grid"][data-room] {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 

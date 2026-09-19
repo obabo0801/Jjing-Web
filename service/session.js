@@ -21,17 +21,20 @@ export const remember = async (res, uid, key = ids.key) => {
   );
 
   if (user) res.cookie(key, user.session, cookie);
+
   return Boolean(user);
 };
 
 export const read = async (value) => {
   if (typeof value !== "string") return null;
+
   if (/^[A-Za-z0-9_-]{43}$/.test(value))
     return db.get(
       `SELECT uid FROM user WHERE session = ?
         AND deletion IS NULL AND erased = 0`,
       [value]
     );
+
   // 이전에 서명한 쿠키만 받아 새 세션으로 교체합니다.
   if (/^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/i.test(value)) {
     const user = await db.get(
@@ -42,6 +45,7 @@ export const read = async (value) => {
 
     return user && { ...user, legacy: true };
   }
+
   return null;
 };
 
@@ -53,5 +57,6 @@ export const create = async (ip, lang) => {
       VALUES (?, ?, ?, ?, ?)`,
     [uid, ids.publicId(uid), ip, ip, lang]
   );
+
   return uid;
 };

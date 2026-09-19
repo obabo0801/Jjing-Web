@@ -1,3 +1,4 @@
+import * as css from "#common/css";
 import * as dom from "#common/dom";
 import * as pointer from "#common/pointer";
 import keypad from "#common/keypad";
@@ -27,9 +28,7 @@ export function listen() {
 }
 
 const fields = (root) =>
-  dom
-    .all(".picker-column", root)
-    .filter((column) => dom.get(column, "data-min") !== null);
+  dom.all(".picker-column", root).filter((column) => dom.get(column, "data-min") !== null);
 
 const source = (column) => dom.query(".picker-input", column);
 
@@ -51,9 +50,7 @@ const values = (column) => {
     return [];
   }
 
-  return Array.from({ length: max - min + 1 }, (_, index) =>
-    String(min + index)
-  );
+  return Array.from({ length: max - min + 1 }, (_, index) => String(min + index));
 };
 
 const size = (list) => dom.query("button", list)?.offsetHeight || 60;
@@ -95,27 +92,24 @@ const move = (list, button, smooth = false) => {
   }
 
   if (!smooth) {
-    list.style.scrollBehavior = "auto";
+    css.set(list, { "scroll-behavior": "auto" });
   }
 
-  list.scrollTo({
-    top: index * size(list),
-    behavior: smooth ? "smooth" : "auto"
-  });
+  list.scrollTo({ top: index * size(list), behavior: smooth ? "smooth" : "auto" });
 
   if (!smooth) {
     requestAnimationFrame(() => {
-      list.style.removeProperty("scroll-behavior");
+      css.set(list, { "scroll-behavior": null });
     });
   }
 };
 
 const shift = (list, distance) => {
-  list.style.scrollBehavior = "auto";
+  css.set(list, { "scroll-behavior": "auto" });
   list.scrollTop += distance;
 
   requestAnimationFrame(() => {
-    list.style.removeProperty("scroll-behavior");
+    css.set(list, { "scroll-behavior": null });
   });
 };
 
@@ -202,13 +196,13 @@ function select(column, button, sync = true) {
   if (
     sync &&
     dom.get(column, "data-hour") !== null &&
-    ((previous === "11" && value === "12") ||
-      (previous === "12" && value === "11"))
+    ((previous === "11" && value === "12") || (previous === "12" && value === "11"))
   ) {
     togglePeriod(column);
   }
 
   column.dispatchEvent(new Event("change", { bubbles: true }));
+
   return true;
 }
 
@@ -217,9 +211,7 @@ const valid = (input) => {
   const min = Number(input.min);
   const max = Number(input.max);
 
-  return (
-    input.value !== "" && Number.isFinite(value) && value >= min && value <= max
-  );
+  return input.value !== "" && Number.isFinite(value) && value >= min && value <= max;
 };
 
 const edit = (column, button) => {
@@ -293,15 +285,7 @@ function commit(column, keep = false) {
 }
 
 function keyboard(root) {
-  return keypad(root, {
-    close,
-    commit,
-    edit,
-    fields,
-    input: source,
-    selected,
-    valid
-  });
+  return keypad(root, { close, commit, edit, fields, input: source, selected, valid });
 }
 
 const append = (list, items, count) => {
@@ -328,6 +312,7 @@ export const update = (column) => {
 
   list.replaceChildren();
   append(list, items, dom.get(column, "data-loop") !== null ? 3 : 1);
+
   const input = source(column);
 
   if (input) input.max = dom.get(column, "data-max");
@@ -382,9 +367,7 @@ const build = (column) => {
   }
 
   const current = dom.get(column, "data-value") ?? items[0];
-  const matches = buttons(list).filter(
-    (button) => dom.get(button, "data-value") === current
-  );
+  const matches = buttons(list).filter((button) => dom.get(button, "data-value") === current);
   const selected = matches[loop ? 1 : 0] ?? matches[0];
 
   select(column, selected, false);
@@ -453,11 +436,7 @@ const build = (column) => {
   const drag = (event) => {
     const value = dom.get(column, "data-y");
 
-    if (
-      !pointer.is(event, "mouse") ||
-      dom.get(column, "data-pressed") === null ||
-      value === null
-    ) {
+    if (!pointer.is(event, "mouse") || dom.get(column, "data-pressed") === null || value === null) {
       return;
     }
 
@@ -565,6 +544,7 @@ const build = (column) => {
     if (event.key === "Enter") {
       event.preventDefault();
       keyboard(column.closest(".picker")).submit(column);
+
       return;
     }
 
@@ -589,6 +569,7 @@ const build = (column) => {
 
       keyboard(column.closest(".picker")).update(column);
     });
+
     dom.on(input, "keydown", keydown);
   }
 

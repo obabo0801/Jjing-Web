@@ -40,10 +40,7 @@ function hasSelection() {
 
   const active = document.activeElement;
 
-  if (
-    active instanceof HTMLInputElement ||
-    active instanceof HTMLTextAreaElement
-  ) {
+  if (active instanceof HTMLInputElement || active instanceof HTMLTextAreaElement) {
     return active.selectionStart !== active.selectionEnd;
   }
 
@@ -96,9 +93,7 @@ function end(event) {
     return;
   }
 
-  const touch = [...event.changedTouches].find(
-    (item) => item.identifier === point.id
-  );
+  const touch = [...event.changedTouches].find((item) => item.identifier === point.id);
 
   if (!touch) {
     return;
@@ -141,6 +136,7 @@ function unwatch() {
   off.forEach((run) => {
     run();
   });
+
   off = [];
   point = null;
 }
@@ -233,8 +229,10 @@ function progress(direction, options) {
       ) {
         return true;
       }
+
       if (node === target) break;
     }
+
     return false;
   };
 
@@ -278,8 +276,10 @@ function progress(direction, options) {
       // 내부 UI가 이미 처리한 조작은 바깥 레이어에서 다시 시작하지 않습니다.
       if (event.defaultPrevented) {
         reset();
+
         return false;
       }
+
       if (Math.hypot(x, y) < 4) {
         return false;
       }
@@ -290,11 +290,13 @@ function progress(direction, options) {
 
       if (scrolling(x, y)) {
         reset();
+
         return false;
       }
 
       if (options.accept?.(event) === false) {
         reset();
+
         return false;
       }
 
@@ -311,9 +313,7 @@ function progress(direction, options) {
     const amount = typeof length === "function" ? length() : length;
     const total = Number(amount) || size(target, direction);
 
-    value = total
-      ? Math.min(1, Math.max(0, distance(direction, x, y) / total))
-      : 0;
+    value = total ? Math.min(1, Math.max(0, distance(direction, x, y) / total)) : 0;
 
     move?.(value, event);
 
@@ -330,6 +330,7 @@ function progress(direction, options) {
   const touchStart = (event) => {
     if (event.touches.length !== 1) {
       finish(event, true);
+
       return;
     }
 
@@ -364,9 +365,7 @@ function progress(direction, options) {
       return;
     }
 
-    const touch = [...event.changedTouches].find(
-      (item) => item.identifier === id
-    );
+    const touch = [...event.changedTouches].find((item) => item.identifier === id);
 
     if (!touch) {
       return;
@@ -375,6 +374,7 @@ function progress(direction, options) {
     if (moving) {
       update(touch.clientX - startX, touch.clientY - startY, event);
     }
+
     finish(event);
   };
 
@@ -420,6 +420,7 @@ function progress(direction, options) {
     if (moving) {
       update(event.clientX - startX, event.clientY - startY, event);
     }
+
     finish(event);
   };
 
@@ -457,6 +458,7 @@ function progress(direction, options) {
     listeners.forEach((run) => {
       run();
     });
+
     reset();
     dragged = false;
   };

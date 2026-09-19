@@ -75,6 +75,7 @@ router.post("/", async (req, res) => {
   `,
     [id, fid, device]
   );
+
   res.status(204).end();
 });
 
@@ -94,6 +95,7 @@ router.delete("/", async (req, res) => {
   `,
     [id, fid]
   );
+
   res.status(204).end();
 });
 

@@ -4,8 +4,7 @@ import * as i18n from "#common/i18n";
 i18n.preload("profile.anonymous", "profile.verified");
 
 export const label = (user) =>
-  user.name ||
-  i18n.message("profile.anonymous").replace("{id}", user.id?.slice(0, 8) || "");
+  user.name || i18n.message("profile.anonymous").replace("{id}", user.id?.slice(0, 8) || "");
 
 export const mark = (element, verified) => {
   dom.query(".profile-verified", element)?.remove();

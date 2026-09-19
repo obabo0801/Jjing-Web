@@ -14,10 +14,6 @@
     opacity 100ms ease;
 }
 
-.select[data-background] {
-  background: var(--background);
-}
-
 .select-toggle {
   justify-content: space-between;
 

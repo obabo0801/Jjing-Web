@@ -11,17 +11,13 @@ const index = (value) => {
   return result < 0 ? 1 : result;
 };
 
-const clamp = (value, minimum, maximum) =>
-  Math.min(maximum, Math.max(minimum, value));
+const clamp = (value, minimum, maximum) => Math.min(maximum, Math.max(minimum, value));
 
 const points = () => {
   const height = window.innerHeight;
   const rem = Number.parseFloat(getComputedStyle(dom.root).fontSize) || 16;
   const half = height * 0.5;
-  const peek = Math.min(
-    half,
-    Math.min(rem * 12, Math.max(rem * 6, height * 0.2))
-  );
+  const peek = Math.min(half, Math.min(rem * 12, Math.max(rem * 6, height * 0.2)));
 
   return [peek, half, height * 0.9];
 };
@@ -101,18 +97,18 @@ export default function snap(element, options = {}) {
 
     if (!moving) {
       configure();
+
       return;
     }
 
     if (cancelled) {
       render(from);
     } else {
-      const next = Number.isFinite(y)
-        ? clamp(from + startY - y, 0, sizes[2])
-        : height;
+      const next = Number.isFinite(y) ? clamp(from + startY - y, 0, sizes[2]) : height;
 
       if (next < sizes[0] * 0.5) {
         options.close?.(false, false);
+
         return;
       }
 
@@ -133,10 +129,7 @@ export default function snap(element, options = {}) {
 
     dragged = false;
 
-    if (
-      window.getSelection()?.isCollapsed === false ||
-      pointer.blocked(event)
-    ) {
+    if (window.getSelection()?.isCollapsed === false || pointer.blocked(event)) {
       return;
     }
 
@@ -160,8 +153,10 @@ export default function snap(element, options = {}) {
       // 가로 그룹 전환 등 내부 조작이 먼저 시작되면 높이는 건드리지 않습니다.
       if (event.defaultPrevented || element.hasAttribute("data-swipe")) {
         gesture = null;
+
         return;
       }
+
       const dx = x - gesture.startX;
       const dy = y - gesture.startY;
 
@@ -183,6 +178,7 @@ export default function snap(element, options = {}) {
 
     window.getSelection()?.removeAllRanges();
     if (event.cancelable) event.preventDefault();
+
     height = clamp(gesture.from + gesture.startY - y, 0, sizes[2]);
     css.set(element, { "--sheet-height": `${height}px` });
   };
@@ -190,6 +186,7 @@ export default function snap(element, options = {}) {
   const touchStart = (event) => {
     if (event.touches.length !== 1) {
       finish(undefined, true);
+
       return;
     }
 
@@ -200,14 +197,14 @@ export default function snap(element, options = {}) {
 
   const touchMove = (event) => {
     if (!gesture || gesture.mouse) return;
+
     if (event.touches.length !== 1) {
       finish(undefined, true);
+
       return;
     }
 
-    const touch = [...event.touches].find(
-      (item) => item.identifier === gesture.id
-    );
+    const touch = [...event.touches].find((item) => item.identifier === gesture.id);
 
     if (touch) move(event, touch.clientX, touch.clientY);
   };
@@ -215,9 +212,7 @@ export default function snap(element, options = {}) {
   const touchEnd = (event) => {
     if (!gesture || gesture.mouse) return;
 
-    const touch = [...event.changedTouches].find(
-      (item) => item.identifier === gesture.id
-    );
+    const touch = [...event.changedTouches].find((item) => item.identifier === gesture.id);
 
     if (touch) finish(touch.clientY, event.type === "touchcancel");
   };

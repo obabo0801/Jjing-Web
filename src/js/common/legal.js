@@ -13,16 +13,11 @@ export default async function legal(name) {
   const page = new DOMParser().parseFromString(source, "text/html");
   const content = page.querySelector(".legal");
   const sections = new Map(
-    [...content.querySelectorAll("[id]")].map((element) => [
-      element.id,
-      element
-    ])
+    [...content.querySelectorAll("[id]")].map((element) => [element.id, element])
   );
 
   content.querySelector("h1")?.remove();
-  content
-    .querySelectorAll("[id]")
-    .forEach((element) => element.removeAttribute("id"));
+  content.querySelectorAll("[id]").forEach((element) => element.removeAttribute("id"));
 
   dom.on(content, "click", (event) => {
     const link = event.target.closest('a[href^="#"]');
@@ -34,10 +29,9 @@ export default async function legal(name) {
   });
 
   i18n.preload(
-    ...[...content.querySelectorAll("[data-i18n]")].map((element) =>
-      dom.get(element, "data-i18n")
-    )
+    ...[...content.querySelectorAll("[data-i18n]")].map((element) => dom.get(element, "data-i18n"))
   );
+
   return drawer({
     route: [name, ""],
     title: `${name}.title`,
@@ -48,5 +42,4 @@ export default async function legal(name) {
   });
 }
 
-for (const name of ["terms", "privacy"])
-  route.register(name, () => legal(name), "drawer");
+for (const name of ["terms", "privacy"]) route.register(name, () => legal(name), "drawer");

@@ -16,10 +16,13 @@ i18n.preload(
 
 export const preview = async (file, anchor, send) => {
   if (!file?.size) return;
+
   if (file.size > maximum) {
     toast({ text: "image.sizeError", type: "error" });
+
     return;
   }
+
   const url = URL.createObjectURL(file);
   const root = dom.create("div");
   const image = dom.create("img");
@@ -46,12 +49,7 @@ export const preview = async (file, anchor, send) => {
           icon: "send",
           data: ["data-confirm"],
           run: async ({ button }) => {
-            const loading = progress({
-              target: root,
-              type: "circular",
-              value: 25,
-              show: false
-            });
+            const loading = progress({ target: root, type: "circular", value: 25, show: false });
 
             button.disabled = true;
             try {
@@ -60,6 +58,7 @@ export const preview = async (file, anchor, send) => {
               return active && saved;
             } catch {
               if (active) toast({ text: "image.uploadError", type: "error" });
+
               return false;
             } finally {
               loading.destroy();

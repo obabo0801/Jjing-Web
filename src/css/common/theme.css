@@ -5,6 +5,7 @@
 
   --shadow: 0 4px 16px #00000033;
   --thumb: var(--white);
+  --caption: #18181866;
 
   --error: color-mix(in srgb, #ff453a var(--brightness, 100%), #000);
   --warning: color-mix(in srgb, #ff9500 var(--brightness, 100%), #000);
@@ -35,7 +36,7 @@
 
   --track: color-mix(in srgb, #a4a3a8 var(--brightness, 100%), #000);
   --hover: color-mix(in srgb, #181818 var(--brightness, 100%), #000);
-  --select: color-mix(in srgb, #e5e5ea var(--brightness, 100%), #000);
+  --select: color-mix(in srgb, #d8d8de var(--brightness, 100%), #000);
 }
 
 :root[data-theme="dark"] {
@@ -54,7 +55,7 @@
 
   --track: color-mix(in srgb, #646368 var(--brightness, 100%), #000);
   --hover: var(--white);
-  --select: color-mix(in srgb, #292929 var(--brightness, 100%), #000);
+  --select: color-mix(in srgb, #3a3a3c var(--brightness, 100%), #000);
 }
 
 :root[data-theme="black"] {

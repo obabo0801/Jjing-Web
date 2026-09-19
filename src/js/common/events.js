@@ -3,6 +3,7 @@ import * as settings from "#common/settings";
 import { events as path } from "../../../shared/route.js";
 
 import * as dom from "./dom.js";
+import device from "./device.js";
 import api from "./api.js";
 import * as registry from "./chatting/registry.js";
 import * as profile from "./profile.js";
@@ -20,6 +21,8 @@ i18n.preload(
   "chatting.handler",
   "dialog.confirm"
 );
+
+const standalone = matchMedia("(display-mode: standalone), (display-mode: minimal-ui)");
 
 let source;
 let value = false;
@@ -40,6 +43,7 @@ const types = [
   "direct",
   "direct-read",
   "direct-remove",
+  "direct-restore",
   "direct-change",
   "direct-state",
   "settings",
@@ -51,6 +55,7 @@ const types = [
   "profile-image",
   "chatting",
   "chatting-remove",
+  "chatting-restore",
   "chatting-block",
   "chatting-unblock",
   "mute",
@@ -69,6 +74,7 @@ const reserve = (id) =>
         .request(`jjing-events:${id}`, { ifAvailable: true }, (lock) => {
           resolve(Boolean(lock));
           if (!lock) return;
+
           return new Promise((done) => {
             release = done;
           });
@@ -81,8 +87,8 @@ const reserve = (id) =>
 
 export const start = () => {
   starting ??= (async () => {
-    if (initialized || typeof EventSource === "undefined")
-      return initialized ? stream : undefined;
+    if (initialized || typeof EventSource === "undefined") return initialized ? stream : undefined;
+
     if (!globalThis.crypto?.randomUUID) return events();
     let id = crypto.randomUUID();
 
@@ -110,8 +116,10 @@ export const start = () => {
     try {
       storage.set("tab", tab, "session");
     } catch {}
+
     return events();
   })();
+
   return starting;
 };
 
@@ -143,6 +151,7 @@ const activity = (force = false, engaged = true) => {
   }
 
   touched = now;
+
   const current = source;
   const active = session;
 
@@ -153,29 +162,38 @@ const activity = (force = false, engaged = true) => {
     signal: AbortSignal.timeout(10_000)
   }).then((result) => {
     if (current !== source || active !== session || stopped || paused) return;
+
     if (!result.ok) touched = 0;
+
     if (result.status === 409) check(true);
   });
 };
 
 const disconnect = () => {
   const current = source;
+  const active = session;
 
   source = undefined;
   session = undefined;
   current?.close();
+
+  if (active) {
+    api(path, { method: "POST", data: { session: active, closed: true }, keepalive: true });
+  }
 };
 
 const connect = () => {
   disconnect();
-  const query = tab ? `?${new URLSearchParams({ tab })}` : "";
-  const current = new EventSource(`/api${path}${query}`);
+
+  const query = new URLSearchParams({ ...(tab && { tab }), wearable: String(device().wearable) });
+  const current = new EventSource(`/api${path}?${query}`);
 
   source = current;
   attempted = received = Date.now();
   for (const type of types) {
     current.addEventListener(type, (event) => {
       if (source !== current || stopped || paused) return;
+
       received = Date.now();
       stream.dispatchEvent(
         new MessageEvent(type, {
@@ -190,21 +208,31 @@ const connect = () => {
 
 function check(force = false) {
   if (stopped || paused || navigator.onLine === false) return;
+
+  if (document.hidden && (navigator.standalone || standalone.matches)) {
+    return;
+  }
+
   const now = Date.now();
 
-  // 복귀 이벤트가 겹쳐도 재연결을 연달아 만들지 않습니다.
-  if (now - attempted < 5000) return;
+  if (source && now - attempted < 5000) return;
+
   if (force || !source || now - received >= 75_000) connect();
 }
 
-const suspend = () => {
+export const suspend = () => {
+  const active = session;
+
   paused = true;
   clearInterval(timer);
   disconnect();
+
+  return active;
 };
 
-const resume = () => {
-  if (stopped) return;
+export const resume = () => {
+  if (!initialized || stopped) return;
+
   paused = false;
   clearInterval(timer);
   timer = setInterval(check, 10_000);
@@ -213,9 +241,11 @@ const resume = () => {
 
 const restrict = async (event) => {
   if (stopped) return;
+
   stopped = true;
   suspend();
   window.dispatchEvent(new Event("chatting-stop"));
+
   const details = data(event);
   const content = dom.create("div");
   const detail = dom.create("p");
@@ -227,23 +257,15 @@ const restrict = async (event) => {
     .message(`chatting.${key}Detail`)
     .replace("{handler}", details.handler || i18n.message("chatting.handler"));
 
-  reason.textContent = i18n
-    .message("chatting.reason")
-    .replace("{reason}", details.reason || "-");
+  reason.textContent = i18n.message("chatting.reason").replace("{reason}", details.reason || "-");
   content.append(detail, reason);
+
   const result = await dialog({
     title: `chatting.${key}Title`,
     content,
     direction: "→",
     locked: true,
-    actions: [
-      {
-        text: "dialog.confirm",
-        icon: "check",
-        value: true,
-        data: ["data-confirm"]
-      }
-    ]
+    actions: [{ text: "dialog.confirm", icon: "check", value: true, data: ["data-confirm"] }]
   });
 
   if (result === true) location.replace("/");
@@ -251,19 +273,15 @@ const restrict = async (event) => {
 
 const watch = () => {
   dom.on(window, "pagehide", (event) => {
-    if (session)
-      api(path, {
-        method: "POST",
-        data: { session, visible: false },
-        keepalive: true
-      });
     suspend();
+
     if (!event.persisted) release?.();
   });
 
   dom.on(window, "pageshow", (event) => {
     if (event.persisted) resume();
   });
+
   dom.on(document, "freeze", suspend);
   dom.on(document, "resume", resume);
   dom.on(window, "offline", disconnect);
@@ -272,10 +290,19 @@ const watch = () => {
   dom.on(document, "pointerdown", activity, true);
   dom.on(document, "keydown", activity, true);
   dom.on(document, "scroll", activity, true);
+
   dom.on(document, "visibilitychange", () => {
-    if (document.visibilityState === "visible") {
-      check(true);
+    if (document.hidden && (navigator.standalone || standalone.matches)) {
+      suspend();
+
+      return;
     }
+
+    if (document.visibilityState === "visible") {
+      if (paused) resume();
+      else check(true);
+    }
+
     activity(true);
   });
 };
@@ -291,6 +318,9 @@ const removed = (event) => {
   registry.storedAll(payload.id).forEach((element) => {
     if (payload.message) {
       dom.set(element, "data-deleted", "");
+      dom.set(element, "data-retained", "");
+      element.dispatchEvent(new CustomEvent("chatting-change", { detail: payload.message }));
+
       return;
     }
 
@@ -336,12 +366,14 @@ export default function events() {
 
   stream.addEventListener("ready", (event) => {
     settings.load();
+
     const payload = data(event);
     const next = payload.admin === true;
 
     session = payload.session;
     touched = 0;
     activity(true);
+
     const previous = value;
 
     value = next;
@@ -365,10 +397,9 @@ export default function events() {
     const { id } = data(event);
 
     blocks.delete(id);
-    registry
-      .messageAll(id)
-      .forEach((element) => dom.remove(element, "data-blocked"));
+    registry.messageAll(id).forEach((element) => dom.remove(element, "data-blocked"));
   });
+
   stream.addEventListener("presence", presence);
   stream.addEventListener("heartbeat", () => activity(false, false));
   stream.addEventListener("chatting", (event) => {
@@ -384,6 +415,7 @@ export default function events() {
       typeof item.text !== "string"
     )
       return;
+
     toast({
       type: "notify",
       id: `mention:${item.url}`,
@@ -395,16 +427,32 @@ export default function events() {
       url: `/?message=${encodeURIComponent(item.url)}`
     });
   });
+
   stream.addEventListener("chatting-remove", removed);
+  stream.addEventListener("chatting-restore", (event) => {
+    const item = data(event);
+
+    if (!item.url) return;
+
+    registry.storedAll(item.url).forEach((element) => {
+      element.dispatchEvent(
+        new CustomEvent("chatting-change", {
+          detail: { ...item, deleted: false, retained: false, restorable: false }
+        })
+      );
+    });
+  });
+
   stream.addEventListener("settings", (event) => settings.receive(data(event)));
   stream.addEventListener("profile-image", (event) => {
     profile.receiveLink(data(event).token);
   });
+
   stream.addEventListener("chatting-block", blocked);
   stream.addEventListener("block", restrict);
   stream.addEventListener("kick", restrict);
 
-  connect();
-  timer = setInterval(check, 10_000);
+  resume();
+
   return stream;
 }

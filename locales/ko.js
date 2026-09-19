@@ -1,10 +1,49 @@
 export default {
+  restore: {
+    action: "메시지 복구하기",
+    title: "이 메시지를 복구할까요?",
+    success: "메시지를 복구했습니다.",
+    error: "메시지를 복구하지 못했습니다."
+  },
+  link: {
+    title: "이 링크를 열까요?",
+    file: "이 파일을 열까요?",
+    notice:
+      "외부 사이트로 이동합니다. 주소를 확인해 주세요.\n\n" +
+      "신뢰 설정은 해당 사이트에만 적용되며, 안전을 보장하지 않습니다.",
+    local: "파일이나 주소를 확인한 뒤 계속 진행해 주세요.",
+    trust: "이 사이트에서 같은 종류의 확인을 30일 동안 생략",
+    current: "현재 창에서 열기",
+    window: "새 창에서 열기",
+    cancel: "취소",
+    manage: "신뢰한 사이트",
+    empty: "신뢰한 사이트가 없습니다.",
+    forget: "신뢰 해제",
+    error: "설정을 저장하지 못했습니다.",
+    embed: "외부 콘텐츠를 표시할까요?",
+    load: "표시",
+    navigation: "사이트 이동",
+    content: "외부 콘텐츠 표시"
+  },
+  embed: {
+    show: "미리보기 표시",
+    hide: "미리보기 닫기",
+    failed: "미리보기를 불러오지 못했습니다.",
+    external: "외부 콘텐츠",
+    empty: "재생 가능한 미리보기가 없습니다."
+  },
+  gallery: { image: "이미지 {count}", failed: "이미지를 불러오지 못했습니다.", retry: "다시 시도" },
   assets: {
     title: "모아보기",
+    open: "열기",
+    openImage: "이미지 열어보기",
+    copy: "주소 복사",
     image: "이미지",
     file: "파일",
     link: "링크",
     summary: "{count}개 / {size}",
+    count: "{count}개",
+    sender: "작성자 정보 없음",
     megabytes: "{size}MB",
     unknown: "확인할 수 없음",
     empty: "표시할 항목이 없습니다.",
@@ -16,8 +55,8 @@ export default {
     title: "로그인",
     google: "Google로 로그인",
     logout: "로그아웃",
-    error: "로그인 상태를 변경하지 못했습니다. 다시 시도해 주세요.",
-    unavailable: "Google 로그인을 준비 중입니다. 익명으로 이용해 주세요."
+    error: "로그인 상태를 변경하지 못했습니다.",
+    unavailable: "Google 로그인을 준비 중입니다."
   },
 
   profile: {
@@ -26,7 +65,7 @@ export default {
     unprotect: "보호 해제",
     copy: "UID 복사",
     copied: "UID를 복사했습니다.",
-    copyError: "UID를 복사하지 못했습니다. 전체 UID를 열어 복사해 주세요.",
+    copyError: "UID를 복사하지 못했습니다.",
     email: "이메일",
     access: "접속 정보",
     environment: "접속 환경",
@@ -42,8 +81,7 @@ export default {
     reportHistory: "신고 내역",
     blockHistory: "제재 내역",
     historyEmpty: "조회된 기록이 없습니다.",
-    historyError:
-      "기록을 불러오지 못했습니다. 권한을 확인하거나 다시 시도해 주세요.",
+    historyError: "기록을 불러오지 못했습니다.",
     historySearch: "검색",
     historyDate: "날짜",
     historyType: "종류",
@@ -90,18 +128,16 @@ export default {
     account: "계정",
     delete: "계정 삭제",
     deleteInfo:
-      "계정 삭제를 요청할까요? 모든 기기에서 로그아웃되며, 7일 후 Google 연결과 프로필 정보가 삭제됩니다. 그 전에 같은 Google 계정으로 로그인해 삭제를 취소할 수 있습니다.",
-    deleteError: "계정을 삭제하지 못했습니다. 다시 시도해 주세요.",
+      "모든 기기에서 로그아웃되고, 7일 후 Google 연결과 프로필 정보가 삭제됩니다.\n\n" +
+      "삭제 전 같은 Google 계정으로 로그인하면 취소할 수 있습니다.",
+    deleteError: "계정을 삭제하지 못했습니다.",
     deletion: "계정 삭제 대기",
-    deletionInfo:
-      "계정이 아래 날짜에 삭제될 예정입니다. 삭제를 취소하면 계정을 계속 사용할 수 있습니다.",
+    deletionInfo: "아래 날짜에 계정이 삭제됩니다. 계속 사용하려면 삭제를 취소해 주세요.",
     restore: "삭제 취소",
-    restoreError:
-      "삭제를 취소하지 못했습니다. 삭제 예정일을 확인하고 Google로 다시 로그인해 주세요.",
+    restoreError: "삭제를 취소하지 못했습니다. 같은 Google 계정으로 다시 로그인해 주세요.",
     anonymous: "익명 {id}",
     verified: "Google 계정 연결됨",
-    nameLimit:
-      "닉네임은 24시간에 한 번 변경할 수 있습니다. 이미지는 언제든 변경할 수 있습니다."
+    nameLimit: "닉네임은 24시간에 한 번, 프로필 이미지는 언제든 변경할 수 있습니다."
   },
 
   setup: {
@@ -114,7 +150,7 @@ export default {
     nameChecking: "닉네임을 확인하고 있습니다.",
     nameAvailable: "사용 가능한 닉네임입니다.",
     nameUnavailable: "이미 사용 중인 닉네임입니다.",
-    nameInvalid: "닉네임은 2자 이상 20자 이하로 " + "입력해 주세요.",
+    nameInvalid: "닉네임은 2~20자로 입력해 주세요.",
     nameCheckError: "닉네임을 확인하지 못했습니다.",
     email: "이메일",
     emailPlaceholder: "이메일",
@@ -171,13 +207,14 @@ export default {
     ownerConfirm: "이 참여자에게 방장을 위임할까요?",
     endConfirm: "대화를 종료할까요? 종료 후에는 메시지를 보낼 수 없습니다.",
     title: "참여자 ({count}명)",
-    block: "차단하기",
-    unblock: "차단 해제",
+    block: "사용자 차단하기",
+    unblock: "사용자 차단 해제",
     blockConfirm: "이 사용자를 차단할까요?",
     leaveConfirm: "방을 나갈까요? 나가면 대화가 종료됩니다.",
     unavailable: "대화가 불가능한 방입니다",
     blocked: "차단한 사용자입니다",
     events: {
+      contact: "문의가 종료되었습니다.",
       enter: "{members}님이 입장했습니다.",
       invite: "{actor}님이 {targets}님을 초대했습니다.",
       remove: "{actor}님이 {targets}님을 내보냈습니다.",
@@ -209,7 +246,7 @@ export default {
     inbox: "메신저",
     refused: "상대방이 메시지 수신을 허용하지 않았습니다.",
     offline: "상대방이 접속 중일 때 귓속말을 보낼 수 있습니다.",
-    error: "메시지를 불러오거나 보내지 못했습니다. 다시 시도해 주세요.",
+    error: "메시지를 불러오거나 보내지 못했습니다.",
     muted: "채팅 금지 중에는 메시지를 보낼 수 없습니다.",
     more: "이전 메신저 보기"
   },
@@ -221,8 +258,7 @@ export default {
     messenger: "메신저",
     message: "메시지",
     attach: {
-      clipboard:
-        "이미지 데이터를 읽지 못했습니다. GIF를 파일로 저장한 뒤 첨부해 주세요.",
+      clipboard: "이미지 데이터를 읽지 못했습니다.",
       limit: "첨부는 메시지당 최대 10개까지 추가할 수 있습니다.",
       description: "이미지 설명",
       spoiler: "스포일러 표시",
@@ -247,15 +283,15 @@ export default {
       stop: "녹음 마치기",
       hint: "최대 60초 동안 녹음할 수 있습니다.",
       text: "음성으로 보낼 내용을 입력하세요. (최대 500자)",
-      error: "음성을 처리하지 못했습니다. 다시 시도해 주세요.",
+      error: "음성을 처리하지 못했습니다.",
       size: "음성은 15MB 이하만 전송할 수 있습니다.",
       message: "음성 메시지"
     },
-    hidden: "{name}님의 채팅이 지금부터 보이지 않습니다.",
-    shown: "{name}님의 채팅이 다시 보이기 시작합니다.",
-    entered: "채팅에 입장하였습니다.",
-    muteNotice: "{name}님이 채팅 금지 {count}회가 되셨습니다.",
-    kickNotice: "{name}님이 강제 퇴장 되셨습니다.",
+    hidden: "{name}님의 채팅을 숨겼습니다.",
+    shown: "{name}님의 채팅을 다시 표시합니다.",
+    entered: "채팅에 입장했습니다.",
+    muteNotice: "{name}님의 채팅 금지 횟수가 {count}회가 되었습니다.",
+    kickNotice: "{name}님이 강제 퇴장되었습니다.",
     unkickNotice: "{name}님의 강제 퇴장이 해제되었습니다.",
     unblockNotice: "{name}님의 영구 차단이 해제되었습니다.",
     countdown: "{seconds}초",
@@ -267,7 +303,7 @@ export default {
     blockTitle: "이용이 제한되었습니다.",
     kickDetail: "{handler}님에 의해 현재 채팅에서 퇴장 처리되었습니다.",
     blockDetail: "{handler}님에 의해 서비스 이용이 제한되었습니다.",
-    muted: "채팅 금지 중입니다. 제한 시간이 지나면 다시 입력할 수 있습니다.",
+    muted: "채팅 제한이 끝나면 다시 입력할 수 있습니다.",
     previous: "이전 메시지",
     next: "이후 메시지",
     latest: "최근 대화",
@@ -306,18 +342,18 @@ export default {
       clear: "내용 지우기",
       unavailable: "일부 이모티콘 목록을 갱신하지 못했습니다."
     },
-    loadFailed: "대화를 불러오지 못했습니다. 다시 시도해 주세요.",
+    loadFailed: "대화를 불러오지 못했습니다.",
     unavailable: "이 메시지를 조회할 수 없습니다.",
-    sendFailed:
-      "메시지를 저장하지 못했습니다. 입력 내용을 확인하고 다시 시도해 주세요.",
+    sendFailed: "메시지를 저장하지 못했습니다.",
     tooLong: "메시지는 2,000자까지 입력할 수 있습니다.",
-    rate: "메시지를 너무 자주 보냈습니다. 잠시 후 다시 시도해 주세요.",
+    rate: "메시지를 너무 자주 보냈습니다.",
     copied: "복사했습니다.",
     saveFailed: "이미지를 저장하지 못했습니다.",
     copyFailed: "복사하지 못했습니다.",
     removeTitle: "메시지를 삭제할까요?",
     removeSuccess: "메시지를 삭제했습니다.",
     removeFailed: "메시지를 삭제하지 못했습니다.",
+    today: "오늘",
     yesterday: "어제",
     action: {
       copyText: "텍스트 복사하기",
@@ -356,7 +392,7 @@ export default {
     processing: "처리 중",
     permission: {
       heading: "마이크 권한 필요",
-      message: "음성 인식을 사용하려면 " + "마이크 권한을 허용해 주세요.",
+      message: "마이크 권한을 허용해 주세요.",
       confirm: "확인"
     }
   },
@@ -368,7 +404,7 @@ export default {
     push: "푸시 알림",
     permission: {
       heading: "알림 권한 필요",
-      message: "푸시 알림을 받으려면 " + "알림 권한을 허용해 주세요.",
+      message: "알림 권한을 허용해 주세요.",
       confirm: "확인"
     }
   },
@@ -385,9 +421,9 @@ export default {
     language: "언어",
     theme: "테마",
     storage: "저장 공간",
-    error: "설정을 적용하지 못했습니다. 다시 시도해 주세요.",
+    error: "설정을 적용하지 못했습니다.",
     contact: "문의하기",
-    contactInfo: "궁금한 점이나 불편한 점을 이메일로 보내 주세요.",
+    contactInfo: "궁금한 점이나 불편한 점을 남겨 주세요.",
     version: "버전",
     unavailable: "지원하지 않음",
     deviceSettings: "기기 설정",
@@ -395,25 +431,26 @@ export default {
     rename: "이름 변경",
     disconnect: "연결 해제",
     unregister: "등록 해제",
-    disconnectInfo: "이 기기의 알림 연결을 중지할까요? 기기는 목록에 남습니다.",
-    unregisterInfo:
-      "이 기기의 알림 등록을 삭제할까요? 다시 받으려면 해당 기기에서 등록해야 합니다.",
+    disconnectInfo: "이 기기의 알림 연결을 중지할까요?",
+    unregisterInfo: "이 기기의 알림 등록을 삭제할까요?",
     blocked: "알림 권한이 차단되어 있습니다",
-    blockedInfo:
-      "브라우저의 사이트 설정에서 알림을 허용한 뒤 다시 활성화해 주세요. 다른 기기의 알림 권한에는 영향을 주지 않습니다.",
+    blockedInfo: "브라우저의 사이트 설정에서 알림을 허용한 뒤 다시 활성화해 주세요.",
     chat: "채팅 알림",
     mention: "멘션 알림",
     web: "푸시 알림",
     unnamed: "이름 없는 기기"
   },
 
-  theme: {
-    system: "시스템",
-    light: "라이트",
-    dark: "다크",
-    black: "블랙",
-    brightness: "밝기"
+  contact: {
+    title: "{name}님의 문의",
+    waiting: "배정 대기",
+    handler: "담당자",
+    end: "문의 종료",
+    endConfirm: "문의를 종료할까요?",
+    close: "닫기"
   },
+
+  theme: { system: "시스템", light: "라이트", dark: "다크", black: "블랙", brightness: "밝기" },
 
   language: { system: "시스템", ko: "한국어" },
 
@@ -427,6 +464,7 @@ export default {
     media: "미디어",
     notify: "알림",
     tts: "음성",
+    preview: "안녕하세요 TTS 입니다",
     system: "시스템"
   },
 
@@ -596,17 +634,13 @@ export default {
 
         google: {
           name: "Google 로그인 및 프로필",
-          data:
-            "Google 계정정보, 이메일, 이름, 프로필 사진, " +
-            "서비스 이용에 필요한 프로필 정보",
+          data: "Google 계정정보, 이메일, 이름, 프로필 사진, " + "서비스 이용에 필요한 프로필 정보",
           purpose: "계정 연결, 로그인 유지와 프로필 제공"
         },
 
         chat: {
           name: "채팅 및 메신저",
-          data:
-            "메시지, 대화 참여정보, 이미지, 파일, 음성 등 " +
-            "이용자가 전송한 내용",
+          data: "메시지, 대화 참여정보, 이미지, 파일, 음성 등 " + "이용자가 전송한 내용",
           purpose: "대화와 첨부 콘텐츠 전달 및 표시"
         },
 
@@ -696,10 +730,7 @@ export default {
             "임시 정보는 사용이 끝나거나 일정 시간이 지나면 삭제합니다."
         },
 
-        contact: {
-          name: "문의",
-          period: "문의와 요청을 처리하는 데 필요한 기간 동안 보관합니다."
-        }
+        contact: { name: "문의", period: "문의와 요청을 처리하는 데 필요한 기간 동안 보관합니다." }
       }
     },
     deletion: {
@@ -754,11 +785,7 @@ export default {
           data: "알림 전달정보, 기기 등록정보와 알림 내용"
         },
 
-        giphy: {
-          name: "GIPHY",
-          purpose: "GIF 및 스티커 제공",
-          data: "검색 및 콘텐츠 요청정보"
-        },
+        giphy: { name: "GIPHY", purpose: "GIF 및 스티커 제공", data: "검색 및 콘텐츠 요청정보" },
 
         soop: {
           name: "SOOPLIVE 및 OGQ",
@@ -766,11 +793,7 @@ export default {
           data: "이모티콘 및 이미지 요청정보"
         },
 
-        mail: {
-          name: "Gmail",
-          purpose: "이메일 문의",
-          data: "이메일, 문의 내용과 첨부자료"
-        }
+        mail: { name: "Gmail", purpose: "이메일 문의", data: "이메일, 문의 내용과 첨부자료" }
       }
     },
 
@@ -846,8 +869,7 @@ export default {
     changes: {
       title: "제11조 (개인정보 처리방침 변경)",
       description:
-        "개인정보 처리방침이 변경되면 적용일과 중요한 변경 내용을 " +
-        "서비스를 통해 안내합니다."
+        "개인정보 처리방침이 변경되면 적용일과 중요한 변경 내용을 " + "서비스를 통해 안내합니다."
     }
   },
 
@@ -856,13 +878,13 @@ export default {
     message: "메시지 신고",
     reason: "신고 사유",
     detail: "추가 설명 (최대 1000자)",
-    spam: "스팸 · 광고",
-    abuse: "욕설 · 괴롭힘",
+    spam: "스팸 및 광고",
+    abuse: "욕설 및 괴롭힘",
     privacy: "개인정보 침해",
     other: "기타",
     send: "신고 접수",
     success: "신고가 접수되었습니다.",
-    error: "신고하지 못했습니다. 대상을 확인하거나 다시 시도해 주세요.",
+    error: "신고하지 못했습니다.",
     inbox: "신고함",
     all: "전체 신고",
     target: "신고 대상",
@@ -882,8 +904,7 @@ export default {
     users: "사용자 검색",
     status: "서비스 상태",
     database: "DB 관리",
-    readonly:
-      "읽기 전용입니다. 사용자 제재와 신고 처리는 해당 관리 기능을 이용해주세요.",
+    readonly: "읽기 전용입니다.",
     search: "검색",
     filter: "필터 값 (정확히 일치)",
     all: "전체 필드",

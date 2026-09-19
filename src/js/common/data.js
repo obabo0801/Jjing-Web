@@ -16,10 +16,7 @@ const clearRequests = () => {
       const database = request.result;
 
       if (!database.objectStoreNames.contains("requests")) {
-        database.createObjectStore("requests", {
-          keyPath: "id",
-          autoIncrement: true
-        });
+        database.createObjectStore("requests", { keyPath: "id", autoIncrement: true });
       }
     };
 
@@ -30,6 +27,7 @@ const clearRequests = () => {
 
       const finish = (success) => {
         if (finished) return;
+
         finished = true;
         database.close();
         resolve(success);
@@ -46,6 +44,7 @@ const clearRequests = () => {
         finish(false);
       }
     };
+
     request.onerror = () => resolve(false);
   });
 };
@@ -65,11 +64,7 @@ export const sizeData = async () => {
 export const sizeAll = async () => {
   const [cookie, data] = await Promise.all([sizeCookie(), sizeData()]);
 
-  return {
-    cookie: format(cookie),
-    data: format(data),
-    total: format(cookie + data)
-  };
+  return { cookie: format(cookie), data: format(data), total: format(cookie + data) };
 };
 
 export const clearCookie = async () => {
@@ -81,25 +76,14 @@ export const clearCookie = async () => {
 export const clearData = async () => {
   const cache = async () => {
     if ("caches" in window) await caches.delete("offline");
+
     // 캐시가 이미 없는 경우도 삭제 완료입니다.
     return true;
   };
 
-  const results = await Promise.allSettled([
-    storage.clear(),
-    cache(),
-    clearRequests()
-  ]);
+  const results = await Promise.allSettled([storage.clear(), cache(), clearRequests()]);
 
-  return results.every(
-    (result) => result.status === "fulfilled" && result.value === true
-  );
+  return results.every((result) => result.status === "fulfilled" && result.value === true);
 };
 
-export default Object.freeze({
-  sizeCookie,
-  sizeData,
-  sizeAll,
-  clearCookie,
-  clearData
-});
+export default Object.freeze({ sizeCookie, sizeData, sizeAll, clearCookie, clearData });

@@ -6,5 +6,6 @@ export default async (req, res, next) => {
 
   req.uid = user?.uid || "";
   if (user?.legacy) await session.remember(res, user.uid);
+
   next();
 };

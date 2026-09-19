@@ -11,16 +11,17 @@ export default async function draw(anchor, send) {
   let pointer = null;
 
   if (!context) return;
+
   root.className = "chatting-draw";
   dom.set(root, "data-drag", "none");
   canvas.width = canvas.height = 1024;
   root.append(canvas);
+
   const release = () => {
     const id = pointer;
 
     pointer = null;
-    if (id !== null && canvas.hasPointerCapture(id))
-      canvas.releasePointerCapture(id);
+    if (id !== null && canvas.hasPointerCapture(id)) canvas.releasePointerCapture(id);
   };
 
   const clear = () => {
@@ -43,6 +44,7 @@ export default async function draw(anchor, send) {
 
   const move = (event) => {
     if (event.pointerId !== pointer) return;
+
     context.lineTo(...point(event));
     context.stroke();
   };
@@ -50,8 +52,10 @@ export default async function draw(anchor, send) {
   const off = [
     dom.on(canvas, "pointerdown", (event) => {
       if (pointer !== null || event.button !== 0) return;
+
       pointer = event.pointerId;
       canvas.setPointerCapture(pointer);
+
       const [x, y] = point(event);
 
       context.beginPath();
@@ -63,6 +67,7 @@ export default async function draw(anchor, send) {
     dom.on(canvas, "pointermove", move),
     dom.on(canvas, "pointerup", (event) => {
       if (event.pointerId !== pointer) return;
+
       move(event);
       release();
     }),
@@ -89,9 +94,11 @@ export default async function draw(anchor, send) {
           data: ["data-confirm"],
           run: () => {
             release();
+
             return new Promise((resolve) =>
               canvas.toBlob((blob) => {
                 if (!blob) toast({ text: "image.loadError", type: "error" });
+
                 resolve(blob || false);
               }, "image/png")
             );

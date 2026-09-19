@@ -55,10 +55,7 @@ function sample(path, count = 32) {
     if (moved + size >= gap) {
       const rate = (gap - moved) / size;
 
-      point = {
-        x: point.x + (next.x - point.x) * rate,
-        y: point.y + (next.y - point.y) * rate
-      };
+      point = { x: point.x + (next.x - point.x) * rate, y: point.y + (next.y - point.y) * rate };
       result.push(point);
       moved = 0;
     } else {
@@ -173,6 +170,7 @@ function trigger(event) {
 function touchStart(event) {
   if (event.touches.length !== 1) {
     reset();
+
     return;
   }
 
@@ -205,9 +203,7 @@ function touchEnd(event) {
     return;
   }
 
-  const touch = [...event.changedTouches].find(
-    (item) => item.identifier === id
-  );
+  const touch = [...event.changedTouches].find((item) => item.identifier === id);
 
   if (!touch) {
     return;
@@ -282,6 +278,7 @@ function unwatch() {
   offs.forEach((remove) => {
     remove();
   });
+
   offs = [];
   reset();
 }

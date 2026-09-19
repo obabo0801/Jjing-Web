@@ -14,6 +14,7 @@ export default function date(input) {
 
   root.className = "picker";
   input.type = "hidden";
+
   const columns = limits.map(([min, max], index) => {
     const column = dom.create("div");
 
@@ -30,27 +31,29 @@ export default function date(input) {
       separator.textContent = "-";
       root.append(separator);
     }
+
     return column;
   });
 
   const sync = () => {
-    const [year, month, day] = columns.map((column) =>
-      Number(dom.get(column, "data-value"))
-    );
+    const [year, month, day] = columns.map((column) => Number(dom.get(column, "data-value")));
     const max = new Date(Date.UTC(year, month, 0)).getUTCDate();
 
     if (Number(dom.get(columns[2], "data-max")) !== max) {
       dom.set(columns[2], "data-max", max);
       picker.update(columns[2]);
     }
+
     dom.set(columns[2], "data-value", Math.min(day, max));
     input.value = [year, month, Math.min(day, max)]
       .map((value, index) => String(value).padStart(index ? 2 : 4, "0"))
       .join("-");
+
     input.dispatchEvent(new Event("input", { bubbles: true }));
   };
 
   columns.forEach((column) => dom.on(column, "change", sync));
   sync();
+
   return root;
 }

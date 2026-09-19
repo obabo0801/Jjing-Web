@@ -1,10 +1,11 @@
 import * as dom from "#common/dom";
 import * as i18n from "#common/i18n";
 
-const key = "chatting.yesterday";
+const today = "chatting.today";
+const yesterday = "chatting.yesterday";
 const duration = 86_400_000;
 
-i18n.preload(key);
+i18n.preload(today, yesterday);
 
 const parse = (value) => {
   if (value instanceof Date || typeof value === "number") {
@@ -17,21 +18,24 @@ const parse = (value) => {
     return new Date();
   }
 
-  return new Date(
-    source.includes("T") ? source : `${source.replace(" ", "T")}+09:00`
-  );
+  return new Date(source.includes("T") ? source : `${source.replace(" ", "T")}+09:00`);
 };
 
 export const day = (value) =>
   new Date(parse(value).getTime() + 9 * 3600000).toISOString().slice(0, 10);
 
-export const label = (value) =>
-  new Intl.DateTimeFormat(dom.root.lang || navigator.language, {
+export const label = (value) => {
+  const source = parse(value);
+
+  if (day(source) === day(new Date())) return i18n.message(today);
+
+  return new Intl.DateTimeFormat(dom.root.lang || navigator.language, {
     timeZone: "Asia/Seoul",
     year: "numeric",
     month: "long",
     day: "numeric"
-  }).format(parse(value));
+  }).format(source);
+};
 
 export const stamp = (value) => {
   const result = parse(value).getTime();
@@ -71,7 +75,7 @@ export const format = (value) => {
   }
 
   if (passed === 1) {
-    return `${i18n.message(key)} ${clock}`.trim();
+    return `${i18n.message(yesterday)} ${clock}`.trim();
   }
 
   const full = day(source);

@@ -1,12 +1,14 @@
 import * as dom from "#common/dom";
+import api from "#common/api";
+import * as events from "#common/events";
 import * as i18n from "#common/i18n";
 import popover from "#common/popover";
 import legal from "#common/legal";
-import api from "#common/api";
 import toast from "#common/toast";
 import dialog from "#common/dialog";
 import * as route from "#common/route";
 import * as profile from "#common/profile";
+import * as navigation from "#common/login/history";
 import { user } from "#shared/route";
 
 route.register("login", () => login());
@@ -22,19 +24,19 @@ const google = () => {
     matchMedia("(display-mode: minimal-ui)").matches;
 
   if (standalone || typeof BroadcastChannel === "undefined") {
-    location.assign(url);
+    navigation.reset(url);
+
     return;
   }
+
   if (popup && !popup.closed) {
     popup.focus();
+
     return;
   }
-  popup = window.open(
-    `${url}&popup=1`,
-    "jjing-login",
-    "popup,width=500,height=700"
-  );
-  if (!popup) location.assign(url);
+
+  popup = window.open(`${url}&popup=1`, "jjing-login", "popup,width=500,height=700");
+  if (!popup) navigation.reset(url);
 };
 
 i18n.preload(
@@ -63,31 +65,30 @@ export const pending = async () => {
   const text = dom.create("p");
   const time = dom.create("time");
 
-  dom.set(text, "data-i18n", "profile.deletionInfo");
   text.textContent = i18n.message("profile.deletionInfo");
+  dom.set(text, "data-i18n", "profile.deletionInfo");
   time.dateTime = new Date(date).toISOString();
   time.textContent = new Intl.DateTimeFormat(document.documentElement.lang, {
     dateStyle: "long",
     timeStyle: "short"
   }).format(date);
+
   content.append(text, time);
   await dialog({
     title: "profile.deletion",
     content,
     direction: "→",
     actions: [
-      { text: "profile.cancel", value: false, data: ["data-neutral"] },
+      { text: "profile.cancel", icon: "close", value: false, data: ["data-neutral"] },
       {
         text: "profile.restore",
         icon: "check",
         run: async () => {
-          const result = await api(`${user}/account`, {
-            method: "POST",
-            data: {}
-          });
+          const result = await api(`${user}/account`, { method: "POST", data: {} });
 
-          if (result.ok) location.replace("/");
+          if (result.ok) navigation.reset();
           else toast({ title: "profile.restoreError", type: "error" });
+
           return result.ok;
         }
       }
@@ -103,16 +104,19 @@ export const links = () => {
     const link = dom.create("a");
 
     link.href = `/${name}`;
-    dom.set(link, "data-i18n", `${name}.title`);
     link.textContent = i18n.message(`${name}.title`);
+    dom.set(link, "data-i18n", `${name}.title`);
+
     dom.on(link, "click", (event) => {
-      if (event.ctrlKey || event.metaKey || event.shiftKey || event.altKey)
-        return;
+      if (event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
+
       event.preventDefault();
       legal(name);
     });
+
     root.append(link);
   }
+
   return root;
 };
 
@@ -122,18 +126,17 @@ export const remove = async () => {
     content: "profile.deleteInfo",
     direction: "→",
     actions: [
-      { text: "profile.cancel", value: false, data: ["data-neutral"] },
+      { text: "profile.cancel", icon: "close", value: false, data: ["data-neutral"] },
       {
         text: "profile.delete",
+        icon: "trash",
         data: ["data-danger"],
         run: async () => {
-          const result = await api(`${user}/account`, {
-            method: "DELETE",
-            data: {}
-          });
+          const result = await api(`${user}/account`, { method: "DELETE", data: {} });
 
-          if (result.ok) location.assign("/");
+          if (result.ok) navigation.reset();
           else toast({ title: "profile.deleteError", type: "error" });
+
           return result.ok;
         }
       }
@@ -142,14 +145,21 @@ export const remove = async () => {
 };
 
 export const logout = async () => {
-  const result = await api(`${user}/logout`, { method: "POST", data: {} });
+  const session = events.suspend();
+  const result = await api(`${user}/logout`, { method: "POST", data: { session } });
 
-  if (result.ok) location.assign("/");
-  else toast({ title: "login.error", type: "error" });
+  if (result.ok) {
+    navigation.reset();
+
+    return;
+  }
+
+  events.resume();
+  toast({ title: "login.error", type: "error" });
 };
 
 export default async function login(anchor) {
-  const result = await profile.read();
+  const result = await profile.read("me", { fresh: true });
 
   if (!result.ok || result.data?.verified) return false;
   const root = dom.create("div");
@@ -159,23 +169,26 @@ export default async function login(anchor) {
   root.className = "login";
   button.className = "login-google";
   button.type = "button";
+  dom.set(button, "data-shadow", "");
   dom.set(button, "data-icon", "google");
   dom.set(button, "data-color", "");
   dom.set(button, "data-circle", "");
-  dom.set(button, "data-shadow", "");
+  dom.set(button, "data-scale", "");
   dom.set(button, "data-tooltip", "login.google");
+  dom.set(button, "data-response", "");
   dom.on(button, "click", google);
-  dom.set(text, "data-i18n", "login.google");
+
   text.textContent = i18n.message("login.google");
+  dom.set(text, "data-i18n", "login.google");
   button.append(text);
   root.append(button, links());
+
   return popover({
     route: ["login", ""],
     title: "login.title",
     anchor,
     content: root,
-    back: true,
-    fullscreen: true,
+    blur: true,
     direction: "→"
   });
 }

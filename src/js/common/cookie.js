@@ -2,9 +2,7 @@ const ONE_YEAR = 31_536_000;
 
 export const get = (key) => {
   const prefix = `${encodeURIComponent(key)}=`;
-  const cookie = document.cookie
-    .split("; ")
-    .find((item) => item.startsWith(prefix));
+  const cookie = document.cookie.split("; ").find((item) => item.startsWith(prefix));
 
   return cookie ? decodeURIComponent(cookie.slice(prefix.length)) : null;
 };

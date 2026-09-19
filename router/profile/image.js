@@ -13,10 +13,7 @@ import account from "#middleware/account";
 
 const router = Router();
 
-const upload = raw({
-  type: ["image/jpeg", "image/png", "image/webp", "image/gif"],
-  limit: max
-});
+const upload = raw({ type: ["image/jpeg", "image/png", "image/webp", "image/gif"], limit: max });
 
 const links = rate(10);
 
@@ -40,6 +37,7 @@ const saveImage = async (uid, body, edit = null, token = "") => {
   if (!image) {
     return null;
   }
+
   for (const file of [image.original, image.resizing])
     await run("INSERT OR IGNORE INTO profile_file VALUES (?, ?)", [uid, file]);
 
@@ -85,12 +83,7 @@ router.post("/image", account, upload, async (req, res) => {
     return res.status(400).end();
   }
 
-  const image = await saveImage(
-    uid,
-    req.body,
-    readEdit(req),
-    req.get("x-profile-draft")
-  );
+  const image = await saveImage(uid, req.body, readEdit(req), req.get("x-profile-draft"));
 
   if (!image) {
     return res.status(415).end();
@@ -106,6 +99,7 @@ router.post("/image/link/:token/use", account, async (req, res) => {
 
   if (!uid || !item || item.uid !== uid) {
     profile.remove(value);
+
     return res.status(404).end();
   }
 
@@ -114,10 +108,8 @@ router.post("/image/link/:token/use", account, async (req, res) => {
   }
 
   await data.clear();
-  const draft = await get(
-    "SELECT 1 FROM user WHERE uid = ? AND draft IS NOT NULL",
-    [uid]
-  );
+
+  const draft = await get("SELECT 1 FROM user WHERE uid = ? AND draft IS NOT NULL", [uid]);
 
   if (!draft) {
     return res.status(409).end();

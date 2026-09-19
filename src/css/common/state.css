@@ -1,0 +1,18 @@
+[data-background] {
+  background: var(--background);
+}
+
+[data-blur] {
+  background: color-mix(in srgb, var(--background) 20%, transparent);
+
+  -webkit-backdrop-filter: blur(2px);
+  backdrop-filter: blur(2px);
+}
+
+[data-border] {
+  border: 1px solid var(--border);
+}
+
+[data-shadow] {
+  box-shadow: var(--shadow);
+}

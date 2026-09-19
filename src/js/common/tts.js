@@ -3,28 +3,31 @@ import { tts as route } from "#shared/route";
 import * as dom from "#common/dom";
 import { context, level } from "#common/audio";
 import string from "#shared/string";
+import caption from "./caption.js";
 
 const buffers = new Map();
 const logged = new Set();
 const requests = new Set();
 const sources = new Map();
+const volumes = new WeakMap();
+const waits = new WeakMap();
+const live = new Set();
+const calls = new Set();
 
 let token = 0;
 
 const synth = window.speechSynthesis;
 
-export const busy = () =>
-  Boolean(requests.size || sources.size || synth?.speaking || synth?.pending);
+export const busy = () => Boolean(calls.size || live.size || synth?.speaking || synth?.pending);
+
+export const sync = () => {
+  for (const gain of sources.values()) {
+    gain.gain.value = level("tts", volumes.get(gain));
+  }
+};
 
 const key = (text, { lang, pitch, rate, voice, type }) =>
-  JSON.stringify({
-    text,
-    lang,
-    pitch,
-    rate,
-    voice: voice || "",
-    type: type || ""
-  });
+  JSON.stringify({ text, lang, pitch, rate, voice: voice || "", type: type || "" });
 
 const record = (text, options) => {
   const id = key(text, options);
@@ -49,6 +52,62 @@ const record = (text, options) => {
     });
 };
 
+// Each playback owns its caption; stopping TTS leaves manual captions alone.
+const watch = (source, text, options, audio) => {
+  const off = [];
+
+  let item;
+  let closed = false;
+  let finish;
+
+  const done = new Promise((resolve) => {
+    finish = resolve;
+  });
+
+  const open = () => {
+    if (closed || item || options.caption === false) return;
+
+    const value = options.caption;
+    const style = value && typeof value === "object" ? value : {};
+
+    try {
+      item = caption({ text, ...style, duration: 0 });
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  const close = (smooth = true) => {
+    if (closed) return;
+
+    closed = true;
+    off.forEach((remove) => remove());
+    item?.close(smooth);
+    live.delete(close);
+    finish();
+  };
+
+  const event = audio ? "ended" : "end";
+
+  off.push(dom.on(source, event, close));
+  off.push(dom.on(source, "error", close));
+
+  if (audio) {
+    off.push(
+      dom.on(audio, "statechange", () => {
+        if (audio.state === "running") open();
+      })
+    );
+  } else {
+    off.push(dom.on(source, "start", open));
+  }
+
+  live.add(close);
+  waits.set(source, done);
+
+  return { open, close };
+};
+
 export const voices = () => synth?.getVoices() || [];
 
 const browser = (text, options, report = true) => {
@@ -66,7 +125,16 @@ const browser = (text, options, report = true) => {
   speech.rate = rate;
   speech.volume = level("tts", volume);
   speech.voice = selected || null;
-  synth.speak(speech);
+
+  const item = watch(speech, text, options);
+
+  try {
+    synth.speak(speech);
+  } catch {
+    item.close(false);
+
+    return null;
+  }
 
   if (report) {
     record(text, { ...options, voice: name, type: "browser" });
@@ -146,6 +214,7 @@ const remote = async (text, options) => {
   source.connect(gain);
   gain.connect(audio.destination);
   sources.set(source, gain);
+  volumes.set(gain, options.volume);
   dom.on(
     source,
     "ended",
@@ -159,67 +228,87 @@ const remote = async (text, options) => {
     },
     { once: true }
   );
-  source.start();
+
+  const item = watch(source, text, options, audio);
+
+  try {
+    source.start();
+
+    if (audio.state === "running") item.open();
+  } catch {
+    item.close(false);
+    sources.delete(source);
+    source.disconnect();
+    gain.disconnect();
+
+    return null;
+  }
 
   return source;
 };
 
 export async function speak(
   text,
-  { lang = dom.root.lang, pitch = 0, rate = 1, voice, volume = 1, type } = {}
+  {
+    lang = dom.root.lang,
+    pitch = 0,
+    rate = 1,
+    voice,
+    volume = 1,
+    type,
+    caption: display = true
+  } = {}
 ) {
   const value = string(text).trim();
 
-  if (!value) {
-    return null;
-  }
+  if (!value) return null;
 
-  const options = { lang, pitch, rate, voice, volume };
+  const options = { lang, pitch, rate, voice, volume, caption: display };
+  const id = token;
+  const task = {};
 
-  if (type === "cache") {
-    const saved = await remote(value, { ...options, type });
+  calls.add(task);
 
-    return saved || browser(value, options, false);
-  }
+  try {
+    if (type === "cache") {
+      const saved = await remote(value, { ...options, type });
 
-  if (type === "browser" || (!type && voice)) {
-    return browser(value, options);
-  }
+      if (id !== token) return null;
 
-  if (type === "cloud" || type === "google") {
-    return remote(value, { ...options, type });
-  }
-
-  const cloud = await remote(value, { ...options, type: "cloud" });
-
-  if (cloud) {
-    return cloud;
-  }
-
-  const local = browser(value, options);
-
-  if (local) {
-    return local;
-  }
-
-  return remote(value, { ...options, type: "google" });
-}
-
-export const wait = (source) =>
-  new Promise((resolve) => {
-    if (!source) {
-      resolve();
-      return;
+      return saved || browser(value, options, false);
     }
 
-    const event = "onend" in source ? "end" : "ended";
+    if (type === "browser" || (!type && voice)) {
+      return browser(value, options);
+    }
 
-    dom.on(source, event, resolve, { once: true });
-    dom.on(source, "error", resolve, { once: true });
-  });
+    if (type === "cloud" || type === "google") {
+      return await remote(value, { ...options, type });
+    }
+
+    const cloud = await remote(value, { ...options, type: "cloud" });
+
+    if (id !== token) return null;
+
+    if (cloud) return cloud;
+
+    const local = browser(value, options);
+
+    if (local) return local;
+
+    return await remote(value, { ...options, type: "google" });
+  } finally {
+    calls.delete(task);
+  }
+}
+
+// The completion promise also resolves after stop(), even without an end event.
+export const wait = (source) => waits.get(source) || Promise.resolve();
 
 export function stop() {
   token += 1;
+  calls.clear();
+  [...live].forEach((close) => close(false));
   synth?.cancel();
 
   for (const request of requests) {

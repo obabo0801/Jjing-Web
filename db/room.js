@@ -4,9 +4,7 @@ export default async function migrate(db) {
   const members = await db.all("PRAGMA table_info(room_member)");
 
   if (!members.some((item) => item.name === "deputy"))
-    await db.exec(
-      "ALTER TABLE room_member ADD COLUMN deputy INTEGER NOT NULL DEFAULT 0"
-    );
+    await db.exec("ALTER TABLE room_member ADD COLUMN deputy INTEGER NOT NULL DEFAULT 0");
   const columns = await db.all("PRAGMA table_info(room)");
 
   if (!columns.some((item) => item.name === "multiple")) {
@@ -22,27 +20,45 @@ export default async function migrate(db) {
       ALTER TABLE room_next RENAME TO room;
       COMMIT;`);
   }
-  await db.exec(`CREATE UNIQUE INDEX IF NOT EXISTS room_pair
-    ON room(first,second) WHERE multiple = 0`);
+
+  await db.exec(`
+    DROP INDEX IF EXISTS room_pair;
+    CREATE INDEX IF NOT EXISTS room_pair_lookup
+      ON room(first,second,multiple);
+  `);
+
   const pairs = await db.all(`SELECT DISTINCT
     min(sender,recipient) AS first, max(sender,recipient) AS second
     FROM message WHERE room IS NULL`);
 
   for (const pair of pairs) {
-    await db.run(`INSERT OR IGNORE INTO room(id,first,second) VALUES(?,?,?)`, [
-      randomUUID(),
-      pair.first,
-      pair.second
-    ]);
+    let room = await db.get(
+      `SELECT id FROM room
+      WHERE first = ? AND second = ? AND multiple = 0
+      ORDER BY rowid DESC LIMIT 1`,
+      [pair.first, pair.second]
+    );
+
+    if (!room) {
+      const id = randomUUID();
+
+      await db.run("INSERT INTO room(id,first,second) VALUES(?,?,?)", [
+        id,
+        pair.first,
+        pair.second
+      ]);
+
+      room = { id };
+    }
 
     await db.run(
-      `UPDATE message SET room = (SELECT id FROM room
-      WHERE first = ? AND second = ? AND multiple = 0)
+      `UPDATE message SET room = ?
       WHERE room IS NULL AND min(sender,recipient) = ?
       AND max(sender,recipient) = ?`,
-      [pair.first, pair.second, pair.first, pair.second]
+      [room.id, pair.first, pair.second]
     );
   }
+
   await db.exec(`
     INSERT OR IGNORE INTO room_member(room,uid,left,reason)
       SELECT id,first,CASE WHEN departed = first THEN closed END,

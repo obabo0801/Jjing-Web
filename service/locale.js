@@ -17,10 +17,7 @@ const flat = (value, prefix = "", result = {}) => {
 const dir = path.locales();
 
 const files = (await path.readdir(dir, { withFileTypes: true }))
-  .filter(
-    (file) =>
-      file.isFile() && /^([a-z]{2}(?:-[a-z0-9]+)?)\.js$/i.test(file.name)
-  )
+  .filter((file) => file.isFile() && /^([a-z]{2}(?:-[a-z0-9]+)?)\.js$/i.test(file.name))
   .sort((a, b) => a.name.localeCompare(b.name));
 const locales = {};
 

@@ -1,4 +1,5 @@
 import { publicId } from "#config/uid";
+
 export const schema = `
   CREATE TABLE IF NOT EXISTS audit.block (
     uid TEXT NOT NULL,

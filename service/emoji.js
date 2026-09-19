@@ -11,13 +11,12 @@ let unavailable = false;
 
 const source = (value) => {
   if (typeof value !== "string" || /[\\\s]/u.test(value)) return "";
+
   if (/^\/(?!\/)/.test(value)) return value;
   try {
     const url = new URL(value);
 
-    return url.protocol === "https:" && !url.username && !url.password
-      ? url.href
-      : "";
+    return url.protocol === "https:" && !url.username && !url.password ? url.href : "";
   } catch {
     return "";
   }
@@ -34,14 +33,14 @@ const normalize = (groups) => {
   const seen = new Set();
 
   return groups.slice(0, 40).flatMap((group) => {
-    if (typeof group?.title !== "string" || !Array.isArray(group.items))
-      return [];
+    if (typeof group?.title !== "string" || !Array.isArray(group.items)) return [];
     const items = group.items.slice(0, 1000).flatMap((item) => {
       const src = source(item?.src);
 
-      if (!src || !keyword.test(item?.keyword) || seen.has(item.keyword))
-        return [];
+      if (!src || !keyword.test(item?.keyword) || seen.has(item.keyword)) return [];
+
       seen.add(item.keyword);
+
       return [{ keyword: item.keyword, src, still: source(item.still) }];
     });
 
@@ -79,15 +78,12 @@ const refresh = async () => {
             still: image(item.staticFileName)
           }));
 
-        return {
-          title: group.title,
-          icon: items[0]?.still || items[0]?.src,
-          items
-        };
+        return { title: group.title, icon: items[0]?.still || items[0]?.src, items };
       })
     );
 
     if (!next.length) throw new Error("Empty emoji catalog");
+
     cached = next;
     unavailable = false;
     expires = Date.now() + 60 * 60 * 1000;
@@ -103,8 +99,10 @@ export default async function emoji() {
     pending ||= refresh().finally(() => {
       pending = undefined;
     });
+
     await pending;
   }
+
   return {
     groups: normalize([...config.groups, ...(config.soop ? cached : [])]),
     unavailable: config.soop && unavailable

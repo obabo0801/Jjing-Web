@@ -20,15 +20,10 @@ const signature = (provider, value) => {
     return value;
   }
 
-  return {
-    text: value.text,
-    lang: value.lang,
-    rate: value.rate < 0.75 ? 0.24 : 1
-  };
+  return { text: value.text, lang: value.lang, rate: value.rate < 0.75 ? 0.24 : 1 };
 };
 
-const voice = (provider, value) =>
-  provider === "cloud" ? value.voice || "default" : "default";
+const voice = (provider, value) => (provider === "cloud" ? value.voice || "default" : "default");
 
 const name = (provider, value) => {
   const data = signature(provider, value);
@@ -95,16 +90,11 @@ const cache = async (provider, value, options) => {
       .finally(() => {
         pending.delete(file);
       });
+
     pending.set(file, task);
   }
 
-  return {
-    audio: await task,
-    file,
-    provider,
-    voice: voice(provider, value),
-    cached
-  };
+  return { audio: await task, file, provider, voice: voice(provider, value), cached };
 };
 
 export default cache;

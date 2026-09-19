@@ -6,15 +6,11 @@ export const scroller = document.scrollingElement;
 
 export const create = (tag) => document.createElement(tag);
 
-export const svg = (tag) =>
-  document.createElementNS("http://www.w3.org/2000/svg", tag);
+export const svg = (tag) => document.createElementNS("http://www.w3.org/2000/svg", tag);
 
-export const query = (selector, target = document) =>
-  target?.querySelector(selector) ?? null;
+export const query = (selector, target = document) => target?.querySelector(selector) ?? null;
 
-export const all = (selector, target = document) => [
-  ...(target?.querySelectorAll(selector) ?? [])
-];
+export const all = (selector, target = document) => [...(target?.querySelectorAll(selector) ?? [])];
 
 // 전달한 요소 자체와 그 안의 요소를 함께 찾습니다.
 export const find = (selector, target = document) => [
@@ -22,8 +18,7 @@ export const find = (selector, target = document) => [
   ...all(selector, target)
 ];
 
-export const has = (name, target = root) =>
-  target?.classList.contains(name) ?? false;
+export const has = (name, target = root) => target?.classList.contains(name) ?? false;
 
 export const get = (target, name) => target?.getAttribute(name) ?? null;
 

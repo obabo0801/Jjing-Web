@@ -13,14 +13,7 @@ const request = [
   "\\#error"
 ];
 
-const backend = [
-  "\\#config/*",
-  "\\#build/*",
-  "\\#db*",
-  "\\#service/*",
-  ...request,
-  "node:*"
-];
+const backend = ["\\#config/*", "\\#build/*", "\\#db*", "\\#service/*", ...request, "node:*"];
 
 export default [
   { ignores: ["dist/**", "data/**", "node/**", ".codex*/**"] },
@@ -39,12 +32,7 @@ export default [
   { files: ["src/js/**/*.js"], languageOptions: { globals: globals.browser } },
   {
     files: ["server.js", "middleware/**/*.js", "router/**/*.js"],
-    rules: {
-      "no-restricted-imports": [
-        "error",
-        { patterns: [...browser, "\\#build/*"] }
-      ]
-    }
+    rules: { "no-restricted-imports": ["error", { patterns: [...browser, "\\#build/*"] }] }
   },
   {
     files: ["config/**/*.js", "db/**/*.js"],
@@ -58,10 +46,7 @@ export default [
   {
     files: ["service/**/*.js"],
     rules: {
-      "no-restricted-imports": [
-        "error",
-        { patterns: [...browser, ...request, "\\#build/*"] }
-      ]
+      "no-restricted-imports": ["error", { patterns: [...browser, ...request, "\\#build/*"] }]
     }
   },
   {
@@ -79,23 +64,14 @@ export default [
   },
   {
     files: ["src/js/common/**/*.js"],
-    rules: {
-      "no-restricted-imports": [
-        "error",
-        { patterns: [...backend, "\\#src/*", "\\#ui/*"] }
-      ]
-    }
+    rules: { "no-restricted-imports": ["error", { patterns: [...backend, "\\#src/*", "\\#ui/*"] }] }
   },
   {
     files: ["shared/**/*.js"],
-    rules: {
-      "no-restricted-imports": ["error", { patterns: [...backend, ...browser] }]
-    }
+    languageOptions: { globals: { URL: "readonly" } },
+    rules: { "no-restricted-imports": ["error", { patterns: [...backend, ...browser] }] }
   },
-  {
-    files: ["public/service-work.js"],
-    languageOptions: { globals: globals.serviceworker }
-  },
+  { files: ["public/service-work.js"], languageOptions: { globals: globals.serviceworker } },
   {
     files: ["**/*.js"],
     plugins: { "@stylistic": stylistic },
@@ -114,16 +90,10 @@ export default [
         { blankLine: "any", prev: ["const", "let"], next: ["const", "let"] },
         { blankLine: "always", prev: "let", next: "const" },
         { blankLine: "always", prev: "const", next: "let" },
-        {
-          blankLine: "always",
-          prev: "multiline-expression",
-          next: "multiline-expression"
-        },
-        {
-          blankLine: "always",
-          prev: "multiline-const",
-          next: "multiline-const"
-        }
+        { blankLine: "always", prev: "expression", next: ["const", "let"] },
+        { blankLine: "always", prev: "if", next: ["if", "expression"] },
+        { blankLine: "always", prev: "multiline-expression", next: "*" },
+        { blankLine: "always", prev: "multiline-const", next: "multiline-const" }
       ]
     }
   }

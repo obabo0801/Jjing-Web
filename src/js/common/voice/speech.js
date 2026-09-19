@@ -23,10 +23,12 @@ export const listen = (options) => {
   let text = "";
   let confidence = 0;
   let stopVisual = () => {};
+
   let stopped = false;
   let settled = false;
   let shown = false;
   let off = () => {};
+
   let resolveDone;
 
   const done = new Promise((resolve) => {
@@ -100,6 +102,7 @@ export const listen = (options) => {
   dom.on(recognition, "end", () => {
     if (keep && !stopped && !signal?.aborted) {
       setTimeout(start, 0);
+
       return;
     }
 

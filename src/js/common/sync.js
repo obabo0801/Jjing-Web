@@ -6,10 +6,7 @@ const openDatabase = () =>
       const database = request.result;
 
       if (!database.objectStoreNames.contains("requests")) {
-        database.createObjectStore("requests", {
-          keyPath: "id",
-          autoIncrement: true
-        });
+        database.createObjectStore("requests", { keyPath: "id", autoIncrement: true });
       }
     };
 
@@ -30,6 +27,7 @@ const saveRequest = async (value) => {
 
     const finish = (error) => {
       if (finished) return;
+
       finished = true;
       database.close();
       if (error) reject(error);
@@ -38,8 +36,7 @@ const saveRequest = async (value) => {
 
     try {
       const transaction = database.transaction("requests", "readwrite");
-      const fail = () =>
-        finish(transaction.error || new Error("Request queue save failed"));
+      const fail = () => finish(transaction.error || new Error("Request queue save failed"));
 
       transaction.oncomplete = () => finish();
       transaction.onerror = fail;

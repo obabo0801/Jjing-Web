@@ -24,6 +24,8 @@ export default function chattingProfile(target, options) {
     name.textContent = names.label(user);
     picture.set(user.avatar || options.avatar || "");
 
+    target.toggleAttribute("data-direct-blocked", Boolean(user.directBlocked));
+
     if (name.textContent && !name.isConnected) {
       root.append(name);
     } else if (!name.textContent) {

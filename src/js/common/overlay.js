@@ -31,7 +31,16 @@ export default function overlay(element) {
           ? "#000000"
           : `color-mix(in srgb, ${shade}, #000 ${percent}%)`;
 
-    return [{ backgroundColor: "transparent" }, { backgroundColor: color }];
+    const blur = element.hasAttribute("data-backdrop") ? "blur(2px)" : "blur(0px)";
+
+    return [
+      {
+        backgroundColor: "transparent",
+        backdropFilter: "blur(0px)",
+        webkitBackdropFilter: "blur(0px)"
+      },
+      { backgroundColor: color, backdropFilter: blur, webkitBackdropFilter: blur }
+    ];
   };
 
   const animation = () => {
@@ -81,6 +90,7 @@ export default function overlay(element) {
         paint(target);
         done();
         done = undefined;
+
         return;
       }
 
@@ -95,6 +105,7 @@ export default function overlay(element) {
 
         if (time < 1) {
           frame = requestAnimationFrame(run);
+
           return;
         }
 

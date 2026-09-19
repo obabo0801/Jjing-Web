@@ -7,8 +7,7 @@ const hashed = path.dist("assets");
 
 const assets = express.static(dist, {
   setHeaders(res, file) {
-    const fresh =
-      file.endsWith("service-work.js") || file.endsWith("manifest.json");
+    const fresh = file.endsWith("service-work.js") || file.endsWith("manifest.json");
 
     if (fresh) {
       res.setHeader("Cache-Control", "no-store");
@@ -19,10 +18,7 @@ const assets = express.static(dist, {
     }
 
     if (file.startsWith(hashed)) {
-      res.setHeader(
-        "Cache-Control",
-        "public, max-age=31536000, " + "immutable"
-      );
+      res.setHeader("Cache-Control", "public, max-age=31536000, " + "immutable");
     }
   }
 });

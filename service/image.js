@@ -33,11 +33,7 @@ export default async function store(data, folder, options) {
       }
     }
 
-    source = sharp(original, {
-      animated: true,
-      failOn: "error",
-      limitInputPixels: maxPixels
-    });
+    source = sharp(original, { animated: true, failOn: "error", limitInputPixels: maxPixels });
     metadata = await source.metadata();
   } catch {
     return null;
@@ -57,10 +53,7 @@ export default async function store(data, folder, options) {
 
   const animation =
     (metadata.pages || 1) > 1
-      ? {
-          loop: metadata.loop ?? 0,
-          ...(metadata.delay ? { delay: metadata.delay } : {})
-        }
+      ? { loop: metadata.loop ?? 0, ...(metadata.delay ? { delay: metadata.delay } : {}) }
       : {};
 
   const resized = await source

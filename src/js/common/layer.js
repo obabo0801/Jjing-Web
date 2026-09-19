@@ -12,6 +12,7 @@ import viewport from "#common/viewport";
 import fit from "#common/dialog/fit";
 import once from "#common/once";
 import * as button from "#common/button";
+import * as caption from "./caption.js";
 
 const reduce = matchMedia("(prefers-reduced-motion: reduce)");
 
@@ -35,15 +36,7 @@ const types = {
   sheet: "data-sheet"
 };
 const opening = once();
-const inputTypes = [
-  "text",
-  "email",
-  "password",
-  "search",
-  "tel",
-  "url",
-  "number"
-];
+const inputTypes = ["text", "email", "password", "search", "tel", "url", "number"];
 
 const text = (tag, name, key) => {
   const element = dom.create(tag);
@@ -60,6 +53,7 @@ const text = (tag, name, key) => {
 const insert = (target, content, name) => {
   if (content instanceof Node) {
     target.append(content);
+
     return;
   }
 
@@ -71,21 +65,27 @@ const action = (item, wearable) => {
   const button = dom.create("button");
 
   button.type = "button";
-  dom.set(button, "data-response", "");
+
+  if (item.head) {
+    button.className = "layer-action";
+    dom.set(button, "data-blur", "");
+  }
 
   data.forEach((value) => dom.set(button, value, ""));
 
   if ((wearable || item.head) && icon) {
-    dom.set(button, "data-circle", "");
     dom.set(button, "data-icon", icon);
+    dom.set(button, "data-circle", "");
+    dom.set(button, "data-scale", "");
   }
 
-  button.append(text("span", "layer-label", key));
   if (item.head) {
-    button.className = "layer-action";
     dom.set(button, "data-tooltip", key);
-    dom.set(button, "data-background", "");
   }
+
+  dom.set(button, "data-response", "");
+  button.append(text("span", "layer-label", key));
+
   return button;
 };
 
@@ -100,6 +100,17 @@ const build = (type, options) => {
   const element = dom.create("dialog");
 
   dom.set(element, types[type], "");
+  dom.set(element, "data-background", "");
+
+  if (options.blur) {
+    dom.set(element, "data-backdrop", "");
+  }
+
+  if (type !== "drawer") {
+    dom.set(element, "data-border", "");
+  }
+
+  dom.set(element, "data-shadow", "");
   dom.set(element, "closedby", "none");
 
   if (back) {
@@ -125,11 +136,12 @@ const build = (type, options) => {
   if (back) {
     back.type = "button";
     back.className = "layer-back";
-    dom.set(back, "data-circle", "");
-    dom.set(back, "data-background", "");
+    dom.set(back, "data-blur", "");
     dom.set(back, "data-icon", "arrow");
-    dom.set(back, "data-angle", "left");
+    dom.set(back, "data-circle", "");
+    dom.set(back, "data-scale", "");
     dom.set(back, "data-response", "");
+    dom.set(back, "data-angle", "left");
   }
 
   const heading = text("h2", `${name}-title`, title);
@@ -153,6 +165,7 @@ const build = (type, options) => {
   const footer = dom.create("footer");
 
   footer.className = "layer-actions";
+
   const buttons = actions.map((item) => action(item, wearable));
 
   if (submit >= 0) {
@@ -164,8 +177,7 @@ const build = (type, options) => {
     actions.forEach((item, index) => {
       const value = item.disabled;
 
-      buttons[index].disabled =
-        typeof value === "function" ? value() : Boolean(value);
+      buttons[index].disabled = typeof value === "function" ? value() : Boolean(value);
     });
   };
 
@@ -175,6 +187,7 @@ const build = (type, options) => {
   const headed = actions.some((item) => item.head);
 
   if (back) element.append(back);
+
   actions.forEach((item, index) => {
     (item.head ? element : footer).append(buttons[index]);
   });
@@ -194,6 +207,7 @@ const build = (type, options) => {
   }
 
   wrap.append(element);
+
   return { wrap, element, body, buttons, back, submit };
 };
 
@@ -216,22 +230,20 @@ const fade = (element, out = false) => {
   return Promise.all(animations);
 };
 
-const anchorRect = (anchor) =>
-  anchor instanceof Element ? anchor.getBoundingClientRect() : null;
+const anchorRect = (anchor) => (anchor instanceof Element ? anchor.getBoundingClientRect() : null);
 
 const origin = (element, anchor) => {
   const rect = anchorRect(anchor);
   const box = element.getBoundingClientRect();
   const { width, height } = box;
-  const scale = rect
-    ? Math.max(0.1, Math.min(rect.width / width, rect.height / height))
-    : 0.2;
+  const scale = rect ? Math.max(0.1, Math.min(rect.width / width, rect.height / height)) : 0.2;
 
   const x = rect ? rect.left + rect.width / 2 - box.left : width / 2;
 
   const y = rect ? rect.top + rect.height / 2 - box.top : height / 2;
 
   css.set(element, { "transform-origin": `${x}px ${y}px` });
+
   return scale;
 };
 
@@ -239,9 +251,7 @@ const enter = (element, type, anchor) => {
   const fullscreen = dom.get(element, "data-fullscreen") !== null;
 
   const scale =
-    type === "popover" && (!fullscreen || anchor instanceof Element)
-      ? origin(element, anchor)
-      : 1;
+    type === "popover" && (!fullscreen || anchor instanceof Element) ? origin(element, anchor) : 1;
 
   if (reduce.matches) {
     return null;
@@ -255,20 +265,14 @@ const enter = (element, type, anchor) => {
     drawer: [
       {
         transform:
-          dom.get(element, "data-side") === "right"
-            ? "translateX(100vw)"
-            : "translateX(-100vw)"
+          dom.get(element, "data-side") === "right" ? "translateX(100vw)" : "translateX(-100vw)"
       },
       { transform: "translateX(0)" }
     ],
     sheet: [{ transform: "translateY(100dvh)" }, { transform: "translateY(0)" }]
   }[type];
 
-  return element.animate(keyframes, {
-    duration: 240,
-    easing: "ease-out",
-    fill: "both"
-  });
+  return element.animate(keyframes, { duration: 240, easing: "ease-out", fill: "both" });
 };
 
 const length = (element, axis, screen = false) => {
@@ -282,9 +286,7 @@ const length = (element, axis, screen = false) => {
     return screen ? height : element.clientHeight;
   }
 
-  return screen
-    ? Math.hypot(width, height)
-    : Math.hypot(element.clientWidth, element.clientHeight);
+  return screen ? Math.hypot(width, height) : Math.hypot(element.clientWidth, element.clientHeight);
 };
 
 const strength = (element) => {
@@ -297,7 +299,7 @@ const strength = (element) => {
 };
 
 const dismiss = (element, options) => {
-  const { dir, close, finish, shade } = options;
+  const { dir, close, finish, shade, manual = false } = options;
   const arrow = resolve(dir);
 
   if (!arrow || !motions[arrow]) {
@@ -334,12 +336,14 @@ const dismiss = (element, options) => {
     new Promise((finish) => {
       cancel();
       done = finish;
+
       const from = progress;
 
       if (reduce.matches || from === target) {
         update(target);
         done();
         done = undefined;
+
         return;
       }
 
@@ -354,6 +358,7 @@ const dismiss = (element, options) => {
 
         if (time < 1) {
           frame = requestAnimationFrame(run);
+
           return;
         }
 
@@ -377,48 +382,88 @@ const dismiss = (element, options) => {
     return total ? Math.min(0.35, (size / total) * 0.35) : 0.35;
   };
 
-  const off = swipe(arrow, {
-    target: element,
-    ignore: pointer.blocked,
-    scroll: true,
-    length: () => length(element, axis, true),
-    ratio,
-    start: () => {
-      finish?.();
-      animation = element.animate(
-        [{ transform: "translate(0)" }, { transform: exit }],
-        { duration: 1000, fill: "both" }
-      );
-      animation.pause();
-      animation.currentTime = 0;
-      dom.set(element, "data-swipe", "");
-    },
-    move: update,
-    reach: () => vibrate.play(25),
-    end: async (complete) => {
-      dom.remove(element, "data-swipe");
-      await settle(complete ? 1 : 0);
+  let dead = false;
+  let reached = false;
+  let revision = 0;
 
-      if (complete) {
-        close(false, false);
-      }
-    }
-  });
+  const start = () => {
+    if (dead) return;
 
-  return () => {
-    off();
+    revision += 1;
     stop();
+    progress = 0;
+    reached = false;
+    finish?.();
+    animation = element.animate([{ transform: "translate(0)" }, { transform: exit }], {
+      duration: 1000,
+      fill: "both"
+    });
+
+    animation.pause();
+    animation.currentTime = 0;
+    dom.set(element, "data-swipe", "");
   };
+
+  const move = (value) => {
+    if (dead) return;
+    const next = Math.max(0, Math.min(1, value));
+    const active = next >= ratio();
+
+    if (manual && active && !reached) vibrate.play(25);
+
+    reached = active;
+    update(next);
+  };
+
+  const reset = () => {
+    revision += 1;
+    stop();
+    update(0);
+    dom.remove(element, "data-swipe");
+  };
+
+  const end = async (complete) => {
+    if (dead) return;
+
+    const id = ++revision;
+
+    dom.remove(element, "data-swipe");
+    await settle(complete ? 1 : 0);
+    if (dead || id !== revision) return;
+
+    if (complete) await close(false, false);
+    else reset();
+  };
+
+  const off = manual
+    ? () => {}
+    : swipe(arrow, {
+        target: element,
+        ignore: pointer.blocked,
+        scroll: true,
+        length: () => length(element, axis, true),
+        ratio,
+        start,
+        move,
+        reach: () => vibrate.play(25),
+        end
+      });
+
+  return Object.assign(
+    () => {
+      dead = true;
+      off();
+      stop();
+    },
+    { start, move, end, reset, ratio, size: () => length(element, axis, true) }
+  );
 };
 
 async function open(type, options) {
   const { actions = [], scroll } = options;
   const dialog = type === "dialog";
   const locked = options.locked === true;
-  const trigger =
-    document.activeElement instanceof HTMLElement
-      ? document.activeElement
-      : null;
+  const trigger = document.activeElement instanceof HTMLElement ? document.activeElement : null;
 
   const keyboard = trigger?.matches(":focus-visible") === true;
 
@@ -430,13 +475,13 @@ async function open(type, options) {
   mount(element);
 
   // 번역이 끝난 DOM을 재사용하는 호출만 대기를 생략합니다.
-  const translated =
-    options.translate === false || (await i18n.translate().catch(() => false));
+  const translated = options.translate === false || (await i18n.translate().catch(() => false));
 
   if (!translated) {
     css.remove(element);
     wrap.remove();
     await release();
+
     return false;
   }
 
@@ -506,6 +551,7 @@ async function open(type, options) {
         element.close();
       }
 
+      caption.raise();
       clearFocus();
       css.remove(element);
       wrap.remove();
@@ -516,10 +562,7 @@ async function open(type, options) {
       settle();
     };
 
-    const controls = [
-      back,
-      ...buttons.filter((_, index) => actions[index].head)
-    ].filter(Boolean);
+    const controls = [back, ...buttons.filter((_, index) => actions[index].head)].filter(Boolean);
 
     if (controls.length) {
       const shadow = () => {
@@ -532,6 +575,7 @@ async function open(type, options) {
       off.push(dom.on(element, "scroll", shadow, { passive: true }));
       shadow();
     }
+
     if (back) {
       off.push(
         dom.on(back, "click", () => {
@@ -561,11 +605,7 @@ async function open(type, options) {
           running = true;
 
           try {
-            const result = await item.run?.({
-              element,
-              button: buttons[index],
-              close
-            });
+            const result = await item.run?.({ element, button: buttons[index], close });
 
             if (item.close === false || result === false) {
               return;
@@ -634,6 +674,7 @@ async function open(type, options) {
 
             if (next) {
               next.focus();
+
               return;
             }
           }
@@ -652,9 +693,7 @@ async function open(type, options) {
 
     off.push(
       dom.on(element, "click", (event) => {
-        const button = event.target.closest?.(
-          "button:enabled[data-layer-action]"
-        );
+        const button = event.target.closest?.("button:enabled[data-layer-action]");
 
         if (!button || !element.contains(button)) {
           return;
@@ -692,6 +731,7 @@ async function open(type, options) {
     window.getSelection()?.removeAllRanges();
     element.showModal();
     release.open();
+    caption.raise();
 
     let overlayFrame;
 
@@ -726,7 +766,31 @@ async function open(type, options) {
 
     element.scrollTop = Number.isFinite(scroll) ? scroll : 0;
 
-    options.ready?.(element, close);
+    const transitions = new Map();
+    const gesture = {
+      finish: () => opening?.finish(),
+      slide: (direction, target = element) => {
+        if (closed || locked) return null;
+        const key = `${direction}:${target === element ? "layer" : "content"}`;
+
+        if (!transitions.has(key)) {
+          const motion = dismiss(target, {
+            dir: direction,
+            manual: true,
+            close,
+            finish: () => opening?.finish(),
+            shade: release.shade
+          });
+
+          transitions.set(key, motion);
+          off.push(motion);
+        }
+
+        return transitions.get(key);
+      }
+    };
+
+    options.ready?.(element, close, gesture);
 
     if (dialog) {
       off.push(fit(element));
@@ -737,8 +801,7 @@ async function open(type, options) {
 
     if (
       type === "popover" &&
-      (dom.get(element, "data-fullscreen") === null ||
-        options.anchor instanceof Element)
+      (dom.get(element, "data-fullscreen") === null || options.anchor instanceof Element)
     ) {
       const update = () => origin(element, options.anchor);
 
@@ -756,19 +819,8 @@ async function open(type, options) {
       options.route ? [type, ...options.route] : undefined
     );
 
-    if (
-      !locked &&
-      type === "sheet" &&
-      !dom.has("wearable") &&
-      options.snap !== false
-    ) {
-      off.push(
-        snap(element, {
-          stage: options.stage,
-          close,
-          finish: () => opening?.finish()
-        })
-      );
+    if (!locked && type === "sheet" && !dom.has("wearable") && options.snap !== false) {
+      off.push(snap(element, { stage: options.stage, close, finish: () => opening?.finish() }));
     } else if (!locked && options.direction) {
       off.push(
         dismiss(element, {
@@ -784,13 +836,9 @@ async function open(type, options) {
 
 export default function layer(type, options = {}) {
   const source =
-    options.anchor instanceof Element
-      ? options.anchor
-      : button.trigger || document.activeElement;
+    options.anchor instanceof Element ? options.anchor : button.trigger || document.activeElement;
 
-  const key = source?.matches?.("button, a, input, select, textarea")
-    ? source
-    : options;
+  const key = source?.matches?.("button, a, input, select, textarea") ? source : options;
 
   return opening(key, () => open(type, options));
 }

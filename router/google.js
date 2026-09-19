@@ -40,17 +40,14 @@ router.get("/google", async (req, res) => {
   const redirect = config.redirect(origin);
 
   if (!redirect) return finish(res, popup, "unavailable");
+
   if (!req.uid || !allowed(address(req))) return finish(res, popup, "error");
   const state = random();
   const nonce = random();
   const verifier = random();
   const binding = createHash("sha256").update(req.uid).digest("base64url");
 
-  res.cookie(
-    key,
-    { state, nonce, verifier, binding, popup, redirect, time: Date.now() },
-    cookie
-  );
+  res.cookie(key, { state, nonce, verifier, binding, popup, redirect, time: Date.now() }, cookie);
 
   res.redirect(
     config.client.generateAuthUrl({
@@ -82,7 +79,9 @@ router.get("/google/callback", async (req, res) => {
     value.binding !== createHash("sha256").update(req.uid).digest("base64url")
   )
     return done("error");
+
   if (req.query.error === "access_denied") return done("cancel");
+
   if (typeof req.query.code !== "string") return done("error");
   try {
     const account = await google.verify(
@@ -96,20 +95,21 @@ router.get("/google/callback", async (req, res) => {
 
     if (pending) {
       res.cookie(recovery, pending, cookie);
+
       return done("pending");
     }
 
     if (uid !== req.uid) {
-      const previous = await db.get("SELECT google FROM user WHERE uid = ?", [
-        req.uid
-      ]);
+      const previous = await db.get("SELECT google FROM user WHERE uid = ?", [req.uid]);
 
-      if (previous && !previous.google)
-        await session.remember(res, req.uid, session.anonymous);
+      if (previous && !previous.google) await session.remember(res, req.uid, session.anonymous);
     }
+
     if (!(await session.remember(res, uid))) return done("error");
+
     res.clearCookie(recovery, clear);
     events.broadcast("online");
+
     return done("success");
   } catch {
     // OAuth tokens and provider responses must not enter logs or responses.
@@ -123,13 +123,16 @@ router.delete("/account", async (req, res) => {
   const user = await deletion.request(req.uid);
 
   if (!user) return res.status(403).end();
+
   await guest(req, res);
   res.clearCookie(recovery, clear);
+
   return res.status(204).end();
 });
 
 router.get("/account", async (req, res) => {
   res.set("Cache-Control", "private, no-store");
+
   const user = await deletion.pending(req.signedCookies?.[recovery]);
 
   return res.json({ deletion: user?.deletion || null });
@@ -142,8 +145,10 @@ router.post("/account", async (req, res) => {
 
   res.clearCookie(recovery, clear);
   if (!user) return res.status(409).end();
+
   await session.remember(res, user.uid);
   events.broadcast("online");
+
   return res.status(204).end();
 });
 
@@ -157,8 +162,7 @@ async function guest(req, res) {
       [saved.uid]
     ));
 
-  const uid =
-    user?.uid || (await session.create(address(req), client(req).lang));
+  const uid = user?.uid || (await session.create(address(req), client(req).lang));
 
   await session.remember(res, uid, session.anonymous);
   await session.remember(res, uid);
@@ -167,10 +171,17 @@ async function guest(req, res) {
 router.post("/logout", async (req, res) => {
   if (req.get("sec-fetch-site") === "cross-site" || !req.is("application/json"))
     return res.status(403).end();
+
   const user = await db.get("SELECT google FROM user WHERE uid = ?", [req.uid]);
 
   if (!user?.google) return res.status(204).end();
+
   await guest(req, res);
+
+  if (typeof req.body?.session === "string") {
+    events.disconnect(req.uid, req.body.session);
+  }
+
   res.status(204).end();
 });
 

@@ -13,16 +13,13 @@ const hidden = new Set(["/service-work.js", "/manifest.json"]);
 
 const html = (req) => req.path.endsWith(".html");
 
-const denied = (req) =>
-  hidden.has(req.path) || html(req) || req.path.startsWith("/assets/");
+const denied = (req) => hidden.has(req.path) || html(req) || req.path.startsWith("/assets/");
 
 export const page = (req) =>
   req.method === "GET" &&
-  (req.get("sec-fetch-dest") === "document" ||
-    req.get("accept")?.includes("text/html"));
+  (req.get("sec-fetch-dest") === "document" || req.get("accept")?.includes("text/html"));
 
-export const send = (res, name, status = 200) =>
-  res.status(status).sendFile(file(name));
+export const send = (res, name, status = 200) => res.status(status).sendFile(file(name));
 
 export const error = (res) => {
   res.set({ "Cache-Control": "no-store", Vary: "Sec-Fetch-Dest, Accept" });
@@ -38,7 +35,9 @@ const normal = (res, name) => {
 
 const manage = async (req, res) => {
   if (!(await admin.allowed(req))) return error(res);
+
   res.set("Cache-Control", "private, no-store");
+
   return send(res, "index");
 };
 
@@ -50,7 +49,9 @@ router.use((req, res, next) => {
   const name = location.page(req.originalUrl);
 
   if (!["GET", "HEAD"].includes(req.method) || !name) return next();
+
   if (name === "admin") return manage(req, res);
+
   return normal(res, "index");
 });
 

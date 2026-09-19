@@ -18,9 +18,7 @@ export default async function upload(path, value, options = {}) {
       body: file
     });
 
-    const json = response.headers
-      .get("content-type")
-      ?.includes("application/json");
+    const json = response.headers.get("content-type")?.includes("application/json");
     const data = json ? await response.json() : null;
 
     return { ok: response.ok, status: response.status, data };

@@ -8,9 +8,7 @@ import * as events from "#common/events";
 const showPage = async (name) => {
   const header = name === "offline" ? "X-PWA-Cache" : `X-${name}`;
 
-  const response = await fetch(`/${name}`, {
-    headers: { Accept: "text/html", [header]: "true" }
-  });
+  const response = await fetch(`/${name}`, { headers: { Accept: "text/html", [header]: "true" } });
   const html = await response.text();
 
   document.open();
@@ -51,11 +49,7 @@ export default async function access(navigate = true, name) {
 
   const wearable = device().wearable;
   const headers = { "X-Wearable": String(wearable) };
-  const response = await api(user, {
-    headers,
-    method: "POST",
-    data: { path, result: status }
-  });
+  const response = await api(user, { headers, method: "POST", data: { path, result: status } });
 
   if (response.status === 403) {
     if (navigate) {
@@ -110,5 +104,6 @@ export default async function access(navigate = true, name) {
   }
 
   await events.start();
+
   return true;
 }

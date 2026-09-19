@@ -28,26 +28,13 @@ export default function init() {
   if (loading) return loading;
 
   // 최초 페이지와 나중에 추가되는 DOM에 같은 준비 함수를 적용합니다.
-  register(
-    group,
-    chatting,
-    range,
-    select.default,
-    stepper.default,
-    picker.default,
-    toggle.default
-  );
+  register(group, chatting, range, select.default, stepper.default, picker.default, toggle.default);
 
   loading = dom.create("div");
 
   loading.className = "loading";
 
-  const type = "circular";
-  const value = 25;
-  const show = false;
-  const target = loading;
-
-  progress({ type, value, show, target });
+  progress({ type: "circular", value: 25, show: false, target: loading });
 
   dom.body.append(loading);
 

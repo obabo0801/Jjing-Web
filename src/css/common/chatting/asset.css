@@ -1,0 +1,12 @@
+@import url("./assets.css");
+
+.asset-actions {
+  min-width: 0;
+}
+
+.asset-actions .chatting-preview .asset {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}

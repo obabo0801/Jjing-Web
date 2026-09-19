@@ -21,6 +21,13 @@ export default `
     owner TEXT,
     name TEXT
   );
+  CREATE TABLE IF NOT EXISTS contact (
+    room TEXT PRIMARY KEY,
+    uid TEXT NOT NULL,
+    handler TEXT,
+    assigned TEXT,
+    closed TEXT
+  );
   CREATE TABLE IF NOT EXISTS room_member (
     room TEXT NOT NULL,
     uid TEXT NOT NULL,

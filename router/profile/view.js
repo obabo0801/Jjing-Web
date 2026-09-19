@@ -21,10 +21,7 @@ router.get("/:id", async (req, res) => {
     return res.status(403).end();
   }
 
-  const user =
-    req.params.id === "me"
-      ? viewer
-      : await resolve(string(req.params.id).trim());
+  const user = req.params.id === "me" ? viewer : await resolve(string(req.params.id).trim());
 
   if (!user) {
     return res.status(404).end();
@@ -74,9 +71,7 @@ router.get("/:id", async (req, res) => {
     );
 
     result.blocked = Boolean(blocked);
-    result.block = blocked
-      ? { ...blocked, handler: ids.publicName(blocked.handler) }
-      : null;
+    result.block = blocked ? { ...blocked, handler: ids.publicName(blocked.handler) } : null;
 
     result.sanction =
       (await get(
@@ -97,13 +92,14 @@ router.get("/:id", async (req, res) => {
       time: access?.time || "",
       os: access?.os || "",
       browser: access?.browser || "",
-      lang: user.lang === "system" ? "" : user.lang || ""
+      lang: user.lang === "system" ? "" : user.lang || "",
+      sessions: events.sessions(user.uid)
     };
+
     if (manage && viewer.role === role.root) {
-      const authority = await get(
-        "SELECT memo, time, handler FROM authority WHERE uid = ?",
-        [user.uid]
-      );
+      const authority = await get("SELECT memo, time, handler FROM authority WHERE uid = ?", [
+        user.uid
+      ]);
 
       result.authority = {
         ...authority,

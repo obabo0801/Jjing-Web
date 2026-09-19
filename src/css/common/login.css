@@ -34,8 +34,9 @@ dialog[open] > .layer-content:has(> .login) {
 }
 
 .login-google:focus-visible {
-  outline: 2px solid var(--focus);
-  outline-offset: 2px;
+  outline: 0;
+  background-image: var(--overlay);
+  color: var(--thumb);
 }
 
 .login-links {

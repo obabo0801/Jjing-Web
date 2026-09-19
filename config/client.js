@@ -1,7 +1,7 @@
 const clean = (value) => value?.replaceAll('"', "").trim() || "";
 
 const os = (req) => {
-  const wearable = req.get("x-wearable") === "true";
+  const wearable = req.get("x-wearable") === "true" || req.query?.wearable === "true";
   const value = clean(req.get("sec-ch-ua-platform"));
 
   if (wearable && ["Android", "iOS"].includes(value)) {

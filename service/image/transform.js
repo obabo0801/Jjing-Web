@@ -12,17 +12,11 @@ export const transform = async (data, value, quality) => {
   let height = clamp(Math.round(Number(value?.height) || 512), 64, 1024);
 
   const angle = (((Number(value?.angle) || 0) % 360) + 360) % 360;
-  const shape = ["circle", "original"].includes(value?.shape)
-    ? value.shape
-    : "square";
+  const shape = ["circle", "original"].includes(value?.shape) ? value.shape : "square";
   const scale = clamp(Number(value?.scale) || 1, 1, 3);
   const offsetX = clamp(Number(value?.x) || 0, -1, 1);
   const offsetY = clamp(Number(value?.y) || 0, -1, 1);
-  const input = {
-    animated: true,
-    failOn: "error",
-    limitInputPixels: maxPixels
-  };
+  const input = { animated: true, failOn: "error", limitInputPixels: maxPixels };
   const metadata = await sharp(data, input).metadata();
   const pages = metadata.pages || 1;
   const pageHeight = metadata.pageHeight || metadata.height;
@@ -54,6 +48,7 @@ export const transform = async (data, value, quality) => {
     height = Math.max(1, Math.round(rotated.height * ratio));
     if (width * height * pages > maxPixels) return null;
   }
+
   const radians = (angle * Math.PI) / 180;
   const horizontal = Math.abs(Math.cos(radians));
   const vertical = Math.abs(Math.sin(radians));
@@ -85,11 +80,7 @@ export const transform = async (data, value, quality) => {
     const frame = decoded.data.subarray(index * stride, (index + 1) * stride);
 
     const rotated = await sharp(frame, {
-      raw: {
-        width: sourceWidth,
-        height: sourceHeight,
-        channels: decoded.info.channels
-      }
+      raw: { width: sourceWidth, height: sourceHeight, channels: decoded.info.channels }
     })
       .resize(resizedWidth, resizedHeight, { fit: "fill" })
       .rotate(angle, { background: { r: 0, g: 0, b: 0, alpha: 0 } })
@@ -125,10 +116,7 @@ export const transform = async (data, value, quality) => {
 
   const animation =
     pages > 1
-      ? {
-          loop: metadata.loop ?? 0,
-          ...(metadata.delay ? { delay: metadata.delay } : {})
-        }
+      ? { loop: metadata.loop ?? 0, ...(metadata.delay ? { delay: metadata.delay } : {}) }
       : {};
 
   return sharp(Buffer.concat(frames), {

@@ -1,4 +1,6 @@
 import * as crypto from "node:crypto";
+import * as ids from "#config/uid";
+import * as mention from "#shared/mention";
 import secret from "#config/env";
 import * as attachment from "#service/chatting/attachment";
 import * as db from "#db";
@@ -8,6 +10,7 @@ import * as media from "#config/media";
 import { validId } from "#shared/chatting";
 import * as role from "#shared/role";
 import * as room from "#service/room";
+import * as contact from "#service/contact";
 
 const fail = (status, code) => {
   throw Object.assign(new Error(code), { status, code });
@@ -36,17 +39,11 @@ const signature = (item) =>
     )
     .digest("hex");
 
-export const send = async (
-  user,
-  kind,
-  id,
-  text,
-  { attachments = [], audio = null } = {}
-) => {
+export const send = async (user, kind, id, text, { attachments = [], audio = null } = {}) => {
   if (
     !["whisper", "message"].includes(kind) ||
     !(kind === "message"
-      ? validId(id) || /^[a-f0-9]{32}$/.test(id)
+      ? id === "contact" || validId(id) || /^[a-f0-9]{32}$/.test(id)
       : /^[a-f0-9]{32}$/.test(id)) ||
     typeof text !== "string" ||
     (!text.trim() && !attachments.length && !audio) ||
@@ -54,11 +51,16 @@ export const send = async (
     text.length > 2000
   )
     fail(400, "invalid");
+
+  text = mention.omit(text, user.id || ids.publicId(user.uid));
+  if (!text.trim() && !attachments.length && !audio) fail(400, "invalid");
+
   if (kind === "message") {
-    const current = validId(id) ? id : (await room.ensure(user, id)).id;
+    const current = id === "contact" || validId(id) ? id : (await room.ensure(user, id)).id;
 
     return sendRoom(user, current, text, attachments, audio);
   }
+
   const target = await db.get(
     `SELECT uid, id, settings FROM user WHERE id = ?
       AND deletion IS NULL AND erased = 0
@@ -68,11 +70,12 @@ export const send = async (
   );
 
   if (!target || target.uid === user.uid) fail(404, "unavailable");
-  if ((await room.policy(user.uid, target.uid)).unavailable)
-    fail(409, "unavailable");
+
+  if ((await room.policy(user.uid, target.uid)).unavailable) fail(409, "unavailable");
+
   if (!settings.read(target.settings)[kind]) fail(409, "refused");
-  if (kind === "whisper" && events.state(target.uid) === "offline")
-    fail(409, "offline");
+
+  if (kind === "whisper" && events.state(target.uid) === "offline") fail(409, "offline");
   const sender = await db.get(
     `SELECT id, name, avatar, google FROM user WHERE uid = ?
       AND deletion IS NULL AND erased = 0`,
@@ -98,16 +101,20 @@ export const send = async (
   );
 
   if (!fresh || !settings.read(fresh.settings).whisper) fail(409, "refused");
-  if ((await room.policy(user.uid, target.uid)).unavailable)
-    fail(409, "unavailable");
+
+  if ((await room.policy(user.uid, target.uid)).unavailable) fail(409, "unavailable");
+
   if (events.state(target.uid) === "offline") fail(409, "offline");
+
   if (kind === "whisper") {
     item.recipient = target.id;
     item.verified = Boolean(sender.google);
     item.proof = signature(item);
   }
+
   events.send(target.uid, "direct", { ...item, own: false });
   events.send(user.uid, "direct", { ...item, own: true, peer: target.id });
+
   return { ...item, own: true, peer: target.id };
 };
 
@@ -125,25 +132,24 @@ const output = (row, user) => ({
   remaining: row.deleted ? 0 : Number(row.remaining || 0),
   ...(row.deleted && {
     deleted: true,
-    ...(user.role === role.root && { retained: true })
+    ...(user.role === role.root && { retained: true, restorable: true })
   }),
   text: !row.deleted || user.role === role.root ? row.text : "",
-  attachments:
-    !row.deleted || user.role === role.root
-      ? attachment.read(row.attachments)
-      : [],
-  ...((!row.deleted || user.role === role.root) &&
-    row.audio && { audio: media.resolve(row.audio) })
+  attachments: !row.deleted || user.role === role.root ? attachment.read(row.attachments) : [],
+  ...((!row.deleted || user.role === role.root) && row.audio && { audio: media.resolve(row.audio) })
 });
 
 async function sendRoom(user, id, text, attachments, audio) {
   const item = await db.transaction(async () => {
+    if (id === "contact") id = (await contact.ensure(user)).id;
+
+    await contact.sync(id);
+
     const current = await room.read(user, id);
 
     if (!current.available) fail(409, "unavailable");
-    const users = (await room.members(id)).filter(
-      (item) => !item.left && !item.erased
-    );
+
+    const users = (await room.members(id)).filter((item) => !item.left && !item.erased);
     const sender = users.find((item) => item.uid === user.uid);
     const recipient = users.find((item) => item.uid !== user.uid);
 
@@ -165,11 +171,14 @@ async function sendRoom(user, id, text, attachments, audio) {
         time
       ]
     );
+
     for (const member of users)
-      await db.run(
-        "INSERT INTO message_receipt(message,uid,read) VALUES(?,?,?)",
-        [token, member.uid, member.uid === user.uid ? time : null]
-      );
+      await db.run("INSERT INTO message_receipt(message,uid,read) VALUES(?,?,?)", [
+        token,
+        member.uid,
+        member.uid === user.uid ? time : null
+      ]);
+
     return {
       token,
       room: id,
@@ -186,10 +195,10 @@ async function sendRoom(user, id, text, attachments, audio) {
 
   for (const member of users) {
     if (member.left) continue;
-    const receipt = await db.get(
-      "SELECT 1 FROM message_receipt WHERE message = ? AND uid = ?",
-      [item.token, member.uid]
-    );
+    const receipt = await db.get("SELECT 1 FROM message_receipt WHERE message = ? AND uid = ?", [
+      item.token,
+      member.uid
+    ]);
 
     if (receipt)
       events.send(member.uid, "direct", {
@@ -198,18 +207,27 @@ async function sendRoom(user, id, text, attachments, audio) {
         ...(member.muted && { muted: true })
       });
   }
+
   return { ...item, own: true };
 }
 
 export const list = async (user, id, before) => {
   if (before !== undefined && !/^\d+$/.test(before)) fail(400, "invalid");
-  const current = id
-    ? validId(id)
-      ? id
-      : (await room.ensure(user, id)).id
-    : "";
+  let current = id;
 
+  if (id && !validId(id)) {
+    const value = await room.preview(user, id);
+
+    if (value.draft) {
+      return { room: value, items: [], next: null };
+    }
+
+    current = value.id;
+  }
+
+  await contact.sync(current);
   if (current) await room.find(user, current);
+
   const rows = current
     ? await db.all(
         `SELECT m.*, u.id AS sid,u.name,u.avatar,u.google,
@@ -222,12 +240,27 @@ export const list = async (user, id, before) => {
       )
     : await db.all(
         `SELECT r.id AS rid, rm.pinned, rm.muted,
-      (SELECT id FROM message m JOIN message_receipt x ON x.message = m.id
-        WHERE m.room = r.id AND x.uid = ? ORDER BY m.seq DESC LIMIT 1) AS token
-      FROM room r JOIN room_member rm ON rm.room = r.id
-      WHERE rm.uid = ? ORDER BY rm.pinned DESC,
-        coalesce((SELECT max(seq) FROM message WHERE room = r.id),0) DESC, r.id
-      LIMIT 31 OFFSET ?`,
+    (SELECT id FROM message m JOIN message_receipt x ON x.message = m.id
+      WHERE m.room = r.id AND x.uid = ?
+        AND (c.room IS NULL OR m.system IS NULL OR json_extract(m.system,'$.type') <> 'leave')
+      ORDER BY m.seq DESC LIMIT 1) AS token
+    FROM room r JOIN room_member rm ON rm.room = r.id
+    JOIN user viewer ON viewer.uid = rm.uid
+    LEFT JOIN contact c ON c.room = r.id
+    WHERE rm.uid = ? AND rm.left IS NULL
+      AND (c.room IS NULL OR c.closed IS NULL)
+      AND (c.room IS NULL OR EXISTS (
+        SELECT 1 FROM message m WHERE m.room = r.id AND m.system IS NULL
+      ))
+      AND (c.room IS NULL OR c.uid = viewer.uid OR
+        (viewer.role IN (-2,-1) AND viewer.erased = 0 AND viewer.deletion IS NULL))
+      AND (r.multiple = 1 OR EXISTS (
+        SELECT 1 FROM message m
+        WHERE m.room = r.id AND m.system IS NULL
+      ))
+    ORDER BY (c.room IS NOT NULL) DESC, rm.pinned DESC,
+      coalesce((SELECT max(seq) FROM message WHERE room = r.id),0) DESC, r.id
+    LIMIT 31 OFFSET ?`,
         [user.uid, user.uid, Number(before) || 0]
       );
   const items = [];
@@ -237,6 +270,7 @@ export const list = async (user, id, before) => {
       items.push(output(row, user));
       continue;
     }
+
     const info = await room.read(user, row.rid);
     const last = row.token
       ? await db.get(
@@ -266,13 +300,11 @@ export const list = async (user, id, before) => {
       muted: Boolean(row.muted)
     });
   }
+
   return {
     ...(current && { room: await room.read(user, current) }),
     items,
-    next:
-      rows.length > 30
-        ? String(current ? rows[29].seq : (Number(before) || 0) + 30)
-        : null
+    next: rows.length > 30 ? String(current ? rows[29].seq : (Number(before) || 0) + 30) : null
   };
 };
 
@@ -280,6 +312,7 @@ export const read = async (user, id, token) => {
   const current = validId(id) ? id : (await room.ensure(user, id)).id;
 
   await room.find(user, current);
+
   const changed = await db.transaction(async () => {
     const edge = token
       ? await db.get(
@@ -303,14 +336,13 @@ export const read = async (user, id, token) => {
         "UPDATE message SET read = coalesce(read,datetime('now','+9 hours')) WHERE id = ?",
         [row.message]
       );
+
     return rows;
   });
 
   events.send(user.uid, "direct-read", { room: current });
   for (let index = 0; index < changed.length; index += 256) {
-    const tokens = changed
-      .slice(index, index + 256)
-      .map((item) => item.message);
+    const tokens = changed.slice(index, index + 256).map((item) => item.message);
     const counts = {};
 
     for (const token of tokens)
@@ -332,16 +364,18 @@ export const unread = async (user) =>
     `SELECT count(DISTINCT m.room) AS count
     FROM message_receipt x JOIN message m ON m.id = x.message
     JOIN room_member r ON r.room = m.room AND r.uid = x.uid
-    WHERE x.uid = ? AND x.read IS NULL AND m.deleted IS NULL`,
+    JOIN user u ON u.uid = x.uid
+    LEFT JOIN contact c ON c.room = m.room
+    WHERE x.uid = ? AND x.read IS NULL AND m.deleted IS NULL
+      AND (c.room IS NULL OR c.closed IS NULL)
+      AND (c.room IS NULL OR c.uid = u.uid OR
+        (u.role IN (-2,-1) AND u.erased = 0 AND u.deletion IS NULL))`,
     [user.uid]
   );
 
 export const capture = async (user, token, items) => {
-  if (!Array.isArray(items) || !items.length || items.length > 500)
-    fail(400, "invalid");
-  const reporter = await db.get("SELECT id FROM user WHERE uid = ?", [
-    user.uid
-  ]);
+  if (!Array.isArray(items) || !items.length || items.length > 500) fail(400, "invalid");
+  const reporter = await db.get("SELECT id FROM user WHERE uid = ?", [user.uid]);
 
   if (!reporter) fail(403, "unavailable");
   const seen = new Set();
@@ -358,12 +392,15 @@ export const capture = async (user, token, items) => {
       seen.has(item.token)
     )
       fail(400, "invalid");
+
     seen.add(item.token);
   }
+
   const target = items.find((item) => item.token === token);
 
   if (!target || target.recipient !== reporter.id || target.id === reporter.id)
     fail(403, "unavailable");
+
   if (
     items.some(
       (item) =>
@@ -374,6 +411,7 @@ export const capture = async (user, token, items) => {
     )
   )
     fail(403, "unavailable");
+
   return {
     version: 1,
     kind: "whisper",
@@ -398,11 +436,75 @@ export const configure = async (user, id, action, value) => {
   const current = validId(id) ? id : (await room.ensure(user, id)).id;
 
   if (action === "leave") return room.leave(user, current);
+
   return room.configure(user, current, action, value);
+};
+
+export const restore = async (user, token) => {
+  if (!validId(token)) fail(400, "invalid");
+
+  if (user.role !== role.root) fail(403, "unavailable");
+  const row = await db.transaction(async () => {
+    const target = await db.get(
+      `SELECT m.room,m.deleted FROM message m
+       JOIN message_receipt x ON x.message = m.id AND x.uid = ?
+       WHERE m.id = ? AND m.system IS NULL`,
+      [user.uid, token]
+    );
+
+    if (!target) fail(404, "unavailable");
+
+    await room.find(user, target.room, true);
+    if (!target.deleted) fail(409, "unavailable");
+    const result = await db.run(
+      `UPDATE message SET deleted = NULL WHERE id = ? AND deleted IS NOT NULL
+       AND EXISTS (SELECT 1 FROM user WHERE uid = ? AND role = ?
+         AND deletion IS NULL AND erased = 0)`,
+      [token, user.uid, role.root]
+    );
+
+    if (!result.changes) fail(403, "unavailable");
+
+    return db.get(
+      `SELECT m.*,u.id AS sid,u.name,u.avatar,u.google,
+       (SELECT count(*) FROM message_receipt x WHERE x.message = m.id
+         AND x.uid <> m.sender AND x.read IS NULL) AS remaining
+       FROM message m JOIN user u ON u.uid = m.sender WHERE m.id = ?`,
+      [token]
+    );
+  });
+
+  const users = await db.all(
+    `SELECT u.uid,u.role,x.read AS seen FROM message_receipt x
+     JOIN user u ON u.uid = x.uid
+     JOIN room_member r ON r.uid = u.uid AND r.room = ? AND r.left IS NULL
+     LEFT JOIN contact c ON c.room = r.room
+     WHERE x.message = ? AND u.erased = 0 AND u.deletion IS NULL
+       AND (c.room IS NULL OR c.uid = u.uid OR u.role IN (-2,-1))`,
+    [row.room, token]
+  );
+
+  for (const recipient of users) {
+    events.send(
+      recipient.uid,
+      "direct-restore",
+      output({ ...row, seen: recipient.seen }, recipient)
+    );
+
+    events.send(recipient.uid, "direct-change", { room: row.room });
+  }
+
+  return output({ ...row, seen: users.find((item) => item.uid === user.uid)?.seen }, user);
 };
 
 export const remove = async (user, token) => {
   if (!validId(token)) fail(400, "invalid");
+  const target = await db.get("SELECT room FROM message WHERE id = ?", [token]);
+
+  if (!target) fail(404, "unavailable");
+
+  await room.find(user, target.room);
+
   const row = await db.get(
     `UPDATE message SET deleted = datetime('now','+9 hours')
     WHERE id = ? AND sender = ? AND system IS NULL AND deleted IS NULL AND NOT EXISTS
@@ -414,7 +516,11 @@ export const remove = async (user, token) => {
   if (!row) fail(409, "unavailable");
   const users = await db.all(
     `SELECT u.uid,u.role FROM message_receipt r
-    JOIN user u ON u.uid = r.uid WHERE r.message = ?`,
+    JOIN user u ON u.uid = r.uid
+    JOIN message m ON m.id = r.message
+    LEFT JOIN contact c ON c.room = m.room
+    WHERE r.message = ? AND (c.room IS NULL OR c.uid = u.uid OR
+      (u.role IN (-2,-1) AND u.erased = 0 AND u.deletion IS NULL))`,
     [token]
   );
 
@@ -425,5 +531,6 @@ export const remove = async (user, token) => {
       retained: member.role === role.root,
       time: row.time
     });
+
   return { retained: user.role === role.root };
 };

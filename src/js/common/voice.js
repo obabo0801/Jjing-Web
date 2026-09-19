@@ -59,17 +59,9 @@ const desktop = async (options) => {
     view.status(target, "voice.processing");
 
     const pitch = await audio.analyze(blob);
-    const result = await server.upload(blob, {
-      lang,
-      text: recognized.text,
-      pitch,
-      signal
-    });
+    const result = await server.upload(blob, { lang, text: recognized.text, pitch, signal });
 
-    return {
-      text: result.text,
-      confidence: result.confidence ?? recognized.confidence
-    };
+    return { text: result.text, confidence: result.confidence ?? recognized.confidence };
   } finally {
     stopVisual();
     media.close(stream);
@@ -168,6 +160,7 @@ export default async function voice(keywords, options = {}) {
     stop: () => {
       if (stopper.signal.aborted) {
         controller.abort();
+
         return;
       }
 
@@ -198,9 +191,7 @@ export default async function voice(keywords, options = {}) {
 
     const lang = language();
     const base = lang.split("-")[0];
-    const words = Array.isArray(keywords)
-      ? keywords
-      : keywords?.[lang] || keywords?.[base] || [];
+    const words = Array.isArray(keywords) ? keywords : keywords?.[lang] || keywords?.[base] || [];
     const state = device();
     const input = { lang, deviceId, target, signal, stop };
 

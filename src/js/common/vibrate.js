@@ -6,9 +6,7 @@ let tracks = [];
 
 function native(value) {
   try {
-    return (
-      typeof value === "string" && globalThis.Jjing?.haptic?.(value) === true
-    );
+    return typeof value === "string" && globalThis.Jjing?.haptic?.(value) === true;
   } catch {
     return false;
   }
@@ -97,9 +95,7 @@ function render() {
     cursor = end;
   }
 
-  navigator.vibrate(
-    pattern.map((duration) => Math.max(0, Math.round(duration)))
-  );
+  navigator.vibrate(pattern.map((duration) => Math.max(0, Math.round(duration))));
   clearTimeout(timer);
 
   if (!tracks.length) {

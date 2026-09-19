@@ -15,13 +15,8 @@
   border: 0;
   border-radius: 999px;
 
-  background: color-mix(in srgb, var(--background) 20%, transparent);
   color: var(--text);
-  box-shadow: var(--shadow);
   overflow-x: auto;
-
-  -webkit-backdrop-filter: blur(2px);
-  backdrop-filter: blur(2px);
 
   transition:
     background-color 160ms ease,

@@ -11,18 +11,15 @@ const panels = new WeakMap();
 let listening = false;
 
 const input = (element) =>
-  dom.query(
-    ":scope > .toggle-head " + '.toggle-switch input[type="checkbox"]',
-    element
-  );
+  dom.query(":scope > .toggle-head " + '.toggle-switch input[type="checkbox"]', element);
 
 const content = (element) => dom.query(":scope > .toggle-content", element);
 
 const text = (element, enabled) => {
   const key = enabled ? "toggle.on" : "toggle.off";
 
-  dom.set(element, "data-i18n", key);
   element.textContent = i18n.message(key);
+  dom.set(element, "data-i18n", key);
 };
 
 const update = (element, source, target = content(element)) => {
@@ -47,11 +44,13 @@ export const sync = (element) => {
   const panel = panels.get(element);
 
   if (!source) return;
+
   if (panel) {
     panel.control.checked = source.checked;
     panel.control.disabled = source.disabled;
     text(panel.state, source.checked);
   }
+
   update(element, source, panel?.target || content(element));
 };
 
@@ -82,8 +81,10 @@ const create = (element, source, target) => {
   dom.on(control, "change", () => {
     if (source.disabled) {
       sync(element);
+
       return;
     }
+
     source.checked = control.checked;
     source.dispatchEvent(new Event("input", { bubbles: true }));
 
@@ -107,6 +108,7 @@ const open = async (element, source) => {
   }
 
   opened.add(element);
+
   const target = content(element);
   const toolbar = dom.query(":scope > .toolbar", target);
 
@@ -125,6 +127,7 @@ const open = async (element, source) => {
   } finally {
     if (target) {
       if (toolbar) target.append(toolbar);
+
       element.append(target);
     }
 
@@ -182,9 +185,7 @@ export function listen() {
 route.register(
   "authority",
   (id) => {
-    const element = dom
-      .all(".toggle")
-      .find((item) => dom.get(item, "data-route") === id);
+    const element = dom.all(".toggle").find((item) => dom.get(item, "data-route") === id);
     const source = element && input(element);
 
     return source ? open(element, source) : false;

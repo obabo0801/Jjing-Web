@@ -17,6 +17,7 @@ export const read = (source) => {
       value = null;
     }
   }
+
   return Object.fromEntries(
     Object.entries(defaults).map(([key, fallback]) => [
       key,
@@ -26,6 +27,4 @@ export const read = (source) => {
 };
 
 export const allows = (value, mentioned, push = false) =>
-  value.notification &&
-  (mentioned ? value.mention : value.chat) &&
-  (!push || value.web);
+  value.notification && (mentioned ? value.mention : value.chat) && (!push || value.web);

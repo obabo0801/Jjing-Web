@@ -8,5 +8,6 @@ export default async (req, res, next) => {
   );
 
   if (!user) return res.status(403).end();
+
   next();
 };

@@ -67,6 +67,11 @@
   overflow: hidden;
 }
 
+:root[data-unlock]:has(.keypad[data-open]),
+:root[data-unlock]:has(.keypad[data-close]) {
+  overflow: auto;
+}
+
 :root:not(.wearable):has(.keypad[data-open]) body,
 :root:not(.wearable):has(.keypad[data-close]) body {
   padding-block-end: calc(var(--keypad-height, 0px) + 12px);

@@ -20,4 +20,4 @@ const output = {
   assetFileNames: "assets/[hash][extname]"
 };
 
-export default { build: { rolldownOptions: { input, output } } };
+export default { build: { modulePreload: false, rolldownOptions: { input, output } } };

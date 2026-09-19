@@ -5,8 +5,7 @@ import * as deletion from "#service/account";
 import * as evidence from "#service/evidence";
 
 export const verify = async (code, verifier, nonce, redirect) => {
-  if (!google.redirects.includes(redirect))
-    throw new Error("Invalid Google redirect");
+  if (!google.redirects.includes(redirect)) throw new Error("Invalid Google redirect");
   const { tokens } = await google.client.getToken({
     code,
     codeVerifier: verifier,
@@ -21,14 +20,12 @@ export const verify = async (code, verifier, nonce, redirect) => {
 
   if (!user?.sub || user.nonce !== nonce || !user.email_verified)
     throw new Error("Invalid Google identity");
+
   return user;
 };
 
 export const connect = async (uid, account) => {
-  let existing = await db.get(
-    "SELECT uid, deletion FROM user WHERE google = ?",
-    [account.sub]
-  );
+  let existing = await db.get("SELECT uid, deletion FROM user WHERE google = ?", [account.sub]);
 
   if (existing?.deletion && existing.deletion <= Date.now()) {
     await deletion.finalize(existing.uid);
@@ -37,20 +34,23 @@ export const connect = async (uid, account) => {
 
   if (existing) {
     if (!existing.deletion) await evidence.match(existing.uid, account.sub);
-    await db.run(
-      "UPDATE user SET email = ? WHERE uid = ? AND deletion IS NULL",
-      [account.email, existing.uid]
-    );
+
+    await db.run("UPDATE user SET email = ? WHERE uid = ? AND deletion IS NULL", [
+      account.email,
+      existing.uid
+    ]);
+
     return existing.uid;
   }
+
   const user = await db.get("SELECT id, google FROM user WHERE uid = ?", [uid]);
 
   if (!user || user.google) throw new Error("Account cannot be linked");
   const initial = (account.name || "").trim().slice(0, 100);
-  const used = await db.get(
-    "SELECT 1 FROM user WHERE name = ? COLLATE NOCASE AND uid <> ?",
-    [initial, uid]
-  );
+  const used = await db.get("SELECT 1 FROM user WHERE name = ? COLLATE NOCASE AND uid <> ?", [
+    initial,
+    uid
+  ]);
   const name = used ? `${initial} ${user.id.slice(0, 8)}` : initial || null;
   const picture =
     typeof account.picture === "string" &&
@@ -78,16 +78,18 @@ export const connect = async (uid, account) => {
     );
 
     if (!result.changes) throw new Error("Account changed during login");
+
     await evidence.match(uid, account.sub);
+
     return uid;
   } catch (error) {
     if (error.code !== "SQLITE_CONSTRAINT") throw error;
-    const linked = await db.get("SELECT uid FROM user WHERE google = ?", [
-      account.sub
-    ]);
+    const linked = await db.get("SELECT uid FROM user WHERE google = ?", [account.sub]);
 
     if (!linked) throw error;
+
     await evidence.match(linked.uid, account.sub);
+
     return linked.uid;
   }
 };
