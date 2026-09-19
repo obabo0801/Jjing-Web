@@ -919,11 +919,12 @@ export default {
     preview: "미리보기",
     folder: "폴더",
     table: "테이블",
-    fields: "검색 필드",
-    readonly: "읽기 전용입니다.",
+    fields: "대상 항목",
     search: "검색",
-    filter: "필터 값 (정확히 일치)",
-    all: "전체 필드",
+    filter: "일치하는 값",
+    condition: "조건",
+    refresh: "새로고침",
+    all: "조건 없음",
     previous: "이전",
     next: "다음",
     details: "상세 보기",
@@ -931,6 +932,13 @@ export default {
     error: "요청을 처리하지 못했습니다.",
     sent: "전송 {sent}건 / 실패 {failed}건",
     confirm: "등록된 기기에 알림을 발송할까요?"
+  },
+
+  player: {
+    play: "재생",
+    pause: "일시정지",
+    seek: "재생 위치",
+    error: "음성을 재생하지 못했습니다."
   },
 
   error: { heading: "페이지 없음", action: "홈으로" },

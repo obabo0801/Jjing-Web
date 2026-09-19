@@ -16,8 +16,6 @@ import * as login from "#common/login";
 import * as menu from "#common/menu";
 import * as direct from "#common/chatting/direct";
 
-import caption from "#common/caption";
-
 const app = dom.query(".app");
 const loading = init();
 const url = new URL(location.href);
@@ -39,33 +37,6 @@ try {
       emoji.load(),
       settings.load()
     ]);
-
-    caption({ key: "sound.preview", background: "rgb(0 0 0 / 80%)", color: "#ffffff" });
-
-    caption({ key: "sound.preview" });
-
-    const image = new URL("../assets/google/g.png", import.meta.url).href;
-
-    caption({ parts: ["이미지 ", { image, alt: "로고" }, "를 문장 안에도 표시합니다."] });
-
-    caption({
-      name: { text: "운종", bold: true },
-      parts: [
-        "지금은 ",
-        { text: "중요한 안내", color: "#ffd877", bold: true },
-        "입니다. ",
-        { key: "terms.title", url: "/terms", bold: true }
-      ]
-    });
-
-    caption({
-      parts: [
-        "자세한 내용은 ",
-        { text: "이용약관", url: "/terms", color: "#ffd877" },
-        "에서 확인해 주세요."
-      ],
-      duration: 8000
-    });
 
     if (url.searchParams.get("popup") !== "1") {
       loading.remove();

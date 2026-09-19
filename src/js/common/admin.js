@@ -16,6 +16,7 @@ import avatar from "#common/avatar";
 import profile from "#common/profile/view";
 import reports from "#common/report/inbox";
 import label from "#common/profile/label";
+import toolbar from "#common/toolbar";
 import "../../css/common/admin.css";
 
 const opening = once();
@@ -29,7 +30,6 @@ const keys = [
   "send",
   "users",
   "database",
-  "readonly",
   "search",
   "filter",
   "all",
@@ -56,7 +56,9 @@ const keys = [
   "preview",
   "folder",
   "table",
-  "fields"
+  "fields",
+  "condition",
+  "refresh"
 ];
 
 i18n.preload(
@@ -107,7 +109,7 @@ const entry = (key, icon, run) => {
   button.type = "button";
   dom.set(button, "data-icon", icon);
   dom.set(button, "data-color", "");
-  button.append(node("span", "group-name", key));
+  button.append(node("span", "name", key));
   dom.on(button, "click", run);
   row.append(button);
 
@@ -220,78 +222,145 @@ async function notify() {
   });
 }
 
-async function browse(table = "", scope = {}) {
-  const root = node("div", "profile online admin");
-  const search = field("admin.search", "search");
-  const rows = node("div");
-  const controls = node("nav", "admin-pages");
+function tools(load, filtered = false) {
+  const values = { q: "", field: "", value: "", page: 0 };
+
+  let columns = [];
+  let closed = false;
+
+  const edit = async (button, condition = false) => {
+    const content = node("div", "profile");
+    const search = field(condition ? "admin.filter" : "admin.search", "search");
+    const select = node("select");
+
+    search.input.maxLength = 200;
+    search.input.value = condition ? values.value : values.q;
+    if (condition) {
+      const choice = node("div", "select");
+      const label = node("label", "label");
+      const all = node("option", "", "admin.all");
+
+      all.value = "";
+      select.append(all);
+      for (const column of columns) {
+        const option = node("option");
+
+        option.value = option.textContent = column;
+        select.append(option);
+      }
+      select.value = values.field;
+      choice.append(select);
+      label.append(node("span", "label-key", "admin.fields"), choice);
+      content.append(label);
+    }
+
+    content.append(search.root);
+
+    const result = await dialog({
+      title: condition ? "admin.condition" : "admin.search",
+      content,
+      actions: [
+        { text: "dialog.cancel", icon: "close", value: false },
+        { text: "image.reset", icon: "reload", value: "reset" },
+        { text: "dialog.confirm", icon: "check", value: true, submit: true }
+      ]
+    });
+
+    if (closed || (result !== true && result !== "reset")) return;
+
+    if (condition) {
+      values.field = result === "reset" ? "" : select.value;
+      values.value = values.field ? search.input.value.trim() : "";
+    } else values.q = result === "reset" ? "" : search.input.value.trim();
+
+    button.toggleAttribute("data-selected", Boolean(condition ? values.field : values.q));
+    values.page = 0;
+    await load();
+  };
+
+  const root = toolbar([
+    { icon: "search", text: "admin.search", color: true, run: (button) => edit(button) },
+    ...(filtered
+      ? [
+          {
+            icon: "setting",
+            text: "admin.condition",
+            color: true,
+            run: (button) => edit(button, true)
+          }
+        ]
+      : []),
+    { icon: "reload", text: "admin.refresh", color: true, run: () => load() },
+    {
+      icon: "arrow",
+      text: "admin.previous",
+      disabled: true,
+      run: () => {
+        values.page--;
+        return load();
+      }
+    },
+    {
+      icon: "arrow",
+      text: "admin.next",
+      disabled: true,
+      run: () => {
+        values.page++;
+        return load();
+      }
+    }
+  ]);
+  const buttons = [...root.children];
+  const previous = buttons.at(-2);
+  const next = buttons.at(-1);
   const page = node("output");
 
-  let index = 0;
+  root.classList.add("admin-tools");
+  dom.set(previous, "data-angle", "left");
+  dom.set(page, "data-page", "");
+  root.insertBefore(page, next);
+  page.textContent = "1 / 1";
+  return {
+    root,
+    values,
+    busy: () => {
+      previous.disabled = next.disabled = true;
+    },
+    update: (data) => {
+      columns = data.columns || [];
+      previous.disabled = values.page === 0;
+      next.disabled = (values.page + 1) * 30 >= data.total;
+      page.textContent = `${values.page + 1} / ${Math.max(1, Math.ceil(data.total / 30))}`;
+    },
+    close: () => {
+      closed = true;
+    }
+  };
+}
 
-  const previous = entry("admin.previous", "arrow", () => {
-    index--;
-    void load();
-  });
-
-  const next = entry("admin.next", "arrow", () => {
-    index++;
-    void load();
-  });
-  const previousButton = dom.query("button", previous);
-  const nextButton = dom.query("button", next);
-
-  dom.set(previousButton, "data-angle", "left");
-  nextButton.classList.add("icon-right");
-  for (const [button, key] of [
-    [previousButton, "admin.previous"],
-    [nextButton, "admin.next"]
-  ]) {
-    dom.set(button, "data-circle", "");
-    dom.set(button, "data-tooltip", key);
-  }
-  previousButton.disabled = nextButton.disabled = true;
-
-  const filter = node("select");
-  const match = field("admin.filter");
-  const choice = node("div");
+async function browse(table = "", scope = {}) {
+  const root = node("div", "profile online admin");
+  const rows = node("div");
   const loading = progress({ type: "circular", value: 25, show: false });
-
-  choice.hidden = true;
-  choice.append(filter);
-  if (table) root.append(label("admin.table", table));
-
-  root.append(search.root);
-  if (table) {
-    const selection = node("label", "label");
-
-    selection.append(node("span", "label-key", "admin.fields"), choice);
-    root.append(node("p", "", "admin.readonly"), group(selection, match.root));
-  }
-
-  controls.append(previousButton, page, nextButton);
-  root.append(loading.element, rows, controls);
+  const controls = tools(load, Boolean(table));
 
   let revision = 0;
   let closed = false;
   let request;
-  let timer;
+
+  if (table) root.append(label("admin.table", table));
+
+  root.append(loading.element, rows);
 
   async function load() {
     const version = ++revision;
 
     request?.abort();
     request = new AbortController();
+    controls.busy();
     loading.element.hidden = false;
-    previousButton.disabled = nextButton.disabled = true;
 
-    const params = new URLSearchParams({ ...scope, q: search.input.value, page: String(index) });
-
-    if (table && filter.value) {
-      params.set("field", filter.value);
-      params.set("value", match.input.value);
-    }
-
+    const params = new URLSearchParams({ ...scope, ...controls.values });
     const response = await api(`${path}/${table ? `database/${table}` : "users"}?${params}`, {
       signal: request.signal
     });
@@ -303,90 +372,47 @@ async function browse(table = "", scope = {}) {
     if (!response.ok) return fail();
     const data = response.data;
 
-    previousButton.disabled = index === 0;
-    nextButton.disabled = (index + 1) * 30 >= data.total;
-    page.textContent = `${index + 1} / ${Math.max(1, Math.ceil(data.total / 30))}`;
-    if (table && !filter.children.length) {
-      const all = node("option", "", "admin.all");
-
-      all.value = "";
-      filter.append(all);
-      for (const key of data.columns) {
-        const option = node("option");
-
-        option.value = option.textContent = key;
-        filter.append(option);
-      }
-      choice.classList.add("select");
-      choice.hidden = false;
-    }
-
+    controls.update(data);
     if (!data.items.length) rows.append(node("p", "online-empty", "admin.empty"));
-    else if (table) {
+    else
       rows.append(
         group(
           ...data.items.map((item, index) => {
-            const row = entry("", "storage", () => details(item, data.columns));
-            const name = dom.query(".group-name", row);
-            const summary = node("span", "admin-summary");
-            const key = data.columns.find((key) => item[key] !== null && item[key] !== "");
+            if (table) {
+              const row = entry("", "storage", () => details(item, data.columns));
+              const key = data.columns.find((key) => item[key] != null && item[key] !== "");
 
-            name.textContent = String(item[key] ?? index + 1);
-            summary.textContent = data.columns
-              .filter((column) => column !== key && item[column] != null && item[column] !== "")
-              .slice(0, 2)
-              .map((column) => String(item[column]))
-              .join("\n");
+              dom.query(".name", row).textContent = String(item[key] ?? index + 1);
+              return row;
+            }
+            const row = entry("", "", () =>
+              profile(dom.query("button", row), root, { id: item.id, context: "chatting" })
+            );
+            const button = dom.query("button", row);
+            const picture = node("span", "avatar-wrap");
+            const name = node("span", "name");
 
-            dom.query("button", row).append(summary);
-            row.classList.add("admin-record");
+            dom.remove(button, "data-icon");
+            picture.append(avatar(item.avatar, "span").root);
+            name.textContent = names.label(item);
+            names.mark(name, item.verified);
+            button.replaceChildren(picture, name);
             return row;
           })
         )
       );
-    } else {
-      const list = group(
-        ...data.items.map((user) => {
-          const row = entry("", "", () =>
-            profile(dom.query("button", row), root, { id: user.id, context: "chatting" })
-          );
-          const button = dom.query("button", row);
-          const picture = node("span", "avatar-wrap");
-          const name = node("span", "online-name");
-
-          dom.remove(button, "data-icon");
-          picture.append(avatar(user.avatar, "span").root);
-          name.textContent = names.label(user);
-          names.mark(name, user.verified);
-          button.replaceChildren(picture, name);
-
-          return row;
-        })
-      );
-
-      rows.append(list);
-    }
 
     mount(root);
   }
-
-  const refresh = () => {
-    index = 0;
-    revision++;
-    request?.abort();
-    clearTimeout(timer);
-    timer = setTimeout(load, 200);
-  };
-
-  dom.on(search.input, "input", refresh);
-  dom.on(match.input, "input", refresh);
-  dom.on(filter, "change", refresh);
   try {
-    return await open(table ? "admin.database" : "admin.users", root, { ready: load });
+    return await open(table ? "admin.database" : "admin.users", root, {
+      ready: load,
+      toolbar: controls.root
+    });
   } finally {
     closed = true;
+    controls.close();
     request?.abort();
-    clearTimeout(timer);
     loading.destroy();
   }
 }
@@ -420,7 +446,6 @@ async function database(scope = {}) {
   if (!response.ok) return fail();
   const root = node("div", "profile admin");
 
-  root.append(node("p", "", "admin.readonly"));
   if (!response.data.length) root.append(node("p", "online-empty", "admin.empty"));
 
   root.append(
@@ -430,7 +455,7 @@ async function database(scope = {}) {
           item.table ? browse(item.table, scope) : database(item.scope)
         );
 
-        if (!item.key) dom.query(".group-name", row).textContent = item.name || item.table;
+        if (!item.key) dom.query(".name", row).textContent = item.name || item.table;
         return row;
       })
     )
@@ -481,57 +506,27 @@ async function preview(kind, item) {
 
 async function files(kind, folder = "") {
   const root = node("div", "profile admin");
-  const search = field("admin.search", "search");
   const rows = node("div");
-  const controls = node("nav", "admin-pages");
-  const page = node("output");
   const loading = progress({ type: "circular", value: 25, show: false });
+  const controls = tools(load);
 
-  let index = 0;
   let revision = 0;
   let request;
-  let timer;
   let closed = false;
 
-  const previous = dom.query(
-    "button",
-    entry("admin.previous", "arrow", () => {
-      index--;
-      void load();
-    })
-  );
-
-  const next = dom.query(
-    "button",
-    entry("admin.next", "arrow", () => {
-      index++;
-      void load();
-    })
-  );
-
-  dom.set(previous, "data-angle", "left");
-  for (const [button, key] of [
-    [previous, "admin.previous"],
-    [next, "admin.next"]
-  ]) {
-    dom.set(button, "data-circle", "");
-    dom.set(button, "data-tooltip", key);
-    button.disabled = true;
-  }
-  controls.append(previous, page, next);
   if (folder) root.append(label("admin.folder", folder));
 
-  root.append(search.root, loading.element, rows, controls);
+  root.append(loading.element, rows);
 
   async function load() {
     const version = ++revision;
 
     request?.abort();
     request = new AbortController();
-    previous.disabled = next.disabled = true;
+    controls.busy();
     loading.element.hidden = false;
 
-    const params = new URLSearchParams({ folder, q: search.input.value, page: String(index) });
+    const params = new URLSearchParams({ folder, ...controls.values });
     const response = await api(`${path}/files/${kind}?${params}`, { signal: request.signal });
 
     if (closed || version !== revision) return;
@@ -541,9 +536,7 @@ async function files(kind, folder = "") {
     if (!response.ok) return fail();
     const data = response.data;
 
-    previous.disabled = index === 0;
-    next.disabled = (index + 1) * 30 >= data.total;
-    page.textContent = `${index + 1} / ${Math.max(1, Math.ceil(data.total / 30))}`;
+    controls.update(data);
     if (!data.items.length) rows.append(node("p", "online-empty", "admin.empty"));
     else
       rows.append(
@@ -554,15 +547,8 @@ async function files(kind, folder = "") {
               item.type === "image" ? "image" : item.type === "audio" ? "voice" : "storage",
               () => (item.type === "folder" ? files(kind, item.file) : preview(kind, item))
             );
-            const title = dom.query(".group-name", row);
-            const summary = node("span", "admin-summary");
 
-            title.textContent = item.name;
-            summary.textContent =
-              item.text || (item.type === "folder" ? "" : `${item.size.toLocaleString()} B`);
-
-            dom.query("button", row).append(summary);
-            row.classList.add("admin-record");
+            dom.query(".name", row).textContent = item.name;
             return row;
           })
         )
@@ -570,21 +556,12 @@ async function files(kind, folder = "") {
 
     mount(root);
   }
-
-  dom.on(search.input, "input", () => {
-    index = 0;
-    revision++;
-    request?.abort();
-    clearTimeout(timer);
-    timer = setTimeout(load, 200);
-  });
-
   try {
-    return await open(`admin.${kind}`, root, { ready: load });
+    return await open(`admin.${kind}`, root, { ready: load, toolbar: controls.root });
   } finally {
     closed = true;
+    controls.close();
     request?.abort();
-    clearTimeout(timer);
     loading.destroy();
   }
 }

@@ -2,6 +2,21 @@ import sharp from "sharp";
 import * as path from "#config/path";
 import * as media from "#config/media";
 import { validId } from "#shared/chatting";
+import * as attachment from "#shared/attachment";
+
+const stickers = (items) =>
+  Array.isArray(items)
+    ? items
+        .slice(0, attachment.maximum)
+        .map((item) =>
+          item?.provider === "giphy"
+            ? attachment.giphy(item)
+            : item?.type === "ogq"
+              ? attachment.ogq(item)
+              : null
+        )
+        .filter(Boolean)
+    : [];
 
 const person = (value) =>
   value && typeof value.id === "string" && /^[a-f0-9]{32}$/.test(value.id)
@@ -33,6 +48,7 @@ export const read = (value) => {
           text: item.text.slice(0, 2000),
           time: typeof item.time === "string" ? item.time : "",
           target: item.target === true,
+          attachments: stickers(item.attachments),
           images: Array.isArray(item.images)
             ? item.images
                 .slice(0, 10)
@@ -148,8 +164,11 @@ export const capture = async (db, { message, uid }) => {
 
     if (!Array.isArray(attachments)) attachments = [];
 
+    item.attachments = stickers(attachments);
+
     if (!attachments.length && row.image) attachments = [{ preview: row.preview || row.image }];
     for (const attachment of attachments) {
+      if (attachment.provider === "giphy" || attachment.type === "ogq") continue;
       const image = await preview(attachment.preview || attachment.image);
 
       if (!image || size + image.length > 350000) {

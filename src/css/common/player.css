@@ -1,0 +1,62 @@
+.player,
+.chatting .player.chatting-audio,
+.player.admin-preview {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 0.5rem;
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  padding: 0.75rem;
+  border-radius: 0.5rem;
+  color: var(--text);
+}
+
+.player > audio {
+  display: none;
+}
+
+.player.admin-preview {
+  max-height: none;
+}
+
+.player-label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.player-seek {
+  min-width: 0;
+}
+
+.player-time,
+.player-error {
+  grid-column: 1 / -1;
+  text-align: center;
+  font-size: 0.875rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.player-error {
+  color: var(--error);
+}
+
+.player-error[hidden] {
+  display: none;
+}
+
+:is(.small, .wearable) .player,
+:is(.small, .wearable) .chatting .player.chatting-audio,
+:is(.small, .wearable) .player.admin-preview {
+  grid-template-columns: minmax(0, 1fr);
+  justify-items: center;
+}
+
+:is(.small, .wearable) .player-seek {
+  width: 100%;
+}

@@ -1,6 +1,6 @@
 import * as dom from "#common/dom";
 import * as i18n from "#common/i18n";
-import * as emoji from "#common/emoji";
+import * as link from "#common/link";
 import label from "#common/profile/label";
 import media from "#common/chatting/media";
 import view from "#common/image/view";
@@ -111,12 +111,13 @@ const conversation = (entries, archived, target) => {
       dom.set(article, "data-target", "");
     }
 
-    if (archived) body.textContent = entry.text || "";
-    else emoji.render(body, entry.text || "");
+    link.render(body, entry.text || "");
+
     const images = dom.create("div");
 
     images.className = "history-media";
     if (archived) {
+      media(images, { attachments: entry.attachments || [] });
       for (const item of entry.images || []) {
         if (!/^data:image\/webp;base64,/.test(item.image || "")) continue;
         const button = dom.create("button");
@@ -215,7 +216,19 @@ export default function record(entry, type) {
     snapshot?.messages ||
     (chat ? [entry] : report && entry.type === "message" ? [{ ...entry, url: entry.message }] : []);
 
-  const content = conversation(messages, Boolean(snapshot), report ? entry.message : "");
+  const content = conversation(
+    messages.map((message) => {
+      if (!snapshot || message.attachments?.length || message.url !== entry.message) return message;
+      return {
+        ...message,
+        attachments: (entry.attachments || []).filter(
+          (item) => item.provider === "giphy" || item.type === "ogq"
+        )
+      };
+    }),
+    Boolean(snapshot),
+    report ? entry.message : ""
+  );
 
   if (content.childElementCount) {
     root.append(content);

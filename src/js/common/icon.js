@@ -62,6 +62,8 @@ const icons = {
     "M8 10.5h.01M12 10.5h.01M16 10.5h.01"
   ],
   send: ["M22 2 15 22l-4-9-9-4Z", "M22 2 11 13"],
+  play: ["m8 4 12 8-12 8Z"],
+  pause: ["M8 4v16", "M16 4v16"],
   whisper: [
     "M6 8.5a6.5 6.5 0 1 1 13 0" + "c0 6-3 6-3 8.5a3.5 3.5 0 0 1-7 0",
     "M15 8.5a2.5 2.5 0 0 0-5 0v1" + "a2 2 0 0 0 2 2h1"
@@ -379,6 +381,8 @@ const tints = {
   logout: "red",
   chat: "blue",
   send: "blue",
+  play: "green",
+  pause: "blue",
   whisper: "teal",
   smile: "gold",
   gift: "pink",
