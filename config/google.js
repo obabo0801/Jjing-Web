@@ -17,9 +17,9 @@ export const redirects = (process.env.GOOGLE_REDIRECT_URI || "")
       url.search
     )
       throw new Error("Invalid GOOGLE_REDIRECT_URI");
+
     return url.href;
   });
-export const redirect = (origin) =>
-  redirects.find((value) => new URL(value).origin === origin);
+export const redirect = (origin) => redirects.find((value) => new URL(value).origin === origin);
 export const enabled = Boolean(id && secret && redirects.length);
 export const client = new OAuth2Client(id, secret);

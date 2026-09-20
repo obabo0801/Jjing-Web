@@ -1,4 +1,5 @@
 import sharp from "sharp";
+import record from "#service/upload";
 
 import * as path from "#config/path";
 import hash from "#config/hash";
@@ -33,11 +34,7 @@ export default async function store(data, folder, options) {
       }
     }
 
-    source = sharp(original, {
-      animated: true,
-      failOn: "error",
-      limitInputPixels: maxPixels
-    });
+    source = sharp(original, { animated: true, failOn: "error", limitInputPixels: maxPixels });
     metadata = await source.metadata();
   } catch {
     return null;
@@ -54,13 +51,11 @@ export default async function store(data, folder, options) {
 
   delete resize.quality;
   delete resize.edit;
+  delete resize.uid;
 
   const animation =
     (metadata.pages || 1) > 1
-      ? {
-          loop: metadata.loop ?? 0,
-          ...(metadata.delay ? { delay: metadata.delay } : {})
-        }
+      ? { loop: metadata.loop ?? 0, ...(metadata.delay ? { delay: metadata.delay } : {}) }
       : {};
 
   const resized = await source
@@ -84,6 +79,8 @@ export default async function store(data, folder, options) {
     save(path.upload(folder, "original", orig), original),
     save(path.upload(folder, "resizing", webp), resized)
   ]);
+
+  await record(options.uid, `${folder}/original/${orig}`, `${folder}/resizing/${webp}`);
 
   return {
     original: media.url(folder, "original", orig),

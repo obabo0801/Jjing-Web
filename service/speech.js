@@ -35,9 +35,7 @@ export default async function recognize(audio, lang) {
     content: audio
   });
 
-  const items = (response.results || [])
-    .map((result) => result.alternatives?.[0])
-    .filter(Boolean);
+  const items = (response.results || []).map((result) => result.alternatives?.[0]).filter(Boolean);
 
   const text = items
     .map((item) => item.transcript?.trim())
@@ -45,9 +43,7 @@ export default async function recognize(audio, lang) {
     .join(" ")
     .trim();
 
-  const scores = items
-    .map((item) => Number(item.confidence))
-    .filter((value) => value > 0);
+  const scores = items.map((item) => Number(item.confidence)).filter((value) => value > 0);
 
   const confidence = scores.length
     ? scores.reduce((sum, value) => sum + value, 0) / scores.length

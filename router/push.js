@@ -20,6 +20,7 @@ router.use((req, res, next) => {
     (req.get("sec-fetch-site") === "cross-site" || !req.is("application/json"))
   )
     return res.status(403).end();
+
   next();
 });
 
@@ -28,17 +29,13 @@ router.get("/devices", async (req, res) => {
 
   if (!id) return res.status(401).end();
   const rows = await db.all(
-    `SELECT id, name, device, os, browser, active, connected
+    `SELECT id, name, device, os, browser, active, connected, registered, time
       FROM web WHERE uid = ? ORDER BY time DESC`,
     [id]
   );
 
   res.json(
-    rows.map((row) => ({
-      ...row,
-      active: Boolean(row.active),
-      connected: Boolean(row.connected)
-    }))
+    rows.map((row) => ({ ...row, active: Boolean(row.active), connected: Boolean(row.connected) }))
   );
 });
 
@@ -54,9 +51,7 @@ router.patch("/devices/:id", async (req, res) => {
     )
   )
     return res.status(400).end();
-  const values = entries.map(([key, value]) =>
-    key === "name" ? value.trim() : Number(value)
-  );
+  const values = entries.map(([key, value]) => (key === "name" ? value.trim() : Number(value)));
 
   const row = await get(
     `UPDATE web SET ${entries.map(([key]) => `${key} = ?`).join(", ")}
@@ -65,14 +60,12 @@ router.patch("/devices/:id", async (req, res) => {
   );
 
   if (!row) return res.status(404).end();
+
   res.status(204).end();
 });
 
 router.delete("/devices/:id", async (req, res) => {
-  const result = await run("DELETE FROM web WHERE uid = ? AND id = ?", [
-    uid(req),
-    req.params.id
-  ]);
+  const result = await run("DELETE FROM web WHERE uid = ? AND id = ?", [uid(req), req.params.id]);
 
   res.status(result.changes ? 204 : 404).end();
 });
@@ -140,16 +133,12 @@ router.put("/", async (req, res) => {
     return res.status(404).end();
   }
 
-  const row = await get(
-    "SELECT id, active, connected FROM web WHERE uid = ? AND endpoint = ?",
-    [id, endpoint]
-  );
+  const row = await get("SELECT id, active, connected FROM web WHERE uid = ? AND endpoint = ?", [
+    id,
+    endpoint
+  ]);
 
-  return res.json({
-    id: row.id,
-    active: Boolean(row.active),
-    connected: Boolean(row.connected)
-  });
+  return res.json({ id: row.id, active: Boolean(row.active), connected: Boolean(row.connected) });
 });
 
 router.post("/", async (req, res) => {
@@ -264,6 +253,7 @@ router.delete("/", async (req, res) => {
   `,
     [id, endpoint]
   );
+
   res.status(204).end();
 });
 

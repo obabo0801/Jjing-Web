@@ -64,6 +64,7 @@ export function add(run, state) {
         await back();
         if (stack.at(-1) === top) return false;
       }
+
       return run();
     });
   }

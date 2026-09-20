@@ -8,6 +8,8 @@
   translate: -50% 0;
 
   display: flex;
+  align-items: center;
+  justify-content: safe center;
   gap: 4px;
   width: max-content;
   max-width: calc(100% - 32px);
@@ -15,13 +17,8 @@
   border: 0;
   border-radius: 999px;
 
-  background: color-mix(in srgb, var(--background) 20%, transparent);
   color: var(--text);
-  box-shadow: var(--shadow);
   overflow-x: auto;
-
-  -webkit-backdrop-filter: blur(2px);
-  backdrop-filter: blur(2px);
 
   transition:
     background-color 160ms ease,
@@ -34,21 +31,22 @@
 
 .toolbar > button {
   position: relative;
-  flex: 0 0 auto;
+  flex: 0 0 var(--control-size);
   flex-direction: column;
-  gap: 4px;
+  gap: 2px;
   width: var(--control-size);
   min-width: var(--control-size);
   height: var(--control-size);
   min-height: var(--control-size);
-  padding: 4px;
+  padding: 0;
   border: 0;
   border-radius: 999px;
 }
 
 .toolbar > button > .icon {
-  width: calc(var(--control-size) / 2);
-  height: calc(var(--control-size) / 2);
+  flex-shrink: 0;
+  width: calc(var(--control-size) * 0.4);
+  height: calc(var(--control-size) * 0.4);
 }
 
 .toolbar > button[data-circle] {
@@ -56,7 +54,8 @@
 }
 
 .toolbar > button > span {
-  font-size: 0.875rem;
+  font-size: 0.75rem;
+  line-height: 1.2;
   white-space: nowrap;
 }
 
@@ -64,6 +63,7 @@ dialog > .toolbar {
   position: sticky;
   flex: 0 0 auto;
   align-self: center;
+  justify-self: center;
   inset-inline-start: auto;
   translate: none;
 
@@ -88,6 +88,11 @@ dialog > .toolbar {
   --toolbar-inset: 8dvh;
 
   max-width: 100%;
+}
+
+.wearable dialog > .toolbar {
+  position: relative;
+  inset-block-end: auto;
 }
 
 .toolbar > button > .toolbar-badge {

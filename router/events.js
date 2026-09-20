@@ -2,6 +2,7 @@ import { Router } from "express";
 
 import * as events from "../service/events.js";
 import address from "../config/ip.js";
+import client from "../config/client.js";
 import { get } from "../db/index.js";
 import identity from "../config/uid.js";
 import { viewer } from "../service/chatting.js";
@@ -40,29 +41,33 @@ router.post("/", async (req, res) => {
     return res.status(403).end();
   }
 
-  if (
-    typeof req.body?.session !== "string" ||
-    !events.touch(user.uid, req.body.session, req.body.visible, req.body.active)
-  )
+  const { session, visible, active, closed } = req.body || {};
+
+  if (typeof session !== "string") {
     return res.status(409).end();
+  }
+
+  if (closed === true) {
+    events.disconnect(user.uid, session);
+
+    return res.status(204).end();
+  }
+
+  if (!events.touch(user.uid, session, visible, active)) {
+    return res.status(409).end();
+  }
+
   res.status(204).end();
 });
 
 router.get("/list", async (req, res) => {
   res.set({ "Cache-Control": "private, no-store", Vary: "Cookie" });
   try {
-    await viewer(
-      identity(req),
-      address(req),
-      req.app.get("env") === "development"
-    );
+    await viewer(identity(req), address(req), req.app.get("env") === "development");
+
     const result = await events.list();
 
-    await viewer(
-      identity(req),
-      address(req),
-      req.app.get("env") === "development"
-    );
+    await viewer(identity(req), address(req), req.app.get("env") === "development");
     res.json(result);
   } catch (error) {
     if (error.status) return res.status(error.status).end();
@@ -75,8 +80,7 @@ router.get("/", async (req, res) => {
 
   if (
     tab !== undefined &&
-    (typeof tab !== "string" ||
-      !/^[\da-f]{8}(-[\da-f]{4}){3}-[\da-f]{12}$/i.test(tab))
+    (typeof tab !== "string" || !/^[\da-f]{8}(-[\da-f]{4}){3}-[\da-f]{12}$/i.test(tab))
   )
     return res.status(400).end();
   const user = await find(req);
@@ -90,12 +94,14 @@ router.get("/", async (req, res) => {
     Connection: "keep-alive",
     "Content-Type": "text/event-stream"
   });
+
   res.flushHeaders?.();
   res.write("retry: 3000\n\n");
 
   const close = events.connect(
     {
       ...user,
+      ...client(req),
       tab,
       ip: address(req),
       development: req.app.get("env") === "development"
@@ -105,10 +111,12 @@ router.get("/", async (req, res) => {
 
   const ping = setInterval(() => {
     if (res.writableEnded || res.destroyed) return;
+
     res.write("event: heartbeat\ndata: {}\n\n");
   }, 25_000);
 
   ping.unref?.();
+
   const cleanup = () => {
     clearInterval(ping);
     close();

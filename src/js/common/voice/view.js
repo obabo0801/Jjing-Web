@@ -21,6 +21,17 @@ export const status = (target, name) => {
   }
 };
 
+export const preview = (target, text) => {
+  const original = views.get(surface(target))?.original;
+
+  if (!original || !isControl(target) || target.disabled) return;
+
+  target.value =
+    original.value.slice(0, original.start) + text + original.value.slice(original.end);
+
+  target.dispatchEvent(new Event("input", { bubbles: true }));
+};
+
 const display = (target) => {
   const element = surface(target);
 
@@ -30,14 +41,16 @@ const display = (target) => {
 
   const control = isControl(target);
   const action = dom.query(".voice", element);
-  const view = {};
   const original = control
     ? {
         value: target.value,
         placeholder: target.placeholder,
-        readOnly: target.readOnly
+        readOnly: target.readOnly,
+        start: target.selectionStart ?? target.value.length,
+        end: target.selectionEnd ?? target.value.length
       }
     : null;
+  const view = { original };
 
   views.set(element, view);
   dom.set(element, "data-voice", "");
@@ -62,6 +75,8 @@ const display = (target) => {
       target.value = original.value;
       target.placeholder = original.placeholder;
       target.readOnly = original.readOnly;
+      if (target.selectionStart !== null) target.setSelectionRange(original.start, original.end);
+
       target.dispatchEvent(new Event("input", { bubbles: true }));
     }
   };

@@ -19,6 +19,9 @@ const opening = once();
 
 i18n.preload(
   "room.participants",
+  "menu.contact",
+  "contact.end",
+  "contact.endConfirm",
   "room.title",
   ...[
     "enter",
@@ -29,7 +32,8 @@ i18n.preload(
     "revoke",
     "leave",
     "end",
-    "name"
+    "name",
+    "contact"
   ].map((type) => `room.events.${type}`),
   ...[
     "start",
@@ -60,36 +64,46 @@ i18n.preload(
   "room.blocked",
   "dialog.cancel",
   "dialog.confirm",
-  "direct.error"
+  "direct.error",
+  "direct.leave"
 );
 
 export const read = (id) => api(`${path}/rooms/${id}`);
-const confirm = (title) =>
+
+const confirm = (title, content) =>
   dialog({
     title,
+    content,
     direction: "→",
     actions: [
-      { text: "dialog.cancel", value: false },
-      { text: "dialog.confirm", value: true, data: ["data-danger"] }
+      { text: "dialog.cancel", icon: "close", value: false },
+      { text: "dialog.confirm", icon: "check", value: true, data: ["data-danger"] }
     ]
   });
+
 const failed = () => toast({ text: "direct.error", type: "error" });
 
 export const leave = async (id) => {
   const current = await read(id);
 
   if (!current.ok) return failed();
-  if (
-    current.data.owner &&
-    current.data.participants.some((item) => !item.self)
-  ) {
+
+  if (current.data.owner && current.data.participants.some((item) => !item.self)) {
     toast({ text: "room.ownerRequired", type: "info" });
     if (!(await select(id, "owner"))) return false;
   }
-  if (!(await confirm("room.leaveConfirm"))) return false;
+
+  if (
+    !(await confirm(
+      current.data.contact ? "contact.end" : "direct.leave",
+      current.data.contact ? "contact.endConfirm" : "room.leaveConfirm"
+    ))
+  )
+    return false;
   const result = await api(`${path}/rooms/${id}/leave`, { method: "POST" });
 
   if (!result.ok) failed();
+
   return result.ok;
 };
 
@@ -98,16 +112,14 @@ export function participants(id, anchor) {
     const content = dom.create("div");
 
     content.className = "online";
+
     let closed = false;
     let revision = 0;
     let count = 0;
     let heading;
 
     const title = () => {
-      if (heading)
-        heading.textContent = i18n
-          .message("room.title")
-          .replace("{count}", count);
+      if (heading) heading.textContent = i18n.message("room.title").replace("{count}", count);
     };
 
     const render = async () => {
@@ -115,10 +127,13 @@ export function participants(id, anchor) {
       const result = await read(id);
 
       if (closed || version !== revision) return;
+
       if (!result.ok) {
         failed();
+
         return;
       }
+
       const state = result.data;
       const group = dom.create("div");
 
@@ -136,6 +151,8 @@ export function participants(id, anchor) {
 
         row.className = "group-item";
         button.type = "button";
+        dom.set(button, "data-response", "");
+
         picture.className = "avatar-wrap";
         status.className = "profile-status";
         name.className = "online-name";
@@ -153,26 +170,23 @@ export function participants(id, anchor) {
           dom.set(badge, "data-i18n", key);
           button.append(badge);
         }
+
         dom.on(button, "click", () =>
-          profile(button, content, {
-            id: user.id,
-            own: user.self,
-            room: id,
-            context: "chatting"
-          })
+          profile(button, content, { id: user.id, own: user.self, room: id, context: "chatting" })
         );
+
         row.append(button);
         group.append(row);
       }
+
       mount(content);
     };
 
-    const off = ["direct-state", "presence", "ready"].map((type) =>
-      dom.on(events(), type, render)
-    );
+    const off = ["direct-state", "presence", "ready"].map((type) => dom.on(events(), type, render));
 
     try {
       await render();
+
       return await popover({
         title: "room.participants",
         content,
@@ -198,7 +212,10 @@ export async function block(user) {
   if (!result.ok) return failed();
   const blocked = result.data.directBlocked;
 
-  if (!blocked && !(await confirm("room.blockConfirm"))) return false;
+  if (!blocked && !(await confirm("room.block", "room.blockConfirm"))) {
+    return false;
+  }
+
   const response = await api(`${path}/direct/${user.id}/block`, {
     method: "PATCH",
     data: { blocked: !blocked }
@@ -206,17 +223,19 @@ export async function block(user) {
 
   if (!response.ok) failed();
   else await profiles.refresh(user.id);
+
   return response.ok;
 }
 
 export const title = (room) => {
+  if (room.contact) return i18n.message("menu.contact");
+
   if (room.multiple)
     return `${room.name || i18n.message("room.group")} ${room.participants.length}`;
+
   return (
     room.name ||
-    names.label(
-      room.participants.find((item) => !item.self) || { id: room.peer || "" }
-    ) ||
+    names.label(room.participants.find((item) => !item.self) || { id: room.peer || "" }) ||
     i18n.message("room.group")
   );
 };
@@ -224,12 +243,12 @@ export const title = (room) => {
 export const notice = (event) =>
   i18n.message(`room.events.${event.type}`).replace(/\{(\w+)\}/g, (_, key) => {
     if (key === "actor") return names.label(event.actor);
-    if (key === "targets")
-      return event.targets.map((user) => names.label(user)).join(", ");
+
+    if (key === "targets") return event.targets.map((user) => names.label(user)).join(", ");
+
     if (key === "members")
-      return [event.actor, ...event.targets]
-        .map((user) => names.label(user))
-        .join(", ");
+      return [event.actor, ...event.targets].map((user) => names.label(user)).join(", ");
+
     return event.value || "";
   });
 
@@ -240,30 +259,33 @@ export async function manage(id, action, value) {
     const current = await read(id);
 
     if (!current.ok) return failed();
+
     field.className = "input";
     input.value = current.data.name;
     input.maxLength = 60;
     dom.set(input, "data-control", "");
     field.append(input);
+
     const accepted = await dialog({
       title: "room.name",
       content: field,
       direction: "→",
       actions: [
-        { text: "dialog.cancel", value: false },
-        { text: "dialog.confirm", value: true, submit: true }
+        { text: "dialog.cancel", icon: "close", value: false },
+        { text: "dialog.confirm", icon: "check", value: true, submit: true }
       ]
     });
 
     if (!accepted || !input.value.trim()) return false;
+
     value = input.value.trim();
-  } else if (!(await confirm(`room.${action}Confirm`))) return false;
-  const result = await api(`${path}/rooms/${id}`, {
-    method: "PATCH",
-    data: { action, value }
-  });
+  } else if (!(await confirm(`room.${action}`, `room.${action}Confirm`))) {
+    return false;
+  }
+  const result = await api(`${path}/rooms/${id}`, { method: "PATCH", data: { action, value } });
 
   if (!result.ok) failed();
+
   return result.ok;
 }
 
@@ -284,6 +306,7 @@ export function select(id = "", mode = id ? "invite" : "start") {
     dom.set(input, "data-i18n-placeholder", "room.search");
     field.append(input);
     root.append(field, group, loading.element);
+
     const selected = new Set();
 
     let check;
@@ -298,27 +321,32 @@ export function select(id = "", mode = id ? "invite" : "start") {
       request?.abort();
       request = new AbortController();
       loading.element.hidden = false;
+
       const result =
         mode === "owner"
           ? await read(id)
-          : await api(
-              `${path}/rooms/search?${new URLSearchParams({ q: input.value, room: id })}`,
-              { signal: request.signal }
-            );
+          : await api(`${path}/rooms/search?${new URLSearchParams({ q: input.value, room: id })}`, {
+              signal: request.signal
+            });
 
       if (closed || version !== revision) return;
+
       loading.element.hidden = true;
       group.replaceChildren();
       if (!result.ok) {
         failed();
+
         return;
       }
+
       const items =
         mode === "owner"
           ? result.data.participants.filter(
               (item) => !item.self && names.label(item).includes(input.value)
             )
-          : result.data.items;
+          : mode === "start"
+            ? result.data.items.filter((item) => item.available !== false)
+            : result.data.items;
 
       for (const user of items) {
         const row = dom.create("div");
@@ -347,14 +375,18 @@ export function select(id = "", mode = id ? "invite" : "start") {
               if (item !== control) item.checked = false;
             });
           }
+
           if (control.checked) selected.add(user.id);
           else selected.delete(user.id);
+
           check.disabled = !selected.size;
         });
+
         field.append(label);
         row.append(field);
         group.append(row);
       }
+
       if (!items.length) {
         const empty = dom.create("p");
 
@@ -363,14 +395,17 @@ export function select(id = "", mode = id ? "invite" : "start") {
         dom.set(empty, "data-i18n", "room.empty");
         group.append(empty);
       }
+
       mount(root);
     }
+
     dom.on(input, "input", () => {
       clearTimeout(timer);
       revision++;
       request?.abort();
       timer = setTimeout(load, 200);
     });
+
     let accepted;
 
     try {
@@ -391,6 +426,7 @@ export function select(id = "", mode = id ? "invite" : "start") {
         ],
         ready: (element) => {
           check = dom.query(".layer-action", element);
+
           return load();
         }
       });
@@ -400,17 +436,21 @@ export function select(id = "", mode = id ? "invite" : "start") {
       request?.abort();
       loading.destroy();
     }
+
     if (accepted !== true || !selected.size) return false;
+
     if (mode === "owner") return manage(id, "owner", [...selected][0]);
-    const result = await api(
-      id ? `${path}/rooms/${id}/invite` : `${path}/rooms`,
-      { method: "POST", data: { ids: [...selected] } }
-    );
+    const result = await api(id ? `${path}/rooms/${id}/invite` : `${path}/rooms`, {
+      method: "POST",
+      data: { ids: [...selected] }
+    });
 
     if (!result.ok) {
       failed();
+
       return false;
     }
+
     return result.data.id;
   });
 }

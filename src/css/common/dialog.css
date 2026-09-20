@@ -3,15 +3,12 @@ dialog[data-dialog] {
   max-height: min(calc(100dvh - 2rem), 64rem);
   margin: auto;
   padding: 0;
-  border: 1px solid var(--border);
   border-radius: 8px;
 
-  background: var(--background);
   color: var(--text);
   text-align: left;
   font-size: 1.2rem;
 
-  box-shadow: var(--shadow);
   outline: 0;
 
   overflow: hidden;
@@ -93,10 +90,7 @@ dialog[data-dialog][data-swipe] * {
 
 .mobile dialog[data-dialog][data-keyboard] {
   inset-block-start: var(--dialog-top);
-  inset-block-end: max(
-    0px,
-    calc(100% - var(--dialog-top) - var(--dialog-height))
-  );
+  inset-block-end: max(0px, calc(100% - var(--dialog-top) - var(--dialog-height)));
   max-height: min(calc(var(--dialog-height) - 2rem), 64rem);
 }
 

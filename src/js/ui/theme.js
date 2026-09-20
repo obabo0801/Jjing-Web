@@ -16,6 +16,7 @@ export default function select() {
         return option;
       })
     );
+
     input.value = value;
     dom.on(input, "change", () => theme.default(input.value));
   });

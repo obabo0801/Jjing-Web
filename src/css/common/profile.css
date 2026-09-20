@@ -6,6 +6,32 @@
   min-width: 0;
 }
 
+.profile-devices[hidden] {
+  display: none;
+}
+
+.profile-device-name {
+  -webkit-user-select: none;
+  user-select: none;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  min-width: 0;
+  color: var(--text);
+  overflow-wrap: anywhere;
+}
+
+.profile-device-name[data-active] {
+  color: var(--focus);
+}
+
+:is(.small, .wearable) .profile-device-name {
+  flex-direction: column;
+  justify-content: center;
+  text-align: center;
+}
+
 .profile-head {
   display: grid;
   justify-items: center;
@@ -91,8 +117,6 @@
 
   width: 20px;
   height: 20px;
-  border: 0;
-  border: 2px solid var(--canvas);
   border-radius: 999px;
 
   background: var(--neutral);
@@ -377,7 +401,7 @@ p.profile-id {
   transform: translateY(8.333%);
 }
 
-.chatting-message[data-blocked] {
+.chatting-message:is([data-blocked], [data-direct-blocked]) {
   opacity: 0.5;
 }
 
@@ -401,7 +425,7 @@ p.profile-id {
 
   .profile-edit,
   .profile-status,
-  .chatting-message[data-blocked] {
+  .chatting-message:is([data-blocked], [data-direct-blocked]) {
     transition: none;
   }
 

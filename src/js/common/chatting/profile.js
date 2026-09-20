@@ -4,7 +4,7 @@ import avatar from "#common/avatar";
 import show from "#common/profile/view";
 import * as names from "#common/profile/name";
 
-export default function chattingProfile(target, options) {
+export default function create(target, options) {
   const root = dom.create("div");
   const picture = avatar(options.avatar, "button");
   const name = dom.create("button");
@@ -24,6 +24,8 @@ export default function chattingProfile(target, options) {
     name.textContent = names.label(user);
     picture.set(user.avatar || options.avatar || "");
 
+    target.toggleAttribute("data-direct-blocked", Boolean(user.directBlocked));
+
     if (name.textContent && !name.isConnected) {
       root.append(name);
     } else if (!name.textContent) {
@@ -34,7 +36,6 @@ export default function chattingProfile(target, options) {
   const open = (anchor) =>
     show(anchor, target, {
       ...options,
-      // 메시지 작성 시각과 프로필의 최근 접속 시각은 별개입니다.
       time: "",
       ...(id ? profile.value(id) : null),
       context: "chatting"

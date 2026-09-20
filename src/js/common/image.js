@@ -16,13 +16,13 @@ const create = (tag, name) => {
   const element = dom.create(tag);
 
   element.className = name;
+
   return element;
 };
 
 const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
 
-const distance = ([first, second]) =>
-  Math.hypot(second.x - first.x, second.y - first.y);
+const distance = ([first, second]) => Math.hypot(second.x - first.x, second.y - first.y);
 
 const midpoint = ([first, second]) => ({
   x: (first.x + second.x) / 2,
@@ -40,14 +40,11 @@ const loadImage = async (file) => {
 
   try {
     await image.decode();
-    return {
-      image,
-      url,
-      width: image.naturalWidth,
-      height: image.naturalHeight
-    };
+
+    return { image, url, width: image.naturalWidth, height: image.naturalHeight };
   } catch {
     URL.revokeObjectURL(url);
+
     return null;
   }
 };
@@ -95,23 +92,14 @@ const animated = (file) =>
   file.type?.toLowerCase() === "image/gif" || /\.gif$/i.test(file.name || "");
 
 const load = async (file, limit) =>
-  animated(file)
-    ? loadImage(file)
-    : (await loadCanvas(file, limit)) || loadImage(file);
+  animated(file) ? loadImage(file) : (await loadCanvas(file, limit)) || loadImage(file);
 
 const createState = () => ({
   model: { angle: 0, scale: 1, x: 0, y: 0, view: null },
   gesture: { pointers: new Map(), pan: null, pinch: null },
   timer: { cursor: null },
   raf: { draw: null, measure: null },
-  layout: {
-    width: 0,
-    height: 0,
-    left: 0,
-    top: 0,
-    visualWidth: 0,
-    visualHeight: 0
-  }
+  layout: { width: 0, height: 0, left: 0, top: 0, visualWidth: 0, visualHeight: 0 }
 });
 
 export default async function edit(file, options = {}) {
@@ -128,9 +116,7 @@ export default async function edit(file, options = {}) {
     return null;
   }
 
-  const shape = ["circle", "original"].includes(options.shape)
-    ? options.shape
-    : "square";
+  const shape = ["circle", "original"].includes(options.shape) ? options.shape : "square";
 
   const { image, url, width: sourceWidth, height: sourceHeight } = loaded;
 
@@ -140,6 +126,7 @@ export default async function edit(file, options = {}) {
     width = Math.max(1, Math.round(sourceWidth * ratio));
     height = Math.max(1, Math.round(sourceHeight * ratio));
   }
+
   const root = create("div", "image-editor");
   const stage = create("div", "image-stage");
   const frame = create("div", "image-frame");
@@ -190,19 +177,12 @@ export default async function edit(file, options = {}) {
   ];
 
   const unchanged = () =>
-    !initial ||
-    state().every(
-      (value, index) => Math.abs(value - initial[index]) < 0.000001
-    );
+    !initial || state().every((value, index) => Math.abs(value - initial[index]) < 0.000001);
 
   const sync = () => {
     const rotation = tool === "rotate";
     const angle = ((((model.angle + 180) % 360) + 360) % 360) - 180;
-    const value = rotation
-      ? model.angle === 180
-        ? 180
-        : angle
-      : model.scale * 100;
+    const value = rotation ? (model.angle === 180 ? 180 : angle) : model.scale * 100;
 
     slider.min = rotation ? "-180" : "100";
     slider.max = rotation ? "180" : "300";
@@ -267,14 +247,10 @@ export default async function edit(file, options = {}) {
     const localX = model.x * cosine + model.y * sine;
     const localY = -model.x * sine + model.y * cosine;
     const requiredX =
-      shape === "circle"
-        ? stageWidth
-        : stageWidth * horizontal + stageHeight * vertical;
+      shape === "circle" ? stageWidth : stageWidth * horizontal + stageHeight * vertical;
 
     const requiredY =
-      shape === "circle"
-        ? stageHeight
-        : stageWidth * vertical + stageHeight * horizontal;
+      shape === "circle" ? stageHeight : stageWidth * vertical + stageHeight * horizontal;
 
     const limitX = Math.max(0, (sourceWidth * zoom - requiredX) / 2);
 
@@ -286,11 +262,7 @@ export default async function edit(file, options = {}) {
     model.y = nextX * sine + nextY * cosine;
 
     if (shape === "original") {
-      const rotated = bounds(
-        sourceWidth * zoom,
-        sourceHeight * zoom,
-        model.angle
-      );
+      const rotated = bounds(sourceWidth * zoom, sourceHeight * zoom, model.angle);
       const limitX = Math.max(0, (rotated.width - stageWidth) / 2);
       const limitY = Math.max(0, (rotated.height - stageHeight) / 2);
 
@@ -306,6 +278,7 @@ export default async function edit(file, options = {}) {
       "--image-y": `${model.y}px`,
       "--image-angle": `${model.angle}deg`
     });
+
     sync();
     root.dispatchEvent(new Event("input", { bubbles: true }));
   };
@@ -327,12 +300,10 @@ export default async function edit(file, options = {}) {
     const stageHeight = stage.clientHeight;
 
     if (!stageWidth || !stageHeight) return;
+
     if (shape === "original" && model.view?.base) {
       const rotated = bounds(sourceWidth, sourceHeight, model.angle);
-      const base = Math.min(
-        stageWidth / rotated.width,
-        stageHeight / rotated.height
-      );
+      const base = Math.min(stageWidth / rotated.width, stageHeight / rotated.height);
       const ratio = base / model.view.base;
 
       model.x *= ratio;
@@ -356,12 +327,10 @@ export default async function edit(file, options = {}) {
 
   const position = (event) => ({
     x:
-      (event.clientX - layout.left) *
-        (layout.width / (layout.visualWidth || layout.width)) -
+      (event.clientX - layout.left) * (layout.width / (layout.visualWidth || layout.width)) -
       layout.width / 2,
     y:
-      (event.clientY - layout.top) *
-        (layout.height / (layout.visualHeight || layout.height)) -
+      (event.clientY - layout.top) * (layout.height / (layout.visualHeight || layout.height)) -
       layout.height / 2
   });
 
@@ -405,14 +374,14 @@ export default async function edit(file, options = {}) {
       text: `image.${name}`,
       run: (button) => {
         if (tool === name) return;
+
         tapping.cancel();
         tool = name;
         [...tools.children].forEach((item) => dom.remove(item, "data-active"));
         dom.set(button, "data-active", "");
         sync();
         controls.getAnimations().forEach((animation) => animation.cancel());
-        if (!reduce.matches)
-          controls.animate({ opacity: [0.4, 1] }, { duration: 160 });
+        if (!reduce.matches) controls.animate({ opacity: [0.4, 1] }, { duration: 160 });
       }
     }))
   );
@@ -431,6 +400,7 @@ export default async function edit(file, options = {}) {
       y: model.y,
       center
     };
+
     gesture.pan = null;
     dom.remove(stage, "data-moving");
   };
@@ -448,12 +418,7 @@ export default async function edit(file, options = {}) {
       const next = clamp(
         model.scale *
           Math.exp(
-            -event.deltaY *
-              (event.deltaMode === 1
-                ? 0.024
-                : event.deltaMode === 2
-                  ? 0.25
-                  : 0.0015)
+            -event.deltaY * (event.deltaMode === 1 ? 0.024 : event.deltaMode === 2 ? 0.25 : 0.0015)
           ),
         1,
         3
@@ -499,11 +464,7 @@ export default async function edit(file, options = {}) {
       const points = [...gesture.pointers.values()].slice(0, 2);
       const center = midpoint(points);
 
-      const next = clamp(
-        gesture.pinch.scale * (distance(points) / gesture.pinch.distance),
-        1,
-        3
-      );
+      const next = clamp(gesture.pinch.scale * (distance(points) / gesture.pinch.distance), 1, 3);
       const ratio = next / gesture.pinch.scale;
 
       showZoom(next);
@@ -513,6 +474,7 @@ export default async function edit(file, options = {}) {
 
       model.scale = next;
       render();
+
       return;
     }
 
@@ -551,6 +513,7 @@ export default async function edit(file, options = {}) {
 
   const rotateBy = (difference) => {
     tapping.cancel();
+
     const radians = (difference * Math.PI) / 180;
     const cosine = Math.cos(radians);
     const sine = Math.sin(radians);
@@ -562,11 +525,13 @@ export default async function edit(file, options = {}) {
     model.angle += difference;
     size();
     if (shape === "original") measure();
+
     render();
   };
 
   dom.on(slider, "input", () => {
     tapping.cancel();
+
     const value = Number(slider.value);
 
     if (tool === "rotate") rotateBy(value - model.angle);
@@ -615,8 +580,10 @@ export default async function edit(file, options = {}) {
             x: number(options.edit.x) * layout.width,
             y: number(options.edit.y) * layout.height
           });
+
           paint();
         }
+
         initial = state();
         sync();
         root.dispatchEvent(new Event("input", { bubbles: true }));
@@ -657,10 +624,7 @@ export default async function edit(file, options = {}) {
   let result = null;
 
   if (confirmed && model.view) {
-    const base = Math.max(
-      model.view.width / sourceWidth,
-      model.view.height / sourceHeight
-    );
+    const base = Math.max(model.view.width / sourceWidth, model.view.height / sourceHeight);
 
     result = {
       file,
@@ -672,9 +636,7 @@ export default async function edit(file, options = {}) {
         scale: model.scale,
         x: model.x / model.view.width,
         y: model.y / model.view.height,
-        previewScale: base
-          ? (model.view.cover * model.scale) / base
-          : model.scale
+        previewScale: base ? (model.view.cover * model.scale) / base : model.scale
       }
     };
   }
@@ -684,5 +646,6 @@ export default async function edit(file, options = {}) {
   }
 
   css.remove(root);
+
   return result;
 }

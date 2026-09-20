@@ -13,14 +13,11 @@ import account from "#middleware/account";
 
 const router = Router();
 
-const upload = raw({
-  type: ["image/jpeg", "image/png", "image/webp", "image/gif"],
-  limit: max
-});
+const upload = raw({ type: ["image/jpeg", "image/png", "image/webp", "image/gif"], limit: max });
 
 const links = rate(10);
 
-const readEdit = (req) => {
+const parse = (req) => {
   try {
     return JSON.parse(req.get("x-image-edit") || "null");
   } catch {
@@ -28,8 +25,9 @@ const readEdit = (req) => {
   }
 };
 
-const saveImage = async (uid, body, edit = null, token = "") => {
+const save = async (uid, body, edit = null, token = "") => {
   const image = await store(body, "users", {
+    uid,
     width: 256,
     height: 256,
     fit: "cover",
@@ -40,6 +38,7 @@ const saveImage = async (uid, body, edit = null, token = "") => {
   if (!image) {
     return null;
   }
+
   for (const file of [image.original, image.resizing])
     await run("INSERT OR IGNORE INTO profile_file VALUES (?, ?)", [uid, file]);
 
@@ -85,12 +84,7 @@ router.post("/image", account, upload, async (req, res) => {
     return res.status(400).end();
   }
 
-  const image = await saveImage(
-    uid,
-    req.body,
-    readEdit(req),
-    req.get("x-profile-draft")
-  );
+  const image = await save(uid, req.body, parse(req), req.get("x-profile-draft"));
 
   if (!image) {
     return res.status(415).end();
@@ -106,6 +100,7 @@ router.post("/image/link/:token/use", account, async (req, res) => {
 
   if (!uid || !item || item.uid !== uid) {
     profile.remove(value);
+
     return res.status(404).end();
   }
 
@@ -114,16 +109,14 @@ router.post("/image/link/:token/use", account, async (req, res) => {
   }
 
   await data.clear();
-  const draft = await get(
-    "SELECT 1 FROM user WHERE uid = ? AND draft IS NOT NULL",
-    [uid]
-  );
+
+  const draft = await get("SELECT 1 FROM user WHERE uid = ? AND draft IS NOT NULL", [uid]);
 
   if (!draft) {
     return res.status(409).end();
   }
 
-  const image = await saveImage(uid, item.file, null, string(req.body?.token));
+  const image = await save(uid, item.file, null, string(req.body?.token));
 
   if (!image) {
     return res.status(415).end();
@@ -178,7 +171,7 @@ router.post("/image/link/:token", upload, async (req, res) => {
     return res.status(400).end();
   }
 
-  const edit = readEdit(req);
+  const edit = parse(req);
 
   let file;
 

@@ -1,4 +1,5 @@
 import * as location from "#shared/location";
+import * as navigation from "#common/login/history";
 
 const handlers = new Map();
 const active = [];
@@ -10,8 +11,7 @@ let syncing = false;
 let again = false;
 let pending;
 
-const equal = (first, second) =>
-  JSON.stringify(first) === JSON.stringify(second);
+const equal = (first, second) => JSON.stringify(first) === JSON.stringify(second);
 
 const states = () => active.map((item) => item.state);
 
@@ -25,24 +25,24 @@ const read = () => {
     saved.entries.length <= 12 &&
     saved.entries.every(
       (item) =>
-        Array.isArray(item) &&
-        item.length === 3 &&
-        item.every((part) => typeof part === "string")
+        Array.isArray(item) && item.length === 3 && item.every((part) => typeof part === "string")
     ) &&
     equal(saved.entries.at(-1) || null, current)
   )
     return saved.entries;
+
   if (!current) return [];
-  if (current[1] === "settings-section")
-    return [["popover", "settings", ""], current];
-  return current[1] === "authority"
-    ? [["popover", "profile", current[2]], current]
-    : [current];
+
+  if (current[1] === "settings-section") return [["popover", "settings", ""], current];
+
+  return current[1] === "authority" ? [["popover", "profile", current[2]], current] : [current];
 };
 
 const url = (value) => (value.length ? location.href(value.at(-1)) : base);
 
 const write = (value, push = false, parent = "") => {
+  if (navigation.blocked()) return;
+
   const target = url(value);
   const state = {
     ...history.state,
@@ -65,12 +65,14 @@ export const replace = (name, state) => {
   const item = active.find((item) => item.state[1] === name);
 
   if (!item) return;
+
   item.state = state;
   if (!syncing) write(states(), false, history.state?.navigation?.parent || "");
 };
 
 export const add = (state, close) => {
   base ||= "/";
+
   const item = { state, close };
 
   active.push(item);
@@ -87,7 +89,7 @@ export const add = (state, close) => {
     const previous = states();
 
     active.splice(index, 1);
-    if (syncing) return;
+    if (syncing || navigation.blocked()) return;
     const parent = history.state?.navigation?.parent;
 
     if (
@@ -103,9 +105,16 @@ export const add = (state, close) => {
 };
 
 const sync = async () => {
-  if (!started) return;
+  if (!started || navigation.blocked()) return;
+
+  if (!navigation.check()) {
+    navigation.reset();
+    return;
+  }
+
   if (syncing) {
     again = true;
+
     return;
   }
 
@@ -113,21 +122,19 @@ const sync = async () => {
   try {
     do {
       again = false;
+
       const desired = read();
 
       let common = 0;
 
-      while (
-        common < active.length &&
-        equal(active[common].state, desired[common])
-      )
-        common += 1;
+      while (common < active.length && equal(active[common].state, desired[common])) common += 1;
 
       while (active.length > common) {
         const item = active.at(-1);
 
         if ((await item.close()) === false || active.includes(item)) {
           write(states());
+
           return;
         }
       }
@@ -169,13 +176,11 @@ const sync = async () => {
 export const restore = async () => {
   if (!started) {
     started = true;
+
     const current = new URL(window.location.href);
     const profile = location.read(current.href)?.[1] === "profile";
 
-    if (
-      current.searchParams.has("ui") ||
-      (profile && current.searchParams.has("connection"))
-    ) {
+    if (current.searchParams.has("ui") || (profile && current.searchParams.has("connection"))) {
       current.searchParams.delete("ui");
       if (profile) current.searchParams.delete("connection");
       const state = { ...history.state };
@@ -183,6 +188,7 @@ export const restore = async () => {
       delete state.ui;
       history.replaceState(state, "", current);
     }
+
     const saved = history.state?.navigation;
 
     base =
@@ -194,18 +200,17 @@ export const restore = async () => {
         : location.read(current.href)
           ? "/"
           : `${current.pathname}${current.search}${current.hash}`;
+
     const desired = read();
 
     // A direct link needs a base entry so Back closes one layer at a time.
-    if (
-      desired.length &&
-      history.state?.navigation?.url !== window.location.href
-    ) {
+    if (desired.length && history.state?.navigation?.url !== window.location.href) {
       write([]);
-      for (let index = 1; index <= desired.length; index += 1)
-        write(desired.slice(0, index), true);
+      for (let index = 1; index <= desired.length; index += 1) write(desired.slice(0, index), true);
     }
+
     window.addEventListener("popstate", () => sync().catch(console.error));
   }
+
   await sync();
 };

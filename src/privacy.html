@@ -17,9 +17,14 @@
     <main class="legal">
       <h1 data-i18n="privacy.heading"></h1>
 
+      <div class="line"></div>
+
       <section id="collect">
         <h2><a href="#collect" data-i18n="privacy.collect.title"></a></h2>
-        <p data-i18n="privacy.collect.description"></p>
+        <ol>
+          <li data-i18n="privacy.collect.description.first"></li>
+          <li data-i18n="privacy.collect.description.second"></li>
+        </ol>
         <div class="table-wrap">
           <table>
             <thead>
@@ -31,18 +36,7 @@
             </thead>
             <tbody>
               <tr>
-                <th
-                  scope="row"
-                  data-i18n="privacy.collect.rows.guest.name"
-                ></th>
-                <td data-i18n="privacy.collect.rows.guest.data"></td>
-                <td data-i18n="privacy.collect.rows.guest.purpose"></td>
-              </tr>
-              <tr>
-                <th
-                  scope="row"
-                  data-i18n="privacy.collect.rows.google.name"
-                ></th>
+                <th scope="row" data-i18n="privacy.collect.rows.google.name"></th>
                 <td data-i18n="privacy.collect.rows.google.data"></td>
                 <td data-i18n="privacy.collect.rows.google.purpose"></td>
               </tr>
@@ -52,43 +46,31 @@
                 <td data-i18n="privacy.collect.rows.chat.purpose"></td>
               </tr>
               <tr>
-                <th
-                  scope="row"
-                  data-i18n="privacy.collect.rows.voice.name"
-                ></th>
+                <th scope="row" data-i18n="privacy.collect.rows.voice.name"></th>
                 <td data-i18n="privacy.collect.rows.voice.data"></td>
                 <td data-i18n="privacy.collect.rows.voice.purpose"></td>
               </tr>
               <tr>
-                <th
-                  scope="row"
-                  data-i18n="privacy.collect.rows.access.name"
-                ></th>
+                <th scope="row" data-i18n="privacy.collect.rows.access.name"></th>
                 <td data-i18n="privacy.collect.rows.access.data"></td>
                 <td data-i18n="privacy.collect.rows.access.purpose"></td>
               </tr>
               <tr>
-                <th
-                  scope="row"
-                  data-i18n="privacy.collect.rows.report.name"
-                ></th>
+                <th scope="row" data-i18n="privacy.collect.rows.report.name"></th>
                 <td data-i18n="privacy.collect.rows.report.data"></td>
                 <td data-i18n="privacy.collect.rows.report.purpose"></td>
               </tr>
               <tr>
-                <th
-                  scope="row"
-                  data-i18n="privacy.collect.rows.notification.name"
-                ></th>
+                <th scope="row" data-i18n="privacy.collect.rows.notification.name"></th>
                 <td data-i18n="privacy.collect.rows.notification.data"></td>
                 <td data-i18n="privacy.collect.rows.notification.purpose"></td>
               </tr>
               <tr>
-                <th
-                  scope="row"
-                  data-i18n="privacy.collect.rows.contact.name"
-                ></th>
-                <td data-i18n="privacy.collect.rows.contact.data"></td>
+                <th scope="row" data-i18n="privacy.collect.rows.contact.name"></th>
+                <td>
+                  <p data-i18n="privacy.collect.rows.contact.data"></p>
+                  <p data-i18n="privacy.collect.rows.contact.email"></p>
+                </td>
                 <td data-i18n="privacy.collect.rows.contact.purpose"></td>
               </tr>
             </tbody>
@@ -96,16 +78,27 @@
         </div>
       </section>
 
+      <div class="line"></div>
+
       <section id="method">
         <h2><a href="#method" data-i18n="privacy.method.title"></a></h2>
-        <p data-i18n="privacy.method.description"></p>
+        <ul>
+          <li data-i18n="privacy.method.description.first"></li>
+          <li data-i18n="privacy.method.description.second"></li>
+          <li data-i18n="privacy.method.description.third"></li>
+        </ul>
       </section>
+
+      <div class="line"></div>
 
       <section id="retention">
         <h2>
           <a href="#retention" data-i18n="privacy.retention.title"></a>
         </h2>
-        <p data-i18n="privacy.retention.description"></p>
+        <ol>
+          <li data-i18n="privacy.retention.description.first"></li>
+          <li data-i18n="privacy.retention.description.second"></li>
+        </ol>
         <div class="table-wrap">
           <table>
             <thead>
@@ -116,38 +109,31 @@
             </thead>
             <tbody>
               <tr>
-                <th
-                  scope="row"
-                  data-i18n="privacy.retention.rows.profile.name"
-                ></th>
+                <th scope="row" data-i18n="privacy.retention.rows.profile.name"></th>
                 <td data-i18n="privacy.retention.rows.profile.period"></td>
               </tr>
               <tr>
-                <th
-                  scope="row"
-                  data-i18n="privacy.retention.rows.records.name"
-                ></th>
-                <td data-i18n="privacy.retention.rows.records.period"></td>
+                <th scope="row" data-i18n="privacy.retention.rows.chat.name"></th>
+                <td data-i18n="privacy.retention.rows.chat.period"></td>
               </tr>
               <tr>
-                <th
-                  scope="row"
-                  data-i18n="privacy.retention.rows.push.name"
-                ></th>
+                <th scope="row" data-i18n="privacy.retention.rows.evidence.name"></th>
+                <td data-i18n="privacy.retention.rows.evidence.period"></td>
+              </tr>
+              <tr>
+                <th scope="row" data-i18n="privacy.retention.rows.sanction.name"></th>
+                <td data-i18n="privacy.retention.rows.evidence.period"></td>
+              </tr>
+              <tr>
+                <th scope="row" data-i18n="privacy.retention.rows.push.name"></th>
                 <td data-i18n="privacy.retention.rows.push.period"></td>
               </tr>
               <tr>
-                <th
-                  scope="row"
-                  data-i18n="privacy.retention.rows.draft.name"
-                ></th>
+                <th scope="row" data-i18n="privacy.retention.rows.draft.name"></th>
                 <td data-i18n="privacy.retention.rows.draft.period"></td>
               </tr>
               <tr>
-                <th
-                  scope="row"
-                  data-i18n="privacy.retention.rows.contact.name"
-                ></th>
+                <th scope="row" data-i18n="privacy.retention.rows.contact.name"></th>
                 <td data-i18n="privacy.retention.rows.contact.period"></td>
               </tr>
             </tbody>
@@ -155,23 +141,42 @@
         </div>
       </section>
 
+      <div class="line"></div>
+
       <section id="deletion">
         <h2>
           <a href="#deletion" data-i18n="privacy.deletion.title"></a>
         </h2>
-        <p data-i18n="privacy.deletion.description"></p>
+        <ol>
+          <li data-i18n="privacy.deletion.description.first"></li>
+          <li data-i18n="privacy.deletion.description.retention"></li>
+          <li data-i18n="privacy.deletion.description.second"></li>
+        </ol>
       </section>
+
+      <div class="line"></div>
 
       <section id="storage">
         <h2><a href="#storage" data-i18n="privacy.storage.title"></a></h2>
-        <p data-i18n="privacy.storage.description"></p>
+        <ol>
+          <li data-i18n="privacy.storage.description.first"></li>
+          <li data-i18n="privacy.storage.description.second"></li>
+          <li data-i18n="privacy.storage.description.third"></li>
+          <li data-i18n="privacy.storage.description.fourth"></li>
+        </ol>
       </section>
+
+      <div class="line"></div>
 
       <section id="external">
         <h2>
           <a href="#external" data-i18n="privacy.external.title"></a>
         </h2>
-        <p data-i18n="privacy.external.description"></p>
+        <ol>
+          <li data-i18n="privacy.external.description.first"></li>
+          <li data-i18n="privacy.external.description.second"></li>
+          <li data-i18n="privacy.external.description.location"></li>
+        </ol>
         <div class="table-wrap">
           <table>
             <thead>
@@ -183,52 +188,54 @@
             </thead>
             <tbody>
               <tr>
-                <th
-                  scope="row"
-                  data-i18n="privacy.external.rows.google.name"
-                ></th>
+                <th scope="row" data-i18n="privacy.external.rows.google.name"></th>
                 <td data-i18n="privacy.external.rows.google.purpose"></td>
                 <td data-i18n="privacy.external.rows.google.data"></td>
               </tr>
               <tr>
-                <th
-                  scope="row"
-                  data-i18n="privacy.external.rows.speech.name"
-                ></th>
+                <th scope="row" data-i18n="privacy.external.rows.speech.name"></th>
                 <td data-i18n="privacy.external.rows.speech.purpose"></td>
                 <td data-i18n="privacy.external.rows.speech.data"></td>
               </tr>
               <tr>
-                <th
-                  scope="row"
-                  data-i18n="privacy.external.rows.push.name"
-                ></th>
+                <th scope="row" data-i18n="privacy.external.rows.push.name"></th>
                 <td data-i18n="privacy.external.rows.push.purpose"></td>
                 <td data-i18n="privacy.external.rows.push.data"></td>
               </tr>
               <tr>
-                <th
-                  scope="row"
-                  data-i18n="privacy.external.rows.giphy.name"
-                ></th>
+                <th scope="row" data-i18n="privacy.external.rows.firebase.name"></th>
+                <td data-i18n="privacy.external.rows.firebase.purpose"></td>
+                <td data-i18n="privacy.external.rows.firebase.data"></td>
+              </tr>
+              <tr>
+                <th scope="row" data-i18n="privacy.external.rows.giphy.name"></th>
                 <td data-i18n="privacy.external.rows.giphy.purpose"></td>
                 <td data-i18n="privacy.external.rows.giphy.data"></td>
               </tr>
               <tr>
-                <th
-                  scope="row"
-                  data-i18n="privacy.external.rows.soop.name"
-                ></th>
+                <th scope="row" data-i18n="privacy.external.rows.soop.name"></th>
                 <td data-i18n="privacy.external.rows.soop.purpose"></td>
                 <td data-i18n="privacy.external.rows.soop.data"></td>
               </tr>
               <tr>
-                <th
-                  scope="row"
-                  data-i18n="privacy.external.rows.mail.name"
-                ></th>
+                <th scope="row" data-i18n="privacy.external.rows.mail.name"></th>
                 <td data-i18n="privacy.external.rows.mail.purpose"></td>
                 <td data-i18n="privacy.external.rows.mail.data"></td>
+              </tr>
+              <tr>
+                <th scope="row" data-i18n="privacy.external.rows.discord.name"></th>
+                <td data-i18n="privacy.external.rows.discord.purpose"></td>
+                <td data-i18n="privacy.external.rows.discord.data"></td>
+              </tr>
+              <tr>
+                <th scope="row" data-i18n="privacy.external.rows.hosting.name"></th>
+                <td data-i18n="privacy.external.rows.hosting.purpose"></td>
+                <td data-i18n="privacy.external.rows.hosting.data"></td>
+              </tr>
+              <tr>
+                <th scope="row" data-i18n="privacy.external.rows.embed.name"></th>
+                <td data-i18n="privacy.external.rows.embed.purpose"></td>
+                <td data-i18n="privacy.external.rows.embed.data"></td>
               </tr>
             </tbody>
           </table>
@@ -250,85 +257,155 @@
         </nav>
       </section>
 
+      <div class="line"></div>
+
       <section id="cookies">
         <h2><a href="#cookies" data-i18n="privacy.cookies.title"></a></h2>
-        <p data-i18n="privacy.cookies.description"></p>
+        <ol>
+          <li data-i18n="privacy.cookies.description.first"></li>
+          <li data-i18n="privacy.cookies.description.second"></li>
+          <li data-i18n="privacy.cookies.description.third"></li>
+        </ol>
         <div class="table-wrap">
           <table>
             <thead>
               <tr>
-                <th scope="col" data-i18n="legal.item"></th>
+                <th scope="col" data-i18n="legal.key"></th>
                 <th scope="col" data-i18n="legal.purpose"></th>
                 <th scope="col" data-i18n="legal.period"></th>
               </tr>
             </thead>
             <tbody>
               <tr>
-                <th
-                  scope="row"
-                  data-i18n="privacy.cookies.rows.cookie.name"
-                ></th>
+                <th scope="row" data-i18n="privacy.cookies.rows.cookie.name"></th>
                 <td data-i18n="privacy.cookies.rows.cookie.purpose"></td>
                 <td data-i18n="privacy.cookies.rows.cookie.period"></td>
               </tr>
               <tr>
-                <th
-                  scope="row"
-                  data-i18n="privacy.cookies.rows.local.name"
-                ></th>
+                <th scope="row" data-i18n="privacy.cookies.rows.local.name"></th>
                 <td data-i18n="privacy.cookies.rows.local.purpose"></td>
                 <td data-i18n="privacy.cookies.rows.local.period"></td>
               </tr>
               <tr>
-                <th
-                  scope="row"
-                  data-i18n="privacy.cookies.rows.session.name"
-                ></th>
+                <th scope="row" data-i18n="privacy.cookies.rows.session.name"></th>
                 <td data-i18n="privacy.cookies.rows.session.purpose"></td>
                 <td data-i18n="privacy.cookies.rows.session.period"></td>
               </tr>
               <tr>
-                <th
-                  scope="row"
-                  data-i18n="privacy.cookies.rows.cache.name"
-                ></th>
+                <th scope="row" data-i18n="privacy.cookies.rows.cache.name"></th>
                 <td data-i18n="privacy.cookies.rows.cache.purpose"></td>
                 <td data-i18n="privacy.cookies.rows.cache.period"></td>
+              </tr>
+              <tr>
+                <th scope="row" data-i18n="privacy.cookies.rows.queue.name"></th>
+                <td data-i18n="privacy.cookies.rows.queue.purpose"></td>
+                <td data-i18n="privacy.cookies.rows.queue.period"></td>
+              </tr>
+              <tr>
+                <th scope="row" data-i18n="privacy.cookies.rows.login.name"></th>
+                <td data-i18n="privacy.cookies.rows.login.purpose"></td>
+                <td data-i18n="privacy.cookies.rows.login.period"></td>
+              </tr>
+              <tr>
+                <th scope="row" data-i18n="privacy.cookies.rows.sound.name"></th>
+                <td data-i18n="privacy.cookies.rows.sound.purpose"></td>
+                <td data-i18n="privacy.cookies.rows.sound.period"></td>
+              </tr>
+              <tr>
+                <th scope="row" data-i18n="privacy.cookies.rows.activity.name"></th>
+                <td data-i18n="privacy.cookies.rows.activity.purpose"></td>
+                <td data-i18n="privacy.cookies.rows.activity.period"></td>
               </tr>
             </tbody>
           </table>
         </div>
       </section>
 
+      <div class="line"></div>
+
       <section id="rights">
         <h2><a href="#rights" data-i18n="privacy.rights.title"></a></h2>
-        <p data-i18n="privacy.rights.description"></p>
+        <ul>
+          <li data-i18n="privacy.rights.description.first"></li>
+          <li data-i18n="privacy.rights.description.second"></li>
+          <li data-i18n="privacy.rights.description.third"></li>
+          <li data-i18n="privacy.rights.description.identity"></li>
+          <li data-i18n="privacy.rights.description.fourth"></li>
+        </ul>
       </section>
+
+      <div class="line"></div>
 
       <section id="security">
         <h2>
           <a href="#security" data-i18n="privacy.security.title"></a>
         </h2>
-        <p data-i18n="privacy.security.description"></p>
+        <ul>
+          <li data-i18n="privacy.security.description.first"></li>
+          <li data-i18n="privacy.security.description.second"></li>
+        </ul>
       </section>
+
+      <div class="line"></div>
 
       <section id="contact">
         <h2><a href="#contact" data-i18n="privacy.contact.title"></a></h2>
         <p data-i18n="privacy.contact.description"></p>
 
         <div class="legal-contact">
-          <p>
-            <span data-i18n="legal.email"></span>
-            <a href="mailto:obabo0801@gmail.com">obabo0801@gmail.com</a>
-          </p>
+          <button
+            type="button"
+            data-contact="contact"
+            data-circle
+            data-icon="chat"
+            data-tooltip="menu.contact"
+            data-response
+          ></button>
+          <button
+            type="button"
+            data-contact="mail"
+            data-circle
+            data-icon="mail"
+            data-tooltip="profile.email"
+            data-response
+          ></button>
+          <button
+            type="button"
+            data-contact="discord"
+            data-circle
+            data-icon="discord"
+            data-tooltip="legal.discord"
+            data-response
+          ></button>
         </div>
       </section>
+
+      <div class="line"></div>
 
       <section id="changes">
         <h2>
           <a href="#changes" data-i18n="privacy.changes.title"></a>
         </h2>
-        <p data-i18n="privacy.changes.description"></p>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th scope="col" data-i18n="legal.version"></th>
+                <th scope="col" data-i18n="legal.announced"></th>
+                <th scope="col" data-i18n="legal.effective"></th>
+                <th scope="col" data-i18n="legal.summary"></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <th scope="row" data-i18n="legal.revision"></th>
+                <td data-i18n="legal.date"></td>
+                <td data-i18n="legal.date"></td>
+                <td data-i18n="privacy.changes.summary"></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
       </section>
     </main>
 

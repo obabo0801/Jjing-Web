@@ -33,6 +33,7 @@ export default function device() {
     [portrait, coarse, touch, wearable, small, short].forEach((media) => {
       on(media, "change", sync);
     });
+
     listening = true;
   }
 

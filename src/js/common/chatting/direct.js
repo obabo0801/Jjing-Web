@@ -16,6 +16,7 @@ import upload from "#common/upload";
 import tools from "#common/chatting/toolbar";
 import viewport from "#common/chatting/viewport";
 import * as attachments from "#common/chatting/attachment";
+import * as recent from "#common/chatting/recent";
 import sound from "#common/sound";
 import summary from "#common/chatting/summary";
 import sheet from "#common/sheet";
@@ -31,7 +32,8 @@ const opening = once();
 const whispers = new Map();
 const positions = new Map();
 
-let chatRoot;
+let stream;
+let active;
 let unbind;
 let selection = 0;
 
@@ -59,6 +61,10 @@ i18n.preload(
   "direct.error",
   "direct.muted",
   "direct.more",
+  "menu.contact",
+  "menu.contactInfo",
+  "contact.title",
+  "contact.end",
   "direct.clearTarget",
   "direct.textOnly",
   "chatting.message",
@@ -78,12 +84,36 @@ const problem = (result) =>
           : "direct.error"
   });
 
+const messages = async (id) => {
+  if (active) await active.close();
+
+  if (dom.query(".messenger-inbox")) {
+    return open("room", id);
+  }
+
+  return inbox(id);
+};
+
 export function listen(target) {
   if (bound) return;
+
   bound = true;
-  chatRoot = dom.query(".app .chatting");
+  stream = dom.query(".app .chatting");
   for (const kind of ["whisper", "message"])
-    dom.on(target, `chatting-${kind}`, (event) => {
+    dom.on(target, `chatting-${kind}`, async (event) => {
+      if (kind === "whisper" && event.target.closest?.('.chatting[data-chatting="messenger"]')) {
+        return;
+      }
+
+      if (kind === "message" && active?.id === event.detail.id && active.reusable()) {
+        return;
+      }
+
+      if (kind === "message" && active) {
+        await active.close();
+        await Promise.resolve();
+      }
+
       open(kind, event.detail.id).catch(() => {});
     });
   dom.on(events(), "direct", (event) => {
@@ -94,19 +124,22 @@ export function listen(target) {
     } catch {
       return;
     }
+
     if (!["whisper", "message"].includes(item.kind) || !item.token) return;
-    const peer =
-      item.kind === "message" ? item.room : item.own ? item.peer : item.id;
+    const peer = item.kind === "message" ? item.room : item.own ? item.peer : item.id;
 
     if (item.kind === "whisper") {
       receive(item);
+
       return;
     }
+
     let shown = false;
 
     listeners.forEach((listener) => {
       shown = listener(item, peer) || shown;
     });
+
     if (!item.system && !item.own && !shown && !item.muted)
       toast({
         type: "notify",
@@ -114,17 +147,18 @@ export function listen(target) {
         text: item.text,
         attachments: item.attachments,
         audio: item.audio,
-        run: () => open("room", peer)
+        run: () => messages(peer)
       });
   });
 }
 
 export function receive(item) {
-  if (!chatRoot || whispers.has(item.token)) return;
+  if (!stream || whispers.has(item.token)) return;
+
   whispers.set(item.token, item);
   if (whispers.size > 500) whispers.delete(whispers.keys().next().value);
-  const list = dom.query(".chatting-list", chatRoot);
-  const follow = item.own || chat.atBottom(list);
+  const list = dom.query(".chatting-list", stream);
+  const follow = item.own || chat.bottom(list);
   const peer = item.own ? item.peer : item.id;
   const evidence = () =>
     [...whispers.values()].filter(
@@ -136,10 +170,14 @@ export function receive(item) {
     chat.place(list, node, dom.query(".chatting-page ~ .chatting-page", list));
     dom.set(node, "data-private", "whisper");
     node.tabIndex = 0;
+
     const reply = (event) => {
       if (event.defaultPrevented || event.target.closest("button, a")) return;
+
       if (event.type === "keydown" && event.key !== "Enter") return;
+
       if (event.type === "click" && !window.getSelection()?.isCollapsed) return;
+
       event.preventDefault();
       event.stopPropagation();
       select(item.own ? item.peer : item.id).catch(() => {});
@@ -147,13 +185,21 @@ export function receive(item) {
 
     dom.on(node, "click", reply);
     dom.on(node, "keydown", reply);
+
+    const profile = dom.query(".chatting-profile", node);
+    const name = dom.query(".chatting-name", profile);
+    const head = dom.create("span");
     const title = dom.create("span");
 
+    head.className = "whisper-head";
     title.className = "whisper-label";
     title.textContent = i18n.message("direct.whisper");
     dom.set(title, "data-i18n", "direct.whisper");
-    dom.query(".chatting-profile", node).append(title);
+
+    name.replaceWith(head);
+    head.append(name, title);
   }
+
   chat.regroup(list);
   if (follow) list.scrollTop = list.scrollHeight;
 }
@@ -162,20 +208,27 @@ async function select(id) {
   const version = ++selection;
   const result = await profile.read(id, { fresh: true });
 
-  if (version !== selection || !chatRoot) return false;
+  if (version !== selection || !stream) return false;
+
   if (!result.ok || result.data.self) {
     problem(result);
+
     return false;
   }
+
   if (result.data.receiving?.whisper === false) {
     problem({ status: 409 });
+
     return false;
   }
+
   if (!["online", "away"].includes(result.data.state)) {
     problem({ status: 409, data: { code: "offline" } });
+
     return false;
   }
-  const form = dom.query(".chatting-form", chatRoot);
+
+  const form = dom.query(".chatting-form", stream);
 
   let target = dom.query(".whisper-target", form);
 
@@ -185,6 +238,7 @@ async function select(id) {
     dom.remove(form, "data-whisper");
     unbind?.();
     unbind = undefined;
+
     return true;
   };
 
@@ -194,6 +248,7 @@ async function select(id) {
     target.className = "whisper-target";
     dom.set(target, "data-icon", "whisper");
     dom.set(target, "data-circle", "");
+    dom.set(target, "data-scale", "");
     dom.set(target, "data-tooltip", "direct.clearTarget");
     dom.set(target, "data-response", "");
     target.append(dom.create("span"));
@@ -202,12 +257,16 @@ async function select(id) {
     dom.query(".input-actions", form).prepend(target);
     mount(target);
   }
+
   unbind?.();
+
   const render = (user) => {
     if (user.receiving?.whisper === false) {
       clear();
+
       return;
     }
+
     dom.query("span:not(.icon)", target).textContent = names.label(user);
   };
 
@@ -216,25 +275,40 @@ async function select(id) {
   target.hidden = false;
   dom.set(form, "data-whisper", id);
   dom.query(".chatting-editor", form)?.focus({ preventScroll: true });
+
   return true;
+}
+
+export function contact() {
+  return open("contact", "contact");
 }
 
 export function open(kind, id) {
   if (kind === "whisper") return select(id);
+
   return opening(`${kind}:${id}`, async () => {
-    const response =
-      kind === "room"
-        ? await rooms.read(id)
-        : await api(`${path}/direct/message/${id}/room`);
+    let response =
+      kind === "contact"
+        ? await api(`${path}/contact`, { method: "POST", data: {} })
+        : kind === "room"
+          ? await rooms.read(id)
+          : await api(`${path}/direct/message/${id}/room`);
+
+    if (response.ok && response.data.contact && !response.data.draft) {
+      response = await api(`${path}/contact/${response.data.id}`, { method: "POST", data: {} });
+    }
 
     if (!response.ok) {
       problem(response);
+
       return false;
     }
+
     let room = response.data;
 
     id = room.id;
     kind = "message";
+
     const root = dom.create("section");
     const list = dom.create("div");
     const form = dom.create("form");
@@ -245,18 +319,27 @@ export function open(kind, id) {
     const voice = dom.create("button");
     const more = dom.create("button");
 
+    let dismiss;
+
     root.className = "chatting direct";
+
     const top = toolbar.default([
       {
         icon: "menu",
         text: "menu.chatMenu",
-        run: () => menus.chatSettings(false, room.id)
+        disabled: room.draft,
+        run: async () => {
+          if ((await menus.chatSettings(false, room.id)) === "leave") {
+            await dismiss?.();
+          }
+        }
       }
     ]);
 
     top.classList.add("chatting-toolbar");
     dom.set(top, "data-position", "top");
     dom.set(top.firstElementChild, "data-circle", "");
+    dom.set(top.firstElementChild, "data-scale", "");
     dom.set(top.firstElementChild, "data-tooltip", "menu.chatMenu");
     dom.set(root, "data-chatting", "messenger");
     list.className = "chatting-list";
@@ -273,21 +356,33 @@ export function open(kind, id) {
     send.className = "chatting-send";
     dom.set(send, "data-icon", "send");
     dom.set(send, "data-circle", "");
+    dom.set(send, "data-confirm", "");
     dom.set(send, "data-tooltip", "chatting.send");
     more.type = "button";
     more.textContent = i18n.message("direct.more");
     dom.set(more, "data-i18n", "direct.more");
     more.hidden = true;
+    if (room.contact) {
+      const welcome = dom.create("p");
+
+      welcome.className = "chatting-system";
+      dom.set(welcome, "data-i18n", "menu.contactInfo");
+      welcome.textContent = i18n.message("menu.contactInfo");
+      list.append(welcome);
+    }
+
     list.append(more);
     voice.type = "button";
     voice.className = "chatting-voice";
     dom.set(voice, "data-icon", "voice");
     dom.set(voice, "data-circle", "");
+    dom.set(voice, "data-scale", "");
     dom.set(voice, "data-tooltip", "chatting.voice");
     actions.append(voice, send);
     field.append(input, actions);
     form.append(field);
     root.append(top, list, form);
+
     const seen = new Map();
     const read = new Set();
     const deleted = new Map();
@@ -308,6 +403,30 @@ export function open(kind, id) {
     let transfer;
     let unread;
 
+    const count = (node, value = 0) => {
+      if (!node) return;
+
+      let badge = dom.query(".chatting-unread", node);
+
+      const amount = Number(value) || 0;
+
+      if (!amount) {
+        badge?.remove();
+
+        return;
+      }
+
+      if (!badge) {
+        badge = dom.create("span");
+        badge.className = "chatting-unread";
+
+        dom.query(".chatting-time", node)?.before(badge);
+      }
+
+      badge.textContent = String(amount);
+      dom.set(badge, "data-unread", String(amount));
+    };
+
     const restore = () => {
       if (!restoring || !ready || closed) return;
       const node = seen.get(position.token);
@@ -315,9 +434,7 @@ export function open(kind, id) {
       if (position.bottom) list.scrollTop = list.scrollHeight;
       else if (node)
         list.scrollTop +=
-          node.getBoundingClientRect().top -
-          list.getBoundingClientRect().top -
-          position.offset;
+          node.getBoundingClientRect().top - list.getBoundingClientRect().top - position.offset;
     };
 
     const remember = () => {
@@ -335,56 +452,60 @@ export function open(kind, id) {
       }
 
       if (!visible) return;
+
       positions.delete(id);
       positions.set(id, {
         token: visible.token,
         offset: visible.top - top,
-        bottom: chat.atBottom(list)
+        bottom: chat.bottom(list)
       });
+
       if (positions.size > 100) positions.delete(positions.keys().next().value);
     };
 
     const interact = () => {
       restoring = false;
     };
+
     const wheel = dom.on(root, "wheel", interact, { passive: true });
     const touch = dom.on(root, "pointerdown", interact);
     const key = dom.on(root, "keydown", interact);
-    const images = dom.on(
-      list,
-      "load",
-      () => requestAnimationFrame(restore),
-      true
-    );
+    const images = dom.on(list, "load", () => requestAnimationFrame(restore), true);
     const resize = new ResizeObserver(restore);
 
     resize.observe(list);
 
     const markRead = async () => {
       if (closed || document.hidden || !last) return;
-      await api(`${path}/direct/message/${id}/read`, {
-        method: "POST",
-        data: { token: last }
-      });
+
+      await api(`${path}/direct/message/${id}/read`, { method: "POST", data: { token: last } });
     };
 
     const notice = (item) =>
-      chat.system(list, {
-        text: "direct.deleted",
-        time: item.time,
-        system: true,
-        scroll: false
-      });
+      chat.system(list, { text: "direct.deleted", time: item.time, system: true, scroll: false });
 
     const removed = (item) => {
       if (deleted.has(item.token)) return;
+
       deleted.set(item.token, Boolean(item.retained));
+
       const node = seen.get(item.token);
 
       if (!node || closed) return;
+
       dom.set(node, "data-deleted", "");
-      dom.remove(dom.query(".chatting-time", node), "data-unread");
-      if (item.retained) return;
+      count(node);
+      if (item.retained) {
+        dom.set(node, "data-retained", "");
+        node.dispatchEvent(
+          new CustomEvent("chatting-change", {
+            detail: { deleted: true, retained: true, restorable: true }
+          })
+        );
+
+        return;
+      }
+
       const replacement = notice(item);
 
       node.replaceWith(replacement);
@@ -393,11 +514,10 @@ export function open(kind, id) {
     };
 
     const remove = async (item) => {
-      const result = await api(`${path}/direct/message/${item.token}`, {
-        method: "DELETE"
-      });
+      const result = await api(`${path}/direct/message/${item.token}`, { method: "DELETE" });
 
       if (result.ok) removed({ ...item, ...result.data });
+
       toast({
         text: result.ok ? "chatting.removeSuccess" : "chatting.removeFailed",
         type: result.ok ? "success" : "error"
@@ -411,18 +531,22 @@ export function open(kind, id) {
 
       for (const item of items) {
         if (seen.has(item.token)) continue;
+
+        if (room.contact && item.system?.type === "leave") continue;
+
         if (item.system) {
           const node = chat.system(list, {
             text: rooms.notice(item.system),
             time: item.time,
             system: true,
-            scroll: !older && chat.atBottom(list)
+            scroll: !older && chat.bottom(list)
           });
 
           seen.set(item.token, node);
           if (older && node) list.insertBefore(node, anchor);
           continue;
         }
+
         const removed = item.deleted || deleted.has(item.token);
         const retained = item.retained || deleted.get(item.token);
         const node =
@@ -433,6 +557,8 @@ export function open(kind, id) {
                 {
                   ...item,
                   deleted: Boolean(removed),
+                  retained: Boolean(retained),
+                  restorable: Boolean(removed && retained),
                   private: true,
                   removable: item.own,
                   remove: () => remove(item)
@@ -441,13 +567,13 @@ export function open(kind, id) {
               );
 
         seen.set(item.token, node);
-        if (!removed && node && item.remaining && !read.has(item.token))
-          dom.set(
-            dom.query(".chatting-time", node),
-            "data-unread",
-            String(item.remaining)
-          );
+
+        if (!removed && node && item.remaining && !read.has(item.token)) {
+          count(node, item.remaining);
+        }
+
         if (older && node) list.insertBefore(node, anchor);
+
         if (!removed && initial && item.unseen && node && !unread) {
           unread = dom.create("div");
           unread.className = "chatting-new";
@@ -456,26 +582,37 @@ export function open(kind, id) {
           list.insertBefore(unread, node);
         }
       }
+
       chat.regroup(list);
       if (older) list.scrollTop = top + list.scrollHeight - height;
     };
 
     const load = async () => {
       if (loading) return;
+
+      if (room.contact && room.draft) {
+        ready = true;
+        return;
+      }
+
       loading = true;
       more.disabled = true;
+
       const result = await api(
         `${path}/direct/message?id=${id}` + (cursor ? `&before=${cursor}` : "")
       );
 
       loading = false;
       if (closed) return;
+
       more.disabled = false;
       if (!result.ok) {
         problem(result);
         more.hidden = false;
+
         return;
       }
+
       const initial = !cursor;
 
       append(result.data.items.slice().reverse(), !initial, initial);
@@ -483,53 +620,57 @@ export function open(kind, id) {
         last = result.data.items[0].token;
         markRead();
       }
+
       cursor = result.data.next;
       more.hidden = !cursor;
-      if (
-        restoring &&
-        !position.bottom &&
-        !seen.has(position.token) &&
-        cursor
-      ) {
+      if (restoring && !position.bottom && !seen.has(position.token) && cursor) {
         await load();
+
         return;
       }
+
       ready = true;
       if (restoring) {
         if (!position.bottom && !seen.has(position.token)) restoring = false;
         else {
           requestAnimationFrame(restore);
+
           return;
         }
       }
+
       if (initial && unread) {
         requestAnimationFrame(() => {
           if (closed || !unread.isConnected) return;
-          list.scrollTop +=
-            unread.getBoundingClientRect().top -
-            list.getBoundingClientRect().top;
+
+          list.scrollTop += unread.getBoundingClientRect().top - list.getBoundingClientRect().top;
         });
       }
     };
 
     dom.on(more, "click", load);
+
+    const activate = (roomId) => {
+      if (!room.draft) return;
+
+      id = roomId;
+      room = { ...room, id, draft: false };
+      top.firstElementChild.disabled = false;
+      route.replace(room.contact ? "settings-section" : "message", ["drawer", "room", id]);
+    };
+
     const transmit = async (file) => {
       const text = input.value;
       const batch = file ? [] : attached.snapshot();
+      const used = file ? [] : recent.snapshot(input, text, batch);
 
-      if (
-        busy ||
-        closed ||
-        input.disabled ||
-        (!file && !text.trim() && !batch.length)
-      )
+      if (busy || closed || input.disabled || (!file && !text.trim() && !batch.length))
         return false;
+
       busy = true;
       transfer = new AbortController();
-      const signal = AbortSignal.any([
-        transfer.signal,
-        AbortSignal.timeout(60000)
-      ]);
+
+      const signal = AbortSignal.any([transfer.signal, AbortSignal.timeout(60000)]);
 
       let success = false;
 
@@ -543,6 +684,7 @@ export function open(kind, id) {
         input.value = "";
         input.dispatchEvent(new Event("input", { bubbles: true }));
       }
+
       attached.busy(true);
       state("sending", true);
       try {
@@ -550,8 +692,12 @@ export function open(kind, id) {
 
         if (!prepared.ok || signal.aborted || closed) {
           if (!signal.aborted && !closed) problem(prepared);
+
           return false;
         }
+
+        state("sending");
+
         const result = file
           ? await upload(`${path}/direct/message/${id}/audio`, file, { signal })
           : await api(`${path}/direct/message/${id}`, {
@@ -561,29 +707,34 @@ export function open(kind, id) {
             });
 
         if (!result.ok) {
-          if (result.status === 400)
-            batch.forEach((item) => attached.receipt(item, null));
+          if (result.status === 400) batch.forEach((item) => attached.receipt(item, null));
+
           if (!closed && !signal.aborted) problem(result);
+
           return false;
         }
+
+        activate(result.data.room);
+
         success = true;
+        recent.commit(used);
         if (closed) return true;
+
         attached.clear(batch);
         append([result.data]);
         listeners.forEach((listener) => listener(result.data, id));
         state("success");
-        void sound.play("send", { volume: 0.2 });
+        void sound.play("send");
         form.dispatchEvent(new Event("chatting-sent"));
         await new Promise((resolve) => setTimeout(resolve, 400));
+
         return true;
       } finally {
         if (!success && !file && !closed) {
-          input.value =
-            input.value && text
-              ? `${text}\n${input.value}`
-              : input.value || text;
+          input.value = input.value && text ? `${text}\n${input.value}` : input.value || text;
           input.dispatchEvent(new Event("input", { bubbles: true }));
         }
+
         busy = false;
         transfer = undefined;
         if (!closed) {
@@ -597,16 +748,27 @@ export function open(kind, id) {
       event.preventDefault();
       transmit();
     });
-    dom.on(form, "chatting-cancel", () => transfer?.abort());
-    const receive = (item, peer) => {
-      if (item.room !== id || item.kind !== kind || closed) return false;
+
+    dom.on(form, "chatting-cancel", () => {
+      if (form.hasAttribute("data-cancel")) transfer?.abort();
+    });
+
+    const receive = (item) => {
+      const draft = room.draft && !item.own && item.id === room.peer;
+
+      if ((!draft && item.room !== id) || item.kind !== kind || closed) return false;
+
+      if (draft) activate(item.room);
+
       append([item]);
       last = item.token;
       markRead();
+
       return true;
     };
 
     listeners.add(receive);
+
     const removal = dom.on(events(), "direct-remove", (event) => {
       let data;
 
@@ -615,7 +777,38 @@ export function open(kind, id) {
       } catch {
         return;
       }
+
       if (!closed && data.room === id) removed(data);
+    });
+
+    const revival = dom.on(events(), "direct-restore", (event) => {
+      let item;
+
+      try {
+        item = JSON.parse(event.data);
+      } catch {
+        return;
+      }
+
+      if (closed || item.room !== id || item.kind !== "message") return;
+      const old = seen.get(item.token);
+      const top = list.scrollTop;
+      const position = old?.getBoundingClientRect().top;
+
+      deleted.delete(item.token);
+      seen.delete(item.token);
+      old?.remove();
+      append([item], true);
+
+      const next = seen.get(item.token);
+
+      if (next) chat.place(list, next);
+
+      chat.regroup(list);
+      list.scrollTop = top;
+      if (next && position !== undefined) {
+        list.scrollTop += next.getBoundingClientRect().top - position;
+      }
     });
 
     const receipt = dom.on(events(), "direct-read", (event) => {
@@ -626,17 +819,14 @@ export function open(kind, id) {
       } catch {
         return;
       }
+
       if (closed || data.room !== id || !Array.isArray(data.tokens)) return;
       for (const token of data.tokens) {
         if (!data.counts?.[token]) read.add(token);
         const node = seen.get(token);
 
         if (node && !deleted.has(token)) {
-          const time = dom.query(".chatting-time", node);
-
-          if (data.counts?.[token])
-            dom.set(time, "data-unread", String(data.counts[token]));
-          else dom.remove(time, "data-unread");
+          count(node, data.counts?.[token]);
         }
       }
     });
@@ -660,44 +850,81 @@ export function open(kind, id) {
 
     let revision = 0;
 
-    const refreshRoom = async () => {
+    const refresh = async () => {
       const version = ++revision;
-      const result = await rooms.read(room.id);
+      const result = room.draft
+        ? room.contact
+          ? await api(`${path}/contact`, { method: "POST", data: {} })
+          : await api(`${path}/direct/message/${room.peer}/room`)
+        : await rooms.read(room.id);
 
       if (closed || version !== revision) return;
-      if (result.ok) room = result.data;
-      else room = { ...room, available: false };
+
+      if (result.ok) {
+        if (room.draft && !result.data.draft) activate(result.data.id);
+
+        room = result.data;
+      } else {
+        room = { ...room, available: false };
+      }
+
       update();
     };
-    const state = dom.on(events(), "direct-state", refreshRoom);
-    const connected = dom.on(events(), "ready", refreshRoom);
-    const changed = dom.on(events(), "profile-update", refreshRoom);
+
+    const sync = async () => {
+      if (room.draft || closed) return;
+
+      const result = await api(`${path}/direct/message?id=${id}`);
+
+      if (!result.ok || closed) return;
+
+      append(result.data.items.slice().reverse());
+    };
+
+    const state = dom.on(events(), "direct-state", (event) => {
+      let data;
+
+      try {
+        data = JSON.parse(event.data);
+      } catch {
+        return;
+      }
+
+      if (data.room && data.room !== id) return;
+
+      refresh();
+
+      if (data.room === id) sync();
+    });
+
+    const connected = dom.on(events(), "ready", refresh);
+    const changed = dom.on(events(), "profile-update", refresh);
 
     update();
     try {
       return await drawer({
-        route: ["room", room.id],
+        route: [room.draft ? (room.contact ? "settings-section" : "message") : "room", room.id],
         title: `direct.${kind}`,
         content: root,
         back: true,
         side: "right",
         direction: "→",
-        closing: () => {
-          remember();
-        },
-        ready: (element) => {
+        closing: remember,
+
+        ready: (element, close) => {
+          dismiss = close;
+          active = { id: room.peer, close, reusable: () => room.draft || room.available };
+
           heading = dom.query(".layer-title", element);
+
           if (heading) {
             dom.remove(heading, "data-i18n");
             heading.textContent = rooms.title(room);
           }
+
           mount(root);
           attached = attachments.default(input);
-          closeTools = tools(root, {
-            image: attached.add,
-            attach: attached.add,
-            audio: transmit
-          });
+          closeTools = tools(root, { image: attached.add, attach: attached.add, audio: transmit });
           closeViewport = viewport(root);
           mount(root);
           load();
@@ -705,6 +932,11 @@ export function open(kind, id) {
       });
     } finally {
       closed = true;
+
+      if (active?.close === dismiss) {
+        active = undefined;
+      }
+
       state();
       connected();
       changed();
@@ -720,6 +952,7 @@ export function open(kind, id) {
       listeners.delete(receive);
       receipt();
       removal();
+      revival();
       visible();
     }
   });
@@ -730,12 +963,7 @@ const menu = (item, refresh) =>
     const group = dom.create("div");
     const entries = [
       ["pin", item.pinned ? "unpin" : "pin", "pin", !item.pinned],
-      [
-        "mute",
-        item.muted ? "unmute" : "mute",
-        item.muted ? "notify" : "notify-mute",
-        !item.muted
-      ],
+      ["mute", item.muted ? "unmute" : "mute", item.muted ? "notify" : "notify-mute", !item.muted],
       ["read", "readAll", "check"],
       ["leave", "leave", "logout"]
     ];
@@ -753,20 +981,27 @@ const menu = (item, refresh) =>
       dom.set(button, "data-color", "");
       dom.set(button, "data-response", "");
       dom.set(button, "data-layer-action", action);
-      label.textContent = i18n.message(`direct.${text}`);
-      dom.set(label, "data-i18n", `direct.${text}`);
+
+      const key = action === "leave" && item.roomInfo.contact ? "contact.end" : `direct.${text}`;
+
+      label.textContent = i18n.message(key);
+      dom.set(label, "data-i18n", key);
       button.append(label);
       row.append(button);
       group.append(row);
     }
+
     const action = await sheet({ content: group, direction: "→" });
     const entry = entries.find((item) => item[0] === action);
 
     if (!entry) return;
+
     if (action === "leave") {
       if (await rooms.leave(item.room)) refresh();
+
       return;
     }
+
     const result =
       action === "read"
         ? await api(`${path}/direct/message/${item.room}/read`, {
@@ -782,7 +1017,7 @@ const menu = (item, refresh) =>
     else refresh();
   });
 
-export function inbox() {
+export function inbox(id = "") {
   return opening("inbox", async () => {
     const root = dom.create("div");
     const list = dom.create("div");
@@ -790,26 +1025,33 @@ export function inbox() {
 
     root.className = "profile messenger-inbox";
     list.className = "group chatting inbox-list";
+
     dom.set(list, "data-chatting", "stream");
     more.type = "button";
     more.textContent = i18n.message("direct.more");
     dom.set(more, "data-i18n", "direct.more");
+
     const footer = dom.create("footer");
     const add = dom.create("button");
 
     footer.className = "messenger-footer";
     add.type = "button";
+    dom.set(add, "data-blur", "");
+    dom.set(add, "data-shadow", "");
     dom.set(add, "data-icon", "plus");
     dom.set(add, "data-circle", "");
+    dom.set(add, "data-scale", "");
     dom.set(add, "data-tooltip", "room.start");
-    dom.set(add, "data-shadow", "");
+    dom.set(add, "data-response", "");
     dom.on(add, "click", async () => {
       const selected = await rooms.select();
 
       if (selected) open("room", selected);
     });
+
     footer.append(add);
     root.append(list, more);
+
     let cursor;
     let closed = false;
 
@@ -819,22 +1061,27 @@ export function inbox() {
     const load = async (reset = false) => {
       if (loading) {
         refresh ||= reset;
+
         return;
       }
+
       loading = true;
       if (reset) cursor = undefined;
+
       more.disabled = true;
-      const result = await api(
-        `${path}/direct/message` + (cursor ? `?before=${cursor}` : "")
-      );
+
+      const result = await api(`${path}/direct/message` + (cursor ? `?before=${cursor}` : ""));
 
       loading = false;
       if (closed) return;
+
       more.disabled = false;
       if (!result.ok) {
         problem(result);
+
         return;
       }
+
       if (reset) list.replaceChildren();
       for (const item of result.data.items) {
         const row = dom.create("div");
@@ -851,11 +1098,16 @@ export function inbox() {
         picture.root.classList.add("chatting-avatar");
         heading.className = "chatting-profile";
         name.className = "chatting-name";
-        name.textContent = rooms.title(item.roomInfo);
+        name.textContent =
+          item.roomInfo.contact && !item.roomInfo.requester.self
+            ? i18n.message("contact.title").replace("{name}", names.label(item.roomInfo.requester))
+            : rooms.title(item.roomInfo);
+
         time.className = "chatting-time";
         time.textContent = item.time ? clock.format(item.time) : "";
         if (item.time) time.dateTime = new Date(item.time).toISOString();
         for (const [active, icon, label] of [
+          [item.roomInfo.contact, "mail", "menu.contact"],
           [item.pinned, "pin", "direct.pin"],
           [item.muted, "notify-mute", "direct.mute"]
         ]) {
@@ -867,23 +1119,26 @@ export function inbox() {
           dom.set(status, "data-tooltip", label);
           time.append(status);
         }
+
         preview.className = "chatting-text";
-        emoji.render(
-          preview,
-          item.system ? rooms.notice(item.system) : summary(item)
-        );
+        emoji.render(preview, item.system ? rooms.notice(item.system) : summary(item));
         heading.append(picture.root, name);
         button.append(heading, time, preview);
         if (item.unread) toolbar.badge(button, item.unread);
+
         button.toggleAttribute("data-read", !item.unread);
         dom.set(button, "data-response", "");
         context(button, () => menu(item, () => load(true)).catch(() => {}));
         dom.on(button, "click", (event) => {
           if (!event.defaultPrevented) open("room", item.room);
         });
+
         row.append(button);
         list.append(row);
       }
+
+      root.hidden = !list.childElementCount;
+
       mount(list);
       cursor = result.data.next;
       more.hidden = !cursor;
@@ -894,6 +1149,7 @@ export function inbox() {
     };
 
     dom.on(more, "click", () => load());
+
     const changes = dom.on(events(), "direct-read", () => load(true));
     const preferences = dom.on(events(), "direct-change", () => load(true));
     const removals = dom.on(events(), "direct-remove", () => load(true));
@@ -904,14 +1160,22 @@ export function inbox() {
     listeners.add(incoming);
     try {
       return await drawer({
-        route: ["inbox", ""],
         title: "direct.inbox",
         content: root,
         toolbar: footer,
-        back: true,
+
         side: "right",
+
+        back: true,
+
         direction: "→",
-        ready: () => load()
+
+        route: ["inbox", ""],
+        ready: () => {
+          load();
+
+          if (id) open("room", id).catch(() => {});
+        }
       });
     } finally {
       closed = true;

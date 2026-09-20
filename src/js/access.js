@@ -5,12 +5,10 @@ import api from "#common/api";
 import device from "#common/device";
 import * as events from "#common/events";
 
-const showPage = async (name) => {
+const show = async (name) => {
   const header = name === "offline" ? "X-PWA-Cache" : `X-${name}`;
 
-  const response = await fetch(`/${name}`, {
-    headers: { Accept: "text/html", [header]: "true" }
-  });
+  const response = await fetch(`/${name}`, { headers: { Accept: "text/html", [header]: "true" } });
   const html = await response.text();
 
   document.open();
@@ -18,7 +16,7 @@ const showPage = async (name) => {
   document.close();
 };
 
-const errorPage = (response) => {
+const failure = (response) => {
   if (response.status === 503) {
     return "maint";
   }
@@ -51,29 +49,25 @@ export default async function access(navigate = true, name) {
 
   const wearable = device().wearable;
   const headers = { "X-Wearable": String(wearable) };
-  const response = await api(user, {
-    headers,
-    method: "POST",
-    data: { path, result: status }
-  });
+  const response = await api(user, { headers, method: "POST", data: { path, result: status } });
 
   if (response.status === 403) {
     if (navigate) {
       if (import.meta.env.DEV) {
         location.replace("/block");
       } else {
-        await showPage("block");
+        await show("block");
       }
     }
 
     return false;
   }
 
-  const firstError = errorPage(response);
+  const firstError = failure(response);
 
   if (firstError) {
     if (navigate) {
-      await showPage(firstError);
+      await show(firstError);
     }
 
     return false;
@@ -87,11 +81,11 @@ export default async function access(navigate = true, name) {
   });
 
   const session = await api(`${user}?${query}`, { headers });
-  const sessionError = errorPage(session);
+  const sessionError = failure(session);
 
   if (sessionError) {
     if (navigate) {
-      await showPage(sessionError);
+      await show(sessionError);
     }
 
     return false;
@@ -103,12 +97,13 @@ export default async function access(navigate = true, name) {
 
   if (!session.data?.valid) {
     if (navigate) {
-      await showPage("denied");
+      await show("denied");
     }
 
     return false;
   }
 
   await events.start();
+
   return true;
 }

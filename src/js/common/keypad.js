@@ -1,3 +1,4 @@
+import * as css from "#common/css";
 import * as dom from "#common/dom";
 import * as back from "#common/back";
 import { pause } from "#common/scroll";
@@ -29,30 +30,24 @@ export function listen() {
       dismiss();
     }
   });
+
   dom.on(window, "pagehide", dismiss);
 }
 
 const empty = Object.freeze({ show() {}, hide() {}, submit() {}, update() {} });
 
-const fields = (root) =>
-  root.matches?.("input") ? [root] : dom.all("input", root);
+const fields = (root) => (root.matches?.("input") ? [root] : dom.all("input", root));
 
-const source = (field) =>
-  field?.matches?.("input") ? field : dom.query("input", field);
+const source = (field) => (field?.matches?.("input") ? field : dom.query("input", field));
 
 const reveal = (target, keypad) => {
   if (dom.has("wearable")) {
     return;
   }
 
-  const overflow = dom.root.style.overflow;
+  dom.set(dom.root, "data-unlock", "");
 
-  dom.root.style.overflow = "auto";
-  target.scrollIntoView({
-    behavior: "auto",
-    block: "nearest",
-    inline: "nearest"
-  });
+  target.scrollIntoView({ behavior: "auto", block: "nearest", inline: "nearest" });
 
   const bottom = target.getBoundingClientRect().bottom;
   const top = keypad.offsetTop;
@@ -61,11 +56,7 @@ const reveal = (target, keypad) => {
     dom.scroller.scrollTop += bottom - top + 12;
   }
 
-  if (overflow) {
-    dom.root.style.overflow = overflow;
-  } else {
-    dom.root.style.removeProperty("overflow");
-  }
+  dom.remove(dom.root, "data-unlock");
 };
 
 const write = (input, value) => {
@@ -100,13 +91,7 @@ export default function keypad(root, actions = {}) {
 
   element.className = "keypad";
 
-  const state = {
-    element,
-    field: null,
-    fields: () => fields(root),
-    input: source,
-    ...actions
-  };
+  const state = { element, field: null, fields: () => fields(root), input: source, ...actions };
 
   let off;
 
@@ -151,7 +136,9 @@ export default function keypad(root, actions = {}) {
 
   if (dom.has("wearable")) {
     dom.set(key, "data-circle", "");
+    dom.set(key, "data-scale", "");
     dom.set(action, "data-circle", "");
+    dom.set(action, "data-scale", "");
   }
 
   const update = (field) => {
@@ -183,7 +170,7 @@ export default function keypad(root, actions = {}) {
 
     const height = element.scrollHeight;
 
-    dom.root.style.setProperty("--keypad-height", `${height}px`);
+    css.set(dom.root, { "--keypad-height": `${height}px` });
     reveal(state.field, element);
   };
 
@@ -249,9 +236,7 @@ export default function keypad(root, actions = {}) {
     dom.set(element, "data-close", "");
     dom.remove(element, "data-open");
 
-    const animations = element
-      .getAnimations()
-      .map((animation) => animation.finished);
+    const animations = element.getAnimations().map((animation) => animation.finished);
 
     Promise.allSettled(animations).then(() => {
       if (dom.get(element, "data-open") !== null) {
@@ -260,7 +245,7 @@ export default function keypad(root, actions = {}) {
 
       pause();
       dom.remove(element, "data-close");
-      dom.root.style.removeProperty("--keypad-height");
+      css.set(dom.root, { "--keypad-height": null });
     });
   };
 
@@ -280,6 +265,7 @@ export default function keypad(root, actions = {}) {
 
     if (!next) {
       state.commit?.(field);
+
       return true;
     }
 
@@ -334,6 +320,7 @@ export default function keypad(root, actions = {}) {
       sound.play("click");
       vibrate.play("click");
       state.close?.(field);
+
       return;
     }
 
@@ -343,6 +330,7 @@ export default function keypad(root, actions = {}) {
       erase(input);
       input.dispatchEvent(new Event("input", { bubbles: true }));
       update(field);
+
       return;
     }
 
@@ -352,6 +340,7 @@ export default function keypad(root, actions = {}) {
       write(input, "-");
       input.dispatchEvent(new Event("input", { bubbles: true }));
       update(field);
+
       return;
     }
 

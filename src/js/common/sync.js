@@ -1,15 +1,13 @@
-const openDatabase = () =>
+const open = (name = "_sync") =>
   new Promise((resolve, reject) => {
-    const request = indexedDB.open("sync", 1);
+    const request = indexedDB.open(name, 1);
+    const store = name === "sync" ? "requests" : "_request";
 
     request.onupgradeneeded = () => {
       const database = request.result;
 
-      if (!database.objectStoreNames.contains("requests")) {
-        database.createObjectStore("requests", {
-          keyPath: "id",
-          autoIncrement: true
-        });
+      if (!database.objectStoreNames.contains(store)) {
+        database.createObjectStore(store, { keyPath: "id", autoIncrement: true });
       }
     };
 
@@ -22,14 +20,16 @@ const openDatabase = () =>
     };
   });
 
-const saveRequest = async (value) => {
-  const database = await openDatabase();
+const write = async (action, name = "_sync") => {
+  const database = await open(name);
+  const store = name === "sync" ? "requests" : "_request";
 
   return new Promise((resolve, reject) => {
     let finished = false;
 
     const finish = (error) => {
       if (finished) return;
+
       finished = true;
       database.close();
       if (error) reject(error);
@@ -37,18 +37,31 @@ const saveRequest = async (value) => {
     };
 
     try {
-      const transaction = database.transaction("requests", "readwrite");
-      const fail = () =>
-        finish(transaction.error || new Error("Request queue save failed"));
+      const transaction = database.transaction(store, "readwrite");
+      const fail = () => finish(transaction.error || new Error("Request queue update failed"));
 
       transaction.oncomplete = () => finish();
       transaction.onerror = fail;
       transaction.onabort = fail;
-      transaction.objectStore("requests").add(value);
+      action(transaction.objectStore(store));
     } catch (error) {
       finish(error);
     }
   });
+};
+
+const save = (value) => write((store) => store.add(value));
+
+export const clear = async () => {
+  if (!("indexedDB" in window)) return true;
+
+  try {
+    await write((store) => store.clear());
+    await write((store) => store.clear(), "sync");
+    return true;
+  } catch {
+    return false;
+  }
 };
 
 export default async function sync(path, { data, ...options } = {}) {
@@ -71,7 +84,7 @@ export default async function sync(path, { data, ...options } = {}) {
     }
   } catch {}
 
-  await saveRequest(request);
+  await save(request);
 
   // Worker가 준비되지 않아도 저장된 요청은 큐에 남기고 반환합니다.
   try {

@@ -27,6 +27,7 @@ const status = dom.query("[data-status]", root);
 
 const state = (key) => {
   status.textContent = i18n.message(key) || key;
+  dom.set(status, "data-i18n", key);
 };
 
 try {
@@ -55,15 +56,11 @@ try {
 
       if (file.size > limit) {
         state("image.sizeError");
+
         return;
       }
 
-      const image = await edit(file, {
-        anchor: button,
-        shape: "circle",
-        width: 512,
-        height: 512
-      });
+      const image = await edit(file, { anchor: button, shape: "circle", width: 512, height: 512 });
 
       if (!image) {
         return;
@@ -75,6 +72,7 @@ try {
 
       if (result.ok) {
         state("image.sent");
+
         return;
       }
 

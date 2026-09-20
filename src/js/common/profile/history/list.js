@@ -49,30 +49,31 @@ export default async function history({
 
   async function load() {
     if (!active || busy || cursor === null) return;
+
     busy = true;
     observer?.unobserve(edge);
     status.hidden = false;
     status.className = "history-status";
     dom.remove(status, "data-i18n");
     status.replaceChildren(loading.element);
+
     const controller = new AbortController();
 
     request = controller;
+
     const query = new URLSearchParams({
       limit: dom.has("wearable") ? "8" : dom.has("small") ? "12" : "24"
     });
 
     if (cursor) query.set(cursorKey, cursor);
-    for (const [key, value] of Object.entries(filters.values))
-      if (value) query.set(key, value);
-    const result = await api(`${url}?${query}`, {
-      cache: "no-store",
-      signal: controller.signal
-    });
+    for (const [key, value] of Object.entries(filters.values)) if (value) query.set(key, value);
+    const result = await api(`${url}?${query}`, { cache: "no-store", signal: controller.signal });
 
     if (!active || request !== controller) return;
+
     status.replaceChildren();
     busy = false;
+
     const page = result.data;
 
     if (
@@ -86,6 +87,7 @@ export default async function history({
         cursor = undefined;
         filters.count();
       }
+
       status.className = "history-status profile-error";
       caption(status, "profile.historyError");
       if (![400, 401, 403, 404].includes(result.status)) {
@@ -93,11 +95,14 @@ export default async function history({
         dom.remove(status, "data-i18n");
         retries.schedule();
       }
+
       return;
     }
+
     retries.reset();
     tools.append(list, page.items, render);
     if (cursor === undefined) filters.count(page.total);
+
     cursor = page.next;
     status.hidden = Boolean(list.childElementCount);
     caption(status, "profile.historyEmpty");
@@ -108,6 +113,7 @@ export default async function history({
   function refresh() {
     retries.reset();
     if (!active) return;
+
     request?.abort();
     request = null;
     busy = false;
@@ -130,6 +136,7 @@ export default async function history({
   source?.addEventListener("profile-update", update);
 
   source?.addEventListener("chatting-remove", refresh);
+  source?.addEventListener("chatting-restore", refresh);
 
   try {
     await drawer({
@@ -146,6 +153,7 @@ export default async function history({
           },
           { root: element, rootMargin: "0px 0px 128px 0px" }
         );
+
         load();
       },
       toolbar: filters.root
@@ -161,6 +169,7 @@ export default async function history({
     source?.removeEventListener("profile-update", update);
 
     source?.removeEventListener("chatting-remove", refresh);
+    source?.removeEventListener("chatting-restore", refresh);
 
     list.replaceChildren();
   }

@@ -5,14 +5,11 @@ dialog[data-sheet] {
   inset: auto;
   margin: 0;
   padding: 0;
-  border: 1px solid var(--border);
 
-  background: var(--background);
   color: var(--text);
   text-align: left;
   font-size: 1.2rem;
 
-  box-shadow: var(--shadow);
   outline: 0;
   overflow: hidden;
 
@@ -28,20 +25,11 @@ dialog:is([data-dialog], [data-popover], [data-drawer], [data-sheet])[open] {
   overflow-x: hidden;
 }
 
-dialog[open]
-  > :is(
-    .dialog-head,
-    .dialog-content,
-    .layer-head,
-    .layer-content,
-    .layer-actions
-  ) {
+dialog[open] > :is(.dialog-head, .dialog-content, .layer-head, .layer-content, .layer-actions) {
   flex: 0 0 auto;
 }
 
-:root:has(
-  dialog:is([data-dialog], [data-popover], [data-drawer], [data-sheet])[open]
-) {
+:root:has(dialog:is([data-dialog], [data-popover], [data-drawer], [data-sheet])[open]) {
   overflow: hidden;
 }
 
@@ -93,10 +81,7 @@ dialog[open]
   min-width: 0;
 }
 
-:root:not(.wearable)
-  .layer-actions
-  > button:not([data-icon~="throbber"])
-  > .icon {
+:root:not(.wearable) .layer-actions > button:not([data-icon~="throbber"]) > .icon {
   display: none;
 }
 
@@ -104,18 +89,12 @@ dialog[open]
   display: none;
 }
 
-dialog:is(
-    [data-dialog],
-    [data-popover],
-    [data-drawer],
-    [data-sheet]
-  )[data-fullscreen]
+dialog:is([data-dialog], [data-popover], [data-drawer], [data-sheet])[data-fullscreen]
   .layer-actions {
   padding-block-end: max(12px, env(safe-area-inset-bottom));
 }
 
-.wearable
-  dialog:is([data-dialog], [data-popover], [data-drawer], [data-sheet]) {
+.wearable dialog:is([data-dialog], [data-popover], [data-drawer], [data-sheet]) {
   inset: 0;
 
   width: 100%;
@@ -124,7 +103,7 @@ dialog:is(
   max-height: none;
 
   margin: 0;
-  padding: 10dvh 8dvw;
+  padding: 10dvh 12dvw;
   border: 0;
   border-radius: 0;
 }
@@ -136,7 +115,7 @@ dialog:is(
 .wearable :is(.dialog-content, .layer-content) {
   text-align: center;
   font-size: 2rem;
-  line-height: 1.4;
+  line-height: 1.5;
 }
 
 .wearable :is(.dialog-content, .layer-content) > span {
@@ -167,8 +146,7 @@ dialog:is(
   display: none;
 }
 
-.small:not(.wearable)
-  dialog:is([data-dialog], [data-popover], [data-drawer])[open] {
+.small:not(.wearable) dialog:is([data-dialog], [data-popover], [data-drawer])[open] {
   inset: 0;
 
   width: 100%;
@@ -184,23 +162,12 @@ dialog:is(
 }
 
 .small:not(.wearable)
-  dialog:is(
-    [data-dialog],
-    [data-popover],
-    [data-drawer],
-    [data-sheet]
-  )[open]::-webkit-scrollbar {
+  dialog:is([data-dialog], [data-popover], [data-drawer], [data-sheet])[open]::-webkit-scrollbar {
   display: none;
 }
 
 :is(.small, .wearable)
-  :is(
-    .dialog-head,
-    .layer-head,
-    .dialog-content,
-    .layer-content,
-    .layer-actions
-  ) {
+  :is(.dialog-head, .layer-head, .dialog-content, .layer-content, .layer-actions) {
   padding-inline: 0;
   min-width: 0;
 }
@@ -234,16 +201,14 @@ dialog:is(
   width: 100%;
 }
 
-:root:not(.small):not(.wearable)
-  dialog[data-back]
-  > :is(.dialog-head, .layer-head) {
+:root:not(.small):not(.wearable) dialog[data-back] > :is(.dialog-head, .layer-head) {
   display: flex;
   align-items: center;
   justify-content: center;
 
   min-height: 92px;
   padding-block: 16px;
-  padding-inline: 68px;
+  padding-inline: 92px;
 }
 
 .layer-back {
@@ -253,21 +218,11 @@ dialog:is(
   align-self: flex-start;
   flex: 0 0 60px;
 
-  margin-block-start: 16px;
+  margin-block-start: 0;
   margin-inline-start: 16px;
-  margin-block-end: -76px;
+  margin-block-end: -60px;
 
   border: 0;
-}
-
-:is(.layer-back, .layer-action)[data-background],
-.header-actions > .avatar[data-shadow],
-.header-actions > button[data-shadow],
-.footer > button[data-shadow] {
-  background-color: color-mix(in srgb, var(--background) 20%, transparent);
-
-  -webkit-backdrop-filter: blur(2px);
-  backdrop-filter: blur(2px);
 }
 
 :is(.small, .wearable) .layer-back {

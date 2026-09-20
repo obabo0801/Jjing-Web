@@ -17,48 +17,31 @@ const count = (value = "50") => {
     !Number.isSafeInteger(Number(value))
   )
     invalid();
+
   return Math.min(Number(value), 100);
 };
 
 export const chatting = async (user, uid, query) => {
   const page = await chat.list(
     user,
-    {
-      limit: count(query.limit),
-      before: query.cursor,
-      search: query.search,
-      date: query.date
-    },
+    { limit: count(query.limit), before: query.cursor, search: query.search, date: query.date },
     uid
   );
 
   const items = page.messages
     .reverse()
-    .map(
-      ({
-        url,
-        id,
-        name,
-        text,
-        time,
-        image,
-        preview,
-        attachments,
-        audio,
-        deleted
-      }) => ({
-        url,
-        id,
-        name,
-        text,
-        time,
-        ...(image && { image }),
-        ...(preview && { preview }),
-        ...(attachments?.length && { attachments }),
-        ...(audio && { audio }),
-        ...(deleted && { deleted: true })
-      })
-    );
+    .map(({ url, id, name, text, time, image, preview, attachments, audio, deleted }) => ({
+      url,
+      id,
+      name,
+      text,
+      time,
+      ...(image && { image }),
+      ...(preview && { preview }),
+      ...(attachments?.length && { attachments }),
+      ...(audio && { audio }),
+      ...(deleted && { deleted: true })
+    }));
 
   return {
     items,
@@ -79,6 +62,7 @@ const read = (file, uid, before, limit, sanctions, filter, totals = false) =>
       };
 
       db.configure("busyTimeout", 5000);
+
       const condition = `(? = '' OR instr(lower(COALESCE(reason,'')),lower(?)) > 0
         OR instr(lower(COALESCE(handler,'')),lower(?)) > 0)
         AND (? = '' OR action = ?)
@@ -99,6 +83,7 @@ const read = (file, uid, before, limit, sanctions, filter, totals = false) =>
         "SELECT name, sql FROM sqlite_master WHERE type = 'table' AND name IN ('block','sanction')",
         (error, tables) => {
           if (error) return done(error);
+
           if (sanctions) {
             const parts = tables
               .filter(({ name }) => ["block", "sanction"].includes(name))
@@ -112,6 +97,7 @@ const read = (file, uid, before, limit, sanctions, filter, totals = false) =>
               );
 
             if (!parts.length) return done(null, []);
+
             if (totals) {
               db.all(
                 `SELECT COUNT(*) AS total FROM (${parts.join(" UNION ALL ")})
@@ -119,8 +105,10 @@ const read = (file, uid, before, limit, sanctions, filter, totals = false) =>
                 [...parts.map(() => uid), ...params],
                 done
               );
+
               return;
             }
+
             db.all(
               `SELECT * FROM (${parts.join(" UNION ALL ")})
               WHERE (time,kind,seq) < (?,?,?)
@@ -129,10 +117,12 @@ const read = (file, uid, before, limit, sanctions, filter, totals = false) =>
               [...parts.map(() => uid), ...before, ...params, limit],
               done
             );
+
             return;
           }
-          if (!tables.some(({ name }) => name === "block"))
-            return done(null, []);
+
+          if (!tables.some(({ name }) => name === "block")) return done(null, []);
+
           if (totals) {
             db.all(
               `SELECT COUNT(*) AS total FROM block
@@ -140,8 +130,10 @@ const read = (file, uid, before, limit, sanctions, filter, totals = false) =>
               [uid, ...params],
               done
             );
+
             return;
           }
+
           db.all(
             `SELECT rowid AS seq, action, time, reason, handler,
               ${/\bactor\b/i.test(tables.find(({ name }) => name === "block").sql) ? "actor" : "NULL AS actor"},
@@ -173,14 +165,14 @@ export const block = async (uid, query, sanctions = false) => {
   if (sanctions && cursor !== undefined) {
     try {
       if (typeof cursor !== "string" || cursor.length > 200) invalid();
+
       position = JSON.parse(Buffer.from(cursor, "base64url").toString());
       if (
         !Array.isArray(position) ||
         position.length !== 4 ||
         !/^\d{8}$/.test(position[0]) ||
         typeof position[1] !== "string" ||
-        (position[1] !== "" &&
-          !/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(position[1])) ||
+        (position[1] !== "" && !/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(position[1])) ||
         ![0, 1].includes(position[2]) ||
         !Number.isSafeInteger(position[3]) ||
         position[3] < 0
@@ -190,6 +182,7 @@ export const block = async (uid, query, sanctions = false) => {
       invalid();
     }
   }
+
   if (
     !sanctions &&
     cursor !== undefined &&
@@ -200,9 +193,7 @@ export const block = async (uid, query, sanctions = false) => {
   const before = offset === undefined ? Number.MAX_SAFE_INTEGER : +offset;
 
   if (!sanctions && !Number.isSafeInteger(before)) invalid();
-  const totals =
-    cursor === undefined &&
-    Boolean(filter.search || filter.range || filter.action);
+  const totals = cursor === undefined && Boolean(filter.search || filter.range || filter.action);
   const summary = totals ? { total: 0 } : {};
 
   let files;
@@ -213,11 +204,13 @@ export const block = async (uid, query, sanctions = false) => {
     if (error.code === "ENOENT") return { items: [], next: null, ...summary };
     throw error;
   }
+
   files = files
     .filter((file) => /^\d{8}\.db$/.test(file))
     .sort()
     .reverse()
     .filter((file) => !day || file.slice(0, 8) <= day);
+
   if (filter.range) {
     const date = query.date.replaceAll("-", "");
 
@@ -227,15 +220,7 @@ export const block = async (uid, query, sanctions = false) => {
   // 전체 건수는 첫 필터 요청에서만 집계하며 본문은 읽지 않습니다.
   if (totals) {
     for (const file of files) {
-      const rows = await read(
-        path.log("block", file),
-        uid,
-        null,
-        0,
-        sanctions,
-        filter,
-        true
-      );
+      const rows = await read(path.log("block", file), uid, null, 0, sanctions, filter, true);
 
       summary.total += rows[0]?.total ?? 0;
     }
@@ -266,11 +251,13 @@ export const block = async (uid, query, sanctions = false) => {
 
     for (const { seq, kind, actor, ...row } of rows) {
       if (items.length === limit) return { items, next, ...summary };
+
       if (actor && !handlers.has(actor)) {
         const user = await db.get("SELECT id FROM user WHERE uid = ?", [actor]);
 
         handlers.set(actor, user?.id || "");
       }
+
       items.push({
         ...row,
         ...(handlers.get(actor) && { handlerId: handlers.get(actor) }),
@@ -279,14 +266,14 @@ export const block = async (uid, query, sanctions = false) => {
       });
 
       next = sanctions
-        ? Buffer.from(JSON.stringify([date, row.time, kind, seq])).toString(
-            "base64url"
-          )
+        ? Buffer.from(JSON.stringify([date, row.time, kind, seq])).toString("base64url")
         : `${date}:${seq}`;
     }
+
     next = sanctions
       ? Buffer.from(JSON.stringify([date, "", 0, 0])).toString("base64url")
       : `${date}:0`;
   }
+
   return { items, next: files.length > 31 ? next : null, ...summary };
 };

@@ -4,16 +4,19 @@ export const matches = (text = "") => [...text.matchAll(pattern)];
 
 export const ids = (text) => [...new Set(matches(text).map((item) => item[2]))];
 
-export const token = (user) =>
-  `@[${user.name.replace(/[\]\r\n]/g, "").slice(0, 80)}](${user.id})`;
+export const token = (user) => `@[${user.name.replace(/[\]\r\n]/g, "").slice(0, 80)}](${user.id})`;
 
 export const plain = (text) => text.replace(pattern, (_, name) => `@${name}`);
+
+export const omit = (text, id) =>
+  text.replace(pattern, (token, name, target) => (target === id ? `@${name}` : token));
 
 export const query = (text, start, end = start) => {
   if (start !== end) return null;
   const match = text.slice(0, start).match(/(?:^|\s)([/@:])([^\s/@:\[\]]*)$/u);
 
   if (!match) return null;
+
   return {
     type: match[1],
     value: match[2].toLocaleLowerCase(),

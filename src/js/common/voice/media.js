@@ -22,8 +22,7 @@ export const record = (stream) => {
     dom.on(
       recorder,
       "stop",
-      () =>
-        resolve(new Blob(chunks, { type: recorder.mimeType || "audio/webm" })),
+      () => resolve(new Blob(chunks, { type: recorder.mimeType || "audio/webm" })),
       { once: true }
     );
   });

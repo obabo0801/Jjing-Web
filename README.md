@@ -1,7 +1,6 @@
 <p align="center">
-  <img src="https://img.shields.io/badge/license-MIT-green">
-  <img src="https://img.shields.io/badge/node.js-24.19.0-brightgreen">
-  <img src="https://img.shields.io/badge/version-v1.0.0-blue">
+  <img src="https://img.shields.io/badge/node.js-24%2B-brightgreen" alt="Node.js 24 이상">
+  <img src="https://img.shields.io/badge/version-v1.0.0-blue" alt="Version 1.0.0">
 </p>
 
 <h1 align="center">
@@ -9,11 +8,11 @@
 </h1>
 
 <p align="center">
-  <img src="https://github.com/user-attachments/assets/c4f849a2-839f-4ec1-9f3c-2b837e8518f7" width="16%">
+  <img src="https://github.com/user-attachments/assets/c4f849a2-839f-4ec1-9f3c-2b837e8518f7" width="16%" alt="찡">
 </p>
 
 <p align="center">
-  <strong>Node.js</strong>
+  <strong>Node.js Jjing Web</strong>
 </p>
 
 <p align="center">
@@ -33,46 +32,18 @@ git@github.com:obabo0801/Jjing-Web.git
 
 ## ❗ 버전 1.0.0
 
-- Node.js, Express, Vite 웹 서비스 구성
-- 테마와 다국어 화면 지원
-- PWA 설치, 오프라인 사용, 백그라운드 동기화 지원
-- 사용자 접근 제한과 서비스 점검 기능 추가
-- Push 알림 전송 및 구독 관리 지원
-- Google TTS와 브라우저·Google Cloud STT 지원
-- 소리, 진동, 음량 조절 기능 추가
-- 대화상자, 로딩, 진행 표시 등 공통 화면 기능 추가
-- 터치·마우스 스와이프와 제스처 동작 지원
-- 오류, 오프라인, 점검 상태 화면 및 복구 동작 개선
-- HTML, JavaScript, CSS 등 빌드 파일 해시 처리 및 자동 연결
-- SQLite 데이터 관리와 API 요청 제한 적용
-- ESLint와 Prettier 코드 정리 환경 구성
-- 작은 안내창과 옆·아래에서 열리는 화면 기능 추가
-- 숫자 키패드, 선택 버튼, 도움말 표시 기능 추가
-- 사용자 프로필과 최초 설정 기능 추가
-- 프로필 이미지 선택, 편집 및 휴대폰 등록 기능 추가
-- 채팅 화면과 음성 입력 기능 추가
-- 사용자 온라인, 자리 비움, 오프라인 상태 표시 기능 추가
-- 채팅에서 사용자 프로필 확인 및 관리 기능 추가
-- 아바타, 선택 메뉴, 토스트 등 공통 화면 기능 확장
-- 프로필 이미지 이동, 확대, 회전 및 자르기 기능 개선
-- GIF 등 움직이는 프로필 이미지 처리 지원
-- 모바일과 터치 환경의 이미지 편집 동작 개선
-- 이미지 보기 및 확대 기능 추가
-- PWA와 공통 화면 동작 안정성 개선
-- 관리자 권한 부여 및 해제 기능 추가
-- 사용자 차단 해제와 차단 상태 표시 기능 추가
-- 첫 방문 안내와 프로필 설정 흐름 정리
-- 화면 공간과 기기에 맞는 선택 목록 표시 지원
-- Enter 키를 이용한 입력칸 이동 및 확인 지원
-- 쿠키 보호 설정과 사용자 확인 절차 강화
-- 알림, 동기화, 저장 데이터 삭제의 오류 처리 보완
-- 서버 구조 정리
-- 채팅 메시지 저장 및 이전 대화 불러오기 기능 추가
-- 이미지, GIF, 음성 등 채팅 첨부 기능 추가
-- 이모티콘 및 최근 사용 이모티콘 기능 추가
-- 현재 접속 중인 사용자 확인 기능 추가
-- 사용자 신고 및 관리자 확인 기능 추가
-- 사용자 관리 기록 확인 기능 추가
+- 공개 채팅, 메신저, 문의하기 추가
+- 이미지, 음성, 이모티콘 첨부 지원
+- 링크 미리보기 추가
+- 로그인, 프로필 편집, 계정 삭제 기능 추가
+- 사용자 신고, 제재, 관리자 권한 관리 지원
+- 알림 전송, 등록된 기기 확인 기능 추가
+- DB, 업로드, TTS, STT 관리 화면 추가
+- 데스크탑, 모바일, 웨어러블 화면 대응
+- 테마, 다국어, 소리, 진동 설정 지원
+- PWA 설치, 오프라인 화면 지원
+- 공용 화면 구성 요소 추가
+- 빌드 파일 해시 처리 적용
 
 </details>
 
@@ -80,127 +51,122 @@ git@github.com:obabo0801/Jjing-Web.git
 
 ## 📌 소개
 
-이 프로젝트는 Node.js와 Express를 사용하는 서버와<br>
-Vite를 사용하는 웹 화면으로 구성된 프로젝트입니다.
+Node.js 웹 프로젝트입니다.
 
-SQLite를 이용한 데이터 관리와 함께<br>
-PWA, 사용자 접근 제한, 서비스 점검, Push 알림,<br>
-TTS 및 음성 인식 기능을 제공합니다.
-
-테마, 다국어, 소리, 저장소, 이벤트,<br>
-기기 구분 등 여러 화면에서 함께 사용하는 기능은<br>
-공통으로 사용할 수 있도록 나누어 관리합니다.
+채팅, 음성, 알림, 사용자 관리 기능을 제공하며<br>
+데스크탑, 모바일, 웨어러블 화면에 대응합니다.
 
 ---
 
 ## ✨ 기능
 
-### 🌐 화면 및 사용자 설정
+### 🌐 화면
 
-- 시스템, 밝은 화면, 어두운 화면 테마 지원
-- 사용 환경에 맞는 언어와 테마 자동 적용
-- 쿠키와 브라우저 저장 데이터 확인 및 삭제
-- 모바일과 터치 화면에 맞는 동작 지원
-- 확인창과 화면 위에 표시되는 작은 안내창 지원
-- 화면 옆에서 열리는 메뉴와 아래에서 열리는 화면 지원
-- 숫자 키패드와 하나 또는 여러 항목 선택 기능 제공
-- 버튼과 아이콘의 기능을 알려주는 도움말 표시
-- 로딩 및 진행 상태 표시
-- 첫 이용 시 닉네임과 프로필 설정
-- 닉네임 사용 가능 여부 확인
-- 프로필 이미지 선택, 이동, 확대, 회전 및 자르기
-- GIF 등 움직이는 프로필 이미지 지원
-- 휴대폰을 이용한 프로필 이미지 등록
-- 이미지 확대 및 보기 기능 지원
-- 처음 방문한 사용자를 위한 시작 안내
-- 화면 공간에 맞춰 위나 아래로 열리는 선택 목록
-- 웨어러블에서 선택 목록을 전체 화면으로 표시
-- 입력창에서 Enter 키로 다음 항목 이동 또는 확인
+- 테마, 언어 자동 적용
+- 기기별 화면 구성
+- 이미지 확대, 이동, 보기
+- 공용 UI
+- 공용 오디오 플레이어
+- 공용 파일 선택
 
-### 💬 채팅 및 프로필
+### 👤 사용자
 
-- 스트림과 메신저 형태의 채팅 화면 지원
-- 채팅 메시지 저장 및 이전 대화 불러오기
-- 일반 입력과 음성 입력으로 메시지 작성
-- 이미지, GIF, 음성 등 파일 첨부
-- 이모티콘 선택 및 최근 사용 이모티콘 표시
-- 같은 사용자의 연속 메시지를 묶어서 표시
-- 사용자 프로필 확인
-- 온라인, 자리 비움, 오프라인 상태 표시
-- 현재 접속 중인 사용자 확인
-- 최신 메시지로 빠르게 이동
-- 사용자 신고 및 채팅 숨기기
+- 로그인, 프로필 설정
+- 프로필 이미지 편집
+- 휴대폰을 통한 이미지 등록
+- 접속 상태, 현재 접속자 확인
+- 브라우저 저장 데이터 관리
+- 계정 삭제 요청, 7일 이내 취소
 
-### 🛡 서비스 이용 관리
+### 💬 채팅
 
-- 사용자 확인 및 접근 제한
-- 서비스 점검 모드
-- 주소 직접 접근과 과도한 API 요청 제한
-- 오류, 오프라인, 점검 상황에 맞는 화면 표시
-- 다시 시도 및 홈 이동 기능 제공
-- 권한에 따라 사용할 수 있는 관리 기능 구분
-- 최상위 관리자의 관리자 권한 부여 및 해제
-- 사용자 차단 및 차단 해제
-- 차단 상태에 맞는 관리 메뉴 표시
-- 사용자 신고 내용 확인 및 관리
-- 사용자별 관리 기록 확인
-- 채팅 금지 및 강제 퇴장 관리
+- 공개 채팅, 메신저
+- 이전 대화 조회
+- 최신 메시지 이동
+- 이미지, GIF, 음성, 이모티콘 첨부
+- 링크 미리보기
+- 첨부 목록 조회
+- 음성 입력
+- 메시지 읽어주기
+- 사용자 차단, 신고
+
+### 📬 문의하기
+
+- 첫 메시지 전송 시 문의 접수
+- 관리자 확인 시 담당자 배정
+- 문의 내역 조회
+- 문의 종료
+
+### 🛡 관리
+
+- 사용자 검색
+- 관리자 권한 관리
+- 채팅 제한, 접속 차단, 강제 퇴장
+- 신고 내역, 제재 이력 확인
+- 서비스 점검
+- API 요청 제한
+- 오류, 오프라인, 점검 안내 화면
+- DB, 로그, 업로드, TTS, STT 조회
 
 ### 🔔 알림
 
-- 제목, 내용, 이미지, 주소 지정하여 알림 전송
-- 차단된 사용자 제외
-- 사용할 수 없는 구독 정보 자동 정리
-- 알림을 누르면 지정된 화면으로 이동
+- 제목, 내용, 이미지 지정
+- 등록된 기기에서 전송 대상 선택
+- 사용자별 알림 설정
+- 기기 정보 확인
+- 화면 내 알림
+- 지원 브라우저의 Web Push
+- 알림 선택 시 관련 화면 이동
+- 유효하지 않은 구독 정리
 
 ### 📱 PWA
 
-- 앱처럼 설치하여 사용할 수 있는 PWA 지원
-- 인터넷 연결이 없어도 일부 화면 사용 가능
-- 서버 오류 시 오프라인 화면으로 복구
-- 백그라운드 동기화 및 오래된 캐시 자동 정리
-- PWA 등록에 실패해도 일반 웹 화면은 계속 사용
+- 지원 브라우저에서 앱 설치
+- 오프라인 안내 화면
+- 백그라운드 동기화
+- 캐시 관리
 
-### 🔊 소리와 진동
+### 🔊 오디오
 
-- 비프음, 효과음, 배경음 재생
-- 여러 음원의 동시 및 반복 재생
-- 전체, 미디어, 알림, 음성, 시스템 음량 조절
-- 효과음과 진동 사용 설정
+- 효과음, 배경음, 알림음 재생
+- 종류별 음량 설정
+- 음소거
+- 지원 기기의 진동 피드백
+- 오디오 탐색, 재생 시간 표시
 
 ### 🗣 TTS
 
-- 일반 Google TTS와 Google Cloud TTS 지원
-- Cloud 연결 실패 시 사용 가능한 방식으로 전환
-- 언어, 재생 속도, 음높이, 음성, 음량 설정
-- 생성된 MP3 음원 저장 및 재사용
-- 과도한 TTS 요청 제한
+- Google TTS
+- Google Cloud Text-to-Speech
+- Cloud 요청 실패 시 일반 TTS로 전환
+- 언어, 음성, 속도, 음높이 설정
+- 생성 음원 재사용
 
 ### 🎙 STT
 
-- Web Speech API 와 Google Cloud Speech STT 지원
-- 브라우저 또는 서버 음성 인식 자동 선택
-- 다국어 음성 명령과 키워드 인식
-- 무음 구간 감지 및 음성 신호 분석
-- 사용 가능한 마이크 확인 및 선택
+- Web Speech API
+- Google Cloud Speech-to-Text
+- 지원 환경에서 실시간 인식 결과 표시
+- 녹음 음성 인식
+- 마이크 선택
+- 입력 상태 표시
 
-### 🛠 빌드와 파일 처리
+### 🛠 파일 처리
 
-- HTML, JavaScript, CSS, 이미지 등 빌드 파일 해시 처리
-- HTML, JavaScript, CSS의 `data-*` 속성 해시 처리
-- 변경된 페이지 파일을 서버에서 자동 연결
-- 필요한 시점에만 페이지 정보 불러오기
-- 소스 파일과 HTML 파일의 직접 접근 제한
-- Vite 개발 서버와 API 서버 자동 연결
-- 업로드 이미지 크기 조절 및 형식 변환
-- 큰 이미지와 과도한 애니메이션 이미지 처리 제한
+- 빌드 파일명 해시 처리
+- `data-*` 속성 해시 처리
+- 페이지 경로 자동 연결
+- 개발 서버의 API 요청 전달
+- 업로드 이미지 크기 조절
+- 이미지 형식 변환
+- 파일 처리 크기 제한
 
 ---
 
 ## 🛠 개발 환경
 
-- Node.js 24
-- npm 12
+- Node.js 24 이상
+- npm
 - ES Modules
 - Express 5
 - Vite 8
@@ -220,24 +186,36 @@ TTS 및 음성 인식 기능을 제공합니다.
 ```bash
 git clone git@github.com:obabo0801/Jjing-Web.git
 cd Jjing-Web
-npm install
+npm ci
 ```
 
 ---
 
 ## 🖥 개발 실행
 
-Express 서버를 실행
+`.env`에 `NODE_ENV=development`를 설정합니다.
+
+최초 빌드
+
+```bash
+npm run build
+```
+
+서버 실행
 
 ```bash
 npm start
 ```
 
-다른 터미널에서 Vite 를 실행
+다른 터미널에서 개발 화면 실행
 
 ```bash
 npm run dev
 ```
+
+접속 주소: `http://localhost:5173`
+
+---
 
 ## 🧹 코드 정리
 
@@ -245,30 +223,27 @@ npm run dev
 npm run format
 ```
 
-코드 문제를 자동으로 확인한 뒤<br>
-전체 코드 형식을 일정하게 정리
-
 ---
 
 ## ✅ 코드 검사
 
 | 명령어 | 설명 |
-| :--- | :--- |
-| `npm run lint` | 코드 오류 확인 |
-| `npm run format:check` | 코드 형식 확인 |
-
-위 명령은 소스 코드를 자동으로 수정하지 않습니다.
+| :---: | :---: |
+| `npm run lint` | 코드 규칙 검사 |
+| `npm run format:check` | 코드 형식 검사 |
 
 ---
 
-## 🏗 빌드 및 실행
+## 🏗 빌드
+
+운영 환경에서는 `.env`의 `NODE_ENV`를 생략합니다.
 
 ```bash
 npm run build
 npm start
 ```
 
-Vite 미리보기는 다음 명령을 사용
+빌드 화면 미리보기
 
 ```bash
 npm run preview
@@ -278,192 +253,104 @@ npm run preview
 
 ## 🔐 .env
 
-`.env` 는 절대 공개 금지
+`.env`는 공개하지 마세요.
 
 ```env
 PORT=3000
+NODE_ENV=development
 MAINTENANCE=false
-COOKIE_SECRET=
+COOKIE_SECRET=YOUR_RANDOM_SECRET
+
+GOOGLE_CLIENT_ID=
+GOOGLE_CLIENT_SECRET=
+GOOGLE_REDIRECT_URI=http://localhost:5173/api/04f8996d/google/callback
 
 TTS=
 STT=
 GOOGLE_APPLICATION_CREDENTIALS=
 
-GOOGLE_CLIENT_ID=
-GOOGLE_CLIENT_SECRET=
-GOOGLE_REDIRECT_URI=http://localhost:5173/api/04f8996d/google/callback
+VITE_GIPHY_API_KEY=
 
 VAPID_PUBLIC_KEY=
 VAPID_PRIVATE_KEY=
 VAPID_SUBJECT=mailto:YOUR_EMAIL
 ```
 
-### Google 로그인
+### 서버
 
-Google Cloud Console에서 OAuth 클라이언트를<br>
-`웹 애플리케이션`으로 만들고,<br>
-`GOOGLE_REDIRECT_URI`에 설정한 주소를<br>
-승인된 리디렉션 URI에 각각 등록합니다.<br>
-동의 화면이 테스트 상태라면<br>
-로그인할 계정을 테스트 사용자에 추가합니다.
+| 이름 | 설명 |
+| :---: | :---: |
+| `PORT` | 서버 포트 |
+| `NODE_ENV` | 개발 `development`, 기본 `production` |
+| `MAINTENANCE` | `true`이면 점검 활성화 |
+| `COOKIE_SECRET` | 재시작 후에도 유지할 임의의 쿠키 서명 비밀값 |
 
-로컬과 운영을 함께 사용하려면<br>
-콜백 주소를 쉼표 또는 줄바꿈으로 구분합니다.<br>
-로그인을 시작한 사이트에 해당하는 주소를<br>
-자동으로 선택합니다.<br>
-`example.com`은 실제 서비스 도메인으로 바꿉니다.
+### 로그인
+
+| 이름 | 설명 |
+| :---: | :---: |
+| `GOOGLE_CLIENT_ID` | OAuth 클라이언트 ID |
+| `GOOGLE_CLIENT_SECRET` | 서버 전용 클라이언트 비밀값 |
+| `GOOGLE_REDIRECT_URI` | 브라우저 접속 주소 기준 콜백 URL |
+
+OAuth 설정에 동일한 콜백 URL을 등록합니다.
+
+여러 주소 설정
 
 ```env
 GOOGLE_REDIRECT_URI="http://localhost:5173/api/04f8996d/google/callback
 https://example.com/api/04f8996d/google/callback"
 ```
 
-주소를 하나만 설정하는<br>
-기존 방식도 사용할 수 있습니다.<br>
-Vite proxy의 내부 서버 주소가 아니라<br>
-브라우저에서 접속하는 주소를 등록합니다.<br>
-목록에 없는 사이트에서는 로그인을 시작하지 않으며,<br>
-운영 주소는 HTTPS를 사용합니다.
-
-`GOOGLE_CLIENT_SECRET`은 서버에만 설정하며<br>
-`VITE_` 접두사를 붙이지 않습니다.<br>
-설정을 바꾼 뒤 서버를 다시 시작합니다.<br>
-음성 기능의 Google Cloud 설정과는 별개입니다.
-
-### 서버
-
-- 🔹 `PORT`<br>
-  서버에서 사용할 포트
-- 🔹 `NODE_ENV`<br>
-  실행 환경. 생략하면 `production`<br>
-  로컬 HTTP 개발은 `development`
-- 🔹 `MAINTENANCE`<br>
-  서비스 점검 모드
-- 🔹 `COOKIE_SECRET`<br>
-  사용자 쿠키 서명에 사용하는 필수 비밀값
-
-운영 환경에서는 `NODE_ENV`를 생략합니다.<br>
-서버와 Vite 배포 빌드의 기본값이 모두<br>
-`production`이므로 공용 `.env`에<br>
-`NODE_ENV=production`을 넣어 발생하는<br>
-Vite 경고를 피할 수 있습니다.
-
-개발 환경 예시
-
-```env
-NODE_ENV=development
-MAINTENANCE=false
-```
-
-서비스 점검을 활성화하려면<br>
-다음과 같이 설정
-
-```env
-MAINTENANCE=true
-```
-
-사용자 쿠키를 안전하게 보호하려면<br>
-최소 32바이트의 충분히 긴 임의의 값을<br>
-생성해 설정하고, 재시작해도 유지
-
-```env
-COOKIE_SECRET=YOUR_SECRET
-```
-
-비어 있으면 DB 초기화 전에<br>
-서버 시작을 중단합니다.<br>
-운영 환경에서는 HTTPS와<br>
-Secure 쿠키를 사용합니다.
-
-기존 secret을 유지하면<br>
-정상 서명된 사용자 쿠키도 유지됩니다.<br>
-secret을 변경하거나 쿠키를 삭제하면<br>
-기존 프로필을 자동 복원하지 않습니다.<br>
-서명 없는 쿠키는 신원으로 사용하지 않으며,<br>
-같은 IP라도 새 사용자로 시작합니다.<br>
-IP는 접속 기록·요청 제한·차단 판단에만<br>
-사용합니다.
-
 ### TTS
 
-일반 Google TTS를 사용하려면<br>
-`TTS`를 비우기
-
-```env
-TTS=
-```
-
-Google Cloud TTS에서 gcloud CLI 인증을<br>
-사용하려면 다음과 같이 설정
-
-```env
-TTS=login
-```
-
-서비스 계정 JSON 인증:
-
-```env
-TTS=json
-GOOGLE_APPLICATION_CREDENTIALS=./json
-```
-
-Cloud TTS 연결에 실패하면<br>
-일반 Google TTS로 자동 전환
+| 값 | 처리 방식 |
+| :---: | :---: |
+| 빈 값 | 일반 Google TTS |
+| `login` | 기본 인증 정보를 사용하는 Cloud TTS |
+| `json` | 서비스 계정 파일을 사용하는 Cloud TTS |
 
 ### STT
 
-브라우저에서 지원하는 경우<br>
-Web Speech API를 사용
+| 값 | 처리 방식 |
+| :---: | :---: |
+| 빈 값 | Cloud STT 비활성화 |
+| `login` | 기본 인증 정보를 사용하는 Cloud STT |
+| `json` | 서비스 계정 파일을 사용하는 Cloud STT |
 
-Google Cloud Speech를 사용하려면<br>
-`STT` 환경 변수를 설정
+### Cloud 인증
 
-gcloud CLI 인증:
+기본 인증
 
-```env
-STT=login
+```bash
+gcloud auth application-default login
 ```
 
-서비스 계정 JSON 인증:
+서비스 계정 인증
 
 ```env
+TTS=json
 STT=json
-GOOGLE_APPLICATION_CREDENTIALS=./json
+GOOGLE_APPLICATION_CREDENTIALS=/path/to/service-account.json
 ```
 
-`STT`를 비워두면 Google Cloud Speech는<br>
-활성화되지 않음
+인증 파일은 저장소 밖에 보관합니다.
 
 ### GIPHY
 
-GIF·스티커 패널에서 사용하는<br>
-GIPHY API 키:
-
-```env
-VITE_GIPHY_API_KEY=
-```
-
-브라우저가 GIPHY API를 직접 호출하므로<br>
-이 키는 빌드 결과에 포함됩니다.<br>
-키를 변경하면 개발 서버를 다시 시작하거나<br>
-운영 빌드를 다시 생성합니다.
+| 이름 | 설명 |
+| :---: | :---: |
+| `VITE_GIPHY_API_KEY` | 빌드에 포함되는 GIF 검색용 공개 키 |
 
 ### Web Push
 
-Web Push를 사용하려면 다음 값을 설정
+| 이름 | 설명 |
+| :---: | :---: |
+| `VAPID_PUBLIC_KEY` | 공개 키 |
+| `VAPID_PRIVATE_KEY` | 비밀 키 |
+| `VAPID_SUBJECT` | 운영자 연락처 |
 
-```env
-VAPID_PUBLIC_KEY=
-VAPID_PRIVATE_KEY=
-VAPID_SUBJECT=mailto:YOUR_EMAIL
-```
-
-VAPID 설정은 선택 사항
-
-세 항목이 모두 설정된 경우에만<br>
-Web Push 기능이 활성화
-
-VAPID 키는 다음 명령으로 생성
+VAPID 키 생성
 
 ```bash
 npx web-push generate-vapid-keys
@@ -473,42 +360,48 @@ npx web-push generate-vapid-keys
 
 ## 🗃 SQLite
 
-SQLite는 서비스에서 사용하는 정보와<br>
-상태 데이터를 저장하는 데 사용
+서버 실행 시 `db/index.js`에서 데이터베이스를 준비합니다.
 
-서버를 실행하면 필요한 데이터베이스와<br>
-데이터 파일이 자동으로 준비
+| 경로 | 용도 |
+| :---: | :---: |
+| `data/service.db` | 서비스 데이터 |
+| `data/evidence.db` | 탈퇴 후 신고, 제재 이력 |
+| `data/evidence.key` | 보관 이력 식별 키 |
+| `data/log/` | 날짜별 로그 |
+| `data/upload/users/` | 프로필 이미지 |
+| `data/upload/images/` | 첨부 이미지 |
+| `data/upload/audio/` | 첨부 음성 |
+| `data/tts/` | TTS 음원 |
+| `data/stt/` | STT 처리 파일 |
 
-`data` 폴더는 Git에 포함되지 않음
-
-DB 시작 순서는 `db/index.js`에서 확인합니다.
-
-- `db/connect.js`:<br>
-  SQLite 연결, 대기 시간,<br>
-  `get`·`run`·`all`·`exec` 도우미
-- `db/schema.js`:<br>
-  신규 테이블과 인덱스 정의
-- `db/migrate.js`:<br>
-  기존 DB의 누락 열 보정,<br>
-  역할 확장과 백업, 차단된 관리자 권한 회수
-
-서버 코드는 `#db`에서<br>
-`get`·`run`·`all`을 가져옵니다.<br>
-`#db`는 WAL 설정과 스키마·기존 DB 보정을<br>
-마친 뒤 사용할 수 있습니다.<br>
-저장 위치는 기존 `data/service.db`이며,<br>
-역할 제약을 확장할 때의 백업은<br>
-`data/service-role-시간값.db`입니다.<br>
-관리 작업의 독립 트랜잭션(`service/manage.js`)과<br>
-날짜별 로그 DB(`service/log/index.js`)는<br>
-별도로 유지합니다.
+파일 복사 백업은 서버를 중지한 뒤 `data/` 전체를 보관합니다.
 
 ---
 
 ## 📁 구조
 
-| 폴더명 | 설명 | 비고 |
-| :--- | :--- | :--- |
-| **`config/`** | 서버 설정과<br>기반 도우미 | 환경·경로·hash·HTML 매핑,<br>UID·IP·접속 환경 판독 |
-| **`service/`** | 서버 기능 실행 | 이미지, 관리, 실시간 접속,<br>음성, 알림, 번역, 로그 |
-| **`db/`** | 서비스 DB 준비와<br>쿼리 실행 | 연결, 스키마, 기존 DB 보정
+| 경로 | 설명 |
+| :---: | :---: |
+| `config/` | 서버 설정 |
+| `service/` | 서버 기능 |
+| `db/` | 데이터베이스 초기화 |
+| `router/` | API 경로 |
+| `middleware/` | 공통 요청 처리 |
+| `shared/` | 공용 코드 |
+| `src/` | 화면 소스 |
+| `src/js/common/` | 공용 화면 기능 |
+| `locales/` | 다국어 문구 |
+| `public/` | 정적 리소스 |
+| `build/` | 빌드 도구 |
+| `data/` | 실행 데이터 |
+| `dist/` | 빌드 결과 |
+| `server.js` | 서버 실행 |
+
+---
+
+## 📬 문의
+
+기타 문의는 아래 연락처로 부탁드립니다.
+
+- **이메일** [obabo0801@gmail.com](mailto:obabo0801@gmail.com)
+- **디스코드** `unjongjjing`

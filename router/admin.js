@@ -10,12 +10,11 @@ import string from "../shared/string.js";
 
 import admin from "../middleware/admin.js";
 import * as management from "#service/admin";
+import * as files from "#service/admin/files";
 import * as role from "#shared/role";
+import * as settings from "#shared/settings";
 
-const upload = raw({
-  type: ["image/jpeg", "image/png", "image/webp"],
-  limit: "5mb"
-});
+const upload = raw({ type: ["image/jpeg", "image/png", "image/webp"], limit: "5mb" });
 
 const sendFcm = async (rows, value) => {
   let results;
@@ -69,17 +68,34 @@ router.get("/users", async (req, res) => {
   res.json(await management.users(req.query));
 });
 
-router.get("/status", async (_, res) => {
-  res.json(await management.status());
-});
+router.get("/recipients", async (_, res) => res.json(await management.recipients()));
 
-router.use("/database", (req, res, next) => {
+router.use(["/database", "/files"], (req, res, next) => {
   if (req.user.role !== role.root) return res.status(403).end();
+
   next();
 });
-router.get("/database", (_, res) => res.json(management.catalogue()));
+
+router.get("/database", async (req, res) => res.json(await management.catalogue(req.query)));
 router.get("/database/:table", async (req, res) => {
   res.json(await management.list(req.params.table, req.query));
+});
+
+router.get("/files/:kind", async (req, res) => {
+  res.json(await files.list(req.params.kind, req.query));
+});
+
+router.get("/files/:kind/content", async (req, res) => {
+  const file = await files.content(req.params.kind, req.query.file);
+
+  res.set("X-Content-Type-Options", "nosniff");
+  res.sendFile(file, { cacheControl: false }, (error) => {
+    if (error && !res.headersSent) res.status(error.status || 500).end();
+  });
+});
+
+router.get("/files/:kind/details", async (req, res) => {
+  res.json(await files.details(req.params.kind, req.query.file));
 });
 
 router.post("/image", upload, async (req, res) => {
@@ -88,6 +104,7 @@ router.post("/image", upload, async (req, res) => {
   }
 
   const image = await store(req.body, "images", {
+    uid: req.user.uid,
     width: 1024,
     height: 1024,
     fit: "inside",
@@ -110,19 +127,25 @@ router.post("/", async (req, res) => {
   const body = string(req.body.body).trim();
   const link = string(req.body.url).trim();
   const image = string(req.body.image).trim();
-  const url =
-    link.startsWith("/") && !link.startsWith("//") && !link.includes("\\")
-      ? link
-      : "/";
+  const recipients = req.body.recipients;
+  const url = link.startsWith("/") && !link.startsWith("//") && !link.includes("\\") ? link : "/";
 
-  if (!title) {
+  if (
+    !title ||
+    title.length > 100 ||
+    !body ||
+    body.length > 500 ||
+    !Array.isArray(recipients) ||
+    !recipients.length ||
+    recipients.some((id) => typeof id !== "string" || id.length > 128)
+  ) {
     return res.status(400).end();
   }
 
   const [web, devices] = await Promise.all([
     push.enabled
       ? all(`
-          SELECT web.endpoint, web.data
+          SELECT web.endpoint, web.data, user.id
           FROM web
           JOIN user ON user.uid = web.uid
           WHERE NOT EXISTS (
@@ -135,7 +158,7 @@ router.post("/", async (req, res) => {
       : [],
     firebase.enabled
       ? all(`
-          SELECT fcm.fid, fcm.device
+          SELECT fcm.fid, fcm.device, user.id, user.settings, user.deletion, user.erased
           FROM fcm
           JOIN user ON user.uid = fcm.uid
           WHERE NOT EXISTS (
@@ -149,15 +172,29 @@ router.post("/", async (req, res) => {
   ]);
 
   const value = { title, body, image, url };
-  const source =
-    process.env.APP_URL?.trim() || `${req.protocol}://${req.get("host")}`;
+  const source = process.env.APP_URL?.trim() || `${req.protocol}://${req.get("host")}`;
 
   const native = { ...value, image: image ? new URL(image, source).href : "" };
 
-  const wear = devices.filter(({ device }) => device === "wearable");
+  const selected = new Set(recipients);
+  const wear = devices.filter((item) => {
+    const options = settings.read(item.settings);
+
+    return (
+      selected.has(item.id) &&
+      item.device === "wearable" &&
+      !item.deletion &&
+      !item.erased &&
+      options.notification &&
+      options.web
+    );
+  });
 
   const [webResult, fcmResult] = await Promise.all([
-    push.send(web, value),
+    push.send(
+      web.filter((item) => selected.has(item.id)),
+      value
+    ),
     sendFcm(wear, native)
   ]);
   const sent = webResult.sent + fcmResult.sent;

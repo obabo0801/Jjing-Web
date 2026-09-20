@@ -26,31 +26,45 @@ const language = () => {
   return regions[base] || lang;
 };
 
-const desktop = async (options) => {
+const record = async (options, live = false) => {
   const { lang, deviceId, target, signal, stop } = options;
   const stream = await media.microphone(deviceId);
 
-  let stopVisual = () => {};
+  let release = () => {};
+  let saved;
+  let heard;
 
   try {
     if (signal.aborted || stop.aborted) {
       return { text: "", confidence: 0 };
     }
 
-    stopVisual = view.visualize(target, stream);
+    release = view.visualize(target, stream);
 
-    const saved = media.record(stream);
-    const heard = speech.listen({ lang, stream, target, signal, keep: true });
+    saved = media.record(stream);
+    heard = live
+      ? speech.listen({
+          lang,
+          stream,
+          target,
+          signal,
+          keep: true,
+          change: (text) => view.preview(target, text)
+        })
+      : null;
 
     const spoken = await audio.silence(stream, signal, stop);
 
-    heard.stop();
+    heard?.stop();
 
     if (saved.recorder.state !== "inactive") {
       saved.recorder.stop();
     }
 
-    const [blob, recognized] = await Promise.all([saved.done, heard.done]);
+    const [blob, recognized] = await Promise.all([
+      saved.done,
+      heard?.done || { text: "", confidence: 0 }
+    ]);
 
     if (signal.aborted || (!spoken && !recognized.text)) {
       return { text: "", confidence: 0 };
@@ -59,59 +73,17 @@ const desktop = async (options) => {
     view.status(target, "voice.processing");
 
     const pitch = await audio.analyze(blob);
-    const result = await server.upload(blob, {
-      lang,
-      text: recognized.text,
-      pitch,
-      signal
-    });
+    const result = await server.upload(blob, { lang, text: recognized.text, pitch, signal });
 
-    return {
-      text: result.text,
-      confidence: result.confidence ?? recognized.confidence
-    };
+    return { text: result.text, confidence: result.confidence ?? recognized.confidence };
   } finally {
-    stopVisual();
-    media.close(stream);
-  }
-};
-
-const remote = async (options) => {
-  const { lang, deviceId, target, signal, stop } = options;
-  const stream = await media.microphone(deviceId);
-
-  let stopVisual = () => {};
-
-  try {
-    if (signal.aborted || stop.aborted) {
-      return { text: "", confidence: 0 };
+    heard?.abort();
+    try {
+      if (saved?.recorder.state === "recording") saved.recorder.stop();
+    } finally {
+      release();
+      media.close(stream);
     }
-
-    const saved = media.record(stream);
-
-    stopVisual = view.visualize(target, stream);
-
-    const spoken = await audio.silence(stream, signal, stop);
-
-    if (saved.recorder.state !== "inactive") {
-      saved.recorder.stop();
-    }
-
-    const blob = await saved.done;
-
-    if (signal.aborted || !spoken) {
-      return { text: "", confidence: 0 };
-    }
-
-    view.status(target, "voice.processing");
-
-    const pitch = await audio.analyze(blob);
-    const result = await server.upload(blob, { lang, text: "", pitch, signal });
-
-    return { text: result.text, confidence: result.confidence ?? 0 };
-  } finally {
-    stopVisual();
-    media.close(stream);
   }
 };
 
@@ -168,6 +140,7 @@ export default async function voice(keywords, options = {}) {
     stop: () => {
       if (stopper.signal.aborted) {
         controller.abort();
+
         return;
       }
 
@@ -198,9 +171,7 @@ export default async function voice(keywords, options = {}) {
 
     const lang = language();
     const base = lang.split("-")[0];
-    const words = Array.isArray(keywords)
-      ? keywords
-      : keywords?.[lang] || keywords?.[base] || [];
+    const words = Array.isArray(keywords) ? keywords : keywords?.[lang] || keywords?.[base] || [];
     const state = device();
     const input = { lang, deviceId, target, signal, stop };
 
@@ -212,13 +183,13 @@ export default async function voice(keywords, options = {}) {
       window.MediaRecorder &&
       navigator.mediaDevices?.getUserMedia
     ) {
-      result = await desktop(input);
+      result = await record(input, true);
     } else if (
       (await server.available()) &&
       window.MediaRecorder &&
       navigator.mediaDevices?.getUserMedia
     ) {
-      result = await remote(input);
+      result = await record(input);
     } else {
       result = await speech.native(input);
 

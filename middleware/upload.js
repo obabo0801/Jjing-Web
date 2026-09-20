@@ -22,6 +22,7 @@ for (const { directory, prefix } of routes) {
   router.use(prefix, express.static(path.upload(directory), options));
 }
 
+router.use("/upload/images/cache", (req, res) => res.sendStatus(404));
 router.use("/upload", express.static(path.upload(), options));
 
 export default router;

@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { get, all, run } from "../db/index.js";
+import * as db from "../db/index.js";
 import * as ids from "#config/uid";
 import * as media from "../config/media.js";
 import * as role from "../shared/role.js";
@@ -17,8 +17,8 @@ const fail = (status) => {
 };
 
 export const viewer = async (uid, ip, development = false) => {
-  const user = await get(
-    `SELECT uid, role,
+  const user = await db.get(
+    `SELECT uid, role, google IS NOT NULL AS verified,
       (SELECT muted FROM sanction WHERE uid = user.uid) AS muted,
       (SELECT notice FROM sanction WHERE uid = user.uid) AS notice
       FROM user WHERE uid = ?
@@ -30,12 +30,9 @@ export const viewer = async (uid, ip, development = false) => {
   );
 
   if (!user) fail(403);
-  if (
-    process.env.MAINTENANCE === "true" &&
-    !development &&
-    !role.staff(user.role)
-  )
-    fail(503);
+
+  if (process.env.MAINTENANCE === "true" && !development && !role.staff(user.role)) fail(503);
+
   return user;
 };
 
@@ -65,9 +62,7 @@ export const visible = (user) => {
 };
 
 const removable = (viewer, target) =>
-  viewer.uid === target.uid ||
-  viewer.role === role.root ||
-  role.manages(viewer, target);
+  viewer.uid === target.uid || viewer.role === role.root || role.manages(viewer, target);
 
 const message = (row, user) => {
   if (row.system) {
@@ -85,6 +80,7 @@ const message = (row, user) => {
       time: row.time
     };
   }
+
   return {
     seq: row.seq,
     url: row.id,
@@ -93,7 +89,7 @@ const message = (row, user) => {
     avatar: media.resolve(row.avatar),
     ...(row.audio && { audio: media.resolve(row.audio) }),
     text: row.text,
-    mentioned: mentions.ids(row.text).includes(ids.publicId(user.uid)),
+    mentioned: row.uid !== user.uid && mentions.ids(row.text).includes(ids.publicId(user.uid)),
     ...(row.attachments && { attachments: read(row.attachments) }),
     ...(row.image && {
       image: media.resolve(row.image),
@@ -101,10 +97,9 @@ const message = (row, user) => {
     }),
     time: row.time,
     own: row.uid === user.uid,
-    removable:
-      !row.deleted && removable(user, { uid: row.uid, role: row.author_role }),
+    removable: !row.deleted && removable(user, { uid: row.uid, role: row.author_role }),
     ...(user.role === role.root &&
-      row.deleted && { deleted: true, deletedAt: row.deleted }),
+      row.deleted && { deleted: true, deletedAt: row.deleted, restorable: true }),
     ...(role.staff(user.role) && { blocked: Boolean(row.blocked) })
   };
 };
@@ -125,10 +120,12 @@ export const system = async (write, user, action, count, time) => {
 
 const integer = (value) => {
   if (!["string", "number"].includes(typeof value)) fail(400);
+
   if (!/^(0|[1-9]\d*)$/.test(String(value))) fail(400);
   const number = Number(value);
 
   if (!Number.isSafeInteger(number)) fail(400);
+
   return number;
 };
 
@@ -149,16 +146,14 @@ export const list = async (user, query = {}, uid) => {
   const { search } = filters(query);
   const count = query.limit === undefined ? rules.size : integer(query.limit);
 
-  if (!count || (query.before !== undefined && query.after !== undefined))
-    fail(400);
+  if (!count || (query.before !== undefined && query.after !== undefined)) fail(400);
   const limit = Math.min(count, rules.maximum);
-  const high = (await get("SELECT COALESCE(MAX(seq), 0) AS seq FROM chatting"))
-    .seq;
+  const high = (await db.get("SELECT COALESCE(MAX(seq), 0) AS seq FROM chatting")).seq;
   const conditions = [visible(user), "chatting.seq <= ?"];
   const params = [high];
   const forward = query.after !== undefined;
 
-  if (query.live === "1" && !role.staff(user.role) && uid === undefined) {
+  if (query.live === "1" && !user.verified && !role.staff(user.role) && uid === undefined) {
     return {
       messages: [],
       muted: user.muted || null,
@@ -168,32 +163,38 @@ export const list = async (user, query = {}, uid) => {
       cursor: high
     };
   }
+
   if (uid !== undefined) {
     conditions.push("chatting.uid = ? AND chatting.system IS NULL");
     params.push(uid);
   }
+
   if (query.before !== undefined || forward) {
     conditions.push(`chatting.seq ${forward ? ">" : "<"} ?`);
     params.push(integer(forward ? query.after : query.before));
   }
+
   if (query.date !== undefined) {
     const range = rules.date(query.date);
 
     if (!range) fail(400);
+
     conditions.push("chatting.time >= ? AND chatting.time < ?");
     params.push(...range);
   }
+
   if (search) {
     conditions.push("instr(lower(chatting.text), lower(?)) > 0");
     params.push(search);
   }
+
   const total =
     uid !== undefined &&
     query.before === undefined &&
     !forward &&
     (search || query.date !== undefined)
       ? (
-          await get(
+          await db.get(
             `SELECT COUNT(*) AS total FROM chatting
               JOIN user ON user.uid = chatting.uid
               WHERE ${conditions.join(" AND ")}`,
@@ -202,7 +203,7 @@ export const list = async (user, query = {}, uid) => {
         ).total
       : undefined;
 
-  const rows = await all(
+  const rows = await db.all(
     `${select} WHERE ${conditions.join(" AND ")}
       ORDER BY chatting.seq ${forward ? "ASC" : "DESC"} LIMIT ?`,
     [...params, limit + 1]
@@ -211,11 +212,12 @@ export const list = async (user, query = {}, uid) => {
   const page = rows.slice(0, limit);
 
   if (!forward) page.reverse();
+
   return {
     messages: page.map((row) => message(row, user)),
     muted: user.muted || null,
     restriction: restriction(user),
-    history: role.staff(user.role),
+    history: Boolean(user.verified || role.staff(user.role)),
     ...(total !== undefined && { total }),
     more,
     // 누락분 복구는 실제 반환한 순서까지만 진행합니다.
@@ -224,8 +226,9 @@ export const list = async (user, query = {}, uid) => {
 };
 
 export const recent = async (user, query = {}) => {
-  const high = (await get("SELECT COALESCE(MAX(seq), 0) AS seq FROM chatting"))
-    .seq;
+  if (user.verified || role.staff(user.role)) return list(user, query);
+
+  const high = (await db.get("SELECT COALESCE(MAX(seq), 0) AS seq FROM chatting")).seq;
 
   const conditions = [
     visible(user),
@@ -237,10 +240,12 @@ export const recent = async (user, query = {}) => {
   if (query.before !== undefined && query.after !== undefined) fail(400);
   for (const key of ["before", "after"]) {
     if (query[key] === undefined) continue;
+
     conditions.push(`chatting.seq ${key === "before" ? "<" : ">"} ?`);
     params.push(integer(query[key]));
   }
-  const rows = await all(
+
+  const rows = await db.all(
     `${select} WHERE ${conditions.join(" AND ")}
       ORDER BY chatting.seq DESC LIMIT ?`,
     [...params, rules.maximum + 1]
@@ -260,10 +265,7 @@ export const recent = async (user, query = {}) => {
 
 export const around = async (user, id) => {
   if (!rules.validId(id)) fail(400);
-  const row = await get(
-    `${select} WHERE chatting.id = ? AND ${visible(user)}`,
-    [id]
-  );
+  const row = await db.get(`${select} WHERE chatting.id = ? AND ${visible(user)}`, [id]);
 
   if (!row) fail(404);
   const before = await list(user, { before: row.seq, limit: 20 });
@@ -273,7 +275,7 @@ export const around = async (user, id) => {
     messages: [...before.messages, message(row, user), ...after.messages],
     muted: user.muted || null,
     restriction: restriction(user),
-    history: role.staff(user.role),
+    history: Boolean(user.verified || role.staff(user.role)),
     before: before.more,
     after: after.more,
     cursor: before.cursor
@@ -281,7 +283,7 @@ export const around = async (user, id) => {
 };
 
 export const writable = async (user) => {
-  const mute = await get(
+  const mute = await db.get(
     `SELECT muted, notice FROM sanction WHERE uid = ?
     AND muted > datetime('now', '+9 hours')`,
     [user.uid]
@@ -295,23 +297,18 @@ export const writable = async (user) => {
     });
 };
 
-export const save = async (
-  user,
-  ip,
-  text,
-  image = null,
-  audio = null,
-  attachments = []
-) => {
+export const save = async (user, ip, text, image = null, audio = null, attachments = []) => {
   if (
     typeof text !== "string" ||
     (!text.trim() && !image && !audio && !attachments.length) ||
     text.length > rules.length
   )
     fail(400);
+
   await writable(user);
+
   const id = randomUUID();
-  const result = await run(
+  const result = await db.run(
     `INSERT INTO chatting (id, uid, text, image, preview, audio, attachments)
       SELECT ?, uid, ?, ?, ?, ?, ? FROM user WHERE uid = ?
         AND NOT EXISTS (SELECT 1 FROM block WHERE uid = user.uid OR ip = ?)
@@ -319,7 +316,7 @@ export const save = async (
           AND (muted > datetime('now', '+9 hours') OR kicked > datetime('now', '+9 hours')))`,
     [
       id,
-      text.trim(),
+      mentions.omit(text.trim(), user.id || ids.publicId(user.uid)),
       image?.original || null,
       image?.resizing || null,
       audio,
@@ -330,7 +327,7 @@ export const save = async (
   );
 
   if (!result.changes) fail(403);
-  const row = await get(`${select} WHERE chatting.id = ?`, [id]);
+  const row = await db.get(`${select} WHERE chatting.id = ?`, [id]);
 
   return message(row, user);
 };
@@ -339,23 +336,20 @@ export const deliver = async (id, skip) => {
   await events.publish("chatting", async (client) => {
     if (client.uid === skip) return null;
     const user = await viewer(client.uid, client.ip, client.development);
-    const row = await get(
-      `${select} WHERE chatting.id = ? AND ${visible(user)}`,
-      [id]
-    );
+    const row = await db.get(`${select} WHERE chatting.id = ? AND ${visible(user)}`, [id]);
 
     return row ? message(row, user) : null;
   });
+
   // 저장 성공과 알림 성공은 별개입니다.
   await Promise.allSettled([notify(id)]);
 };
 
-export const suggest = async (query = "", lang = "ko") => {
+export const suggest = async (query = "", lang = "ko", uid) => {
   if (typeof query !== "string" || query.length > 80) fail(400);
-  const anonymous =
-    (locale(lang) || locale("ko"))?.["profile.anonymous"] || "{id}";
+  const anonymous = (locale(lang) || locale("ko"))?.["profile.anonymous"] || "{id}";
 
-  const rows = await all(
+  const rows = await db.all(
     `SELECT uid, id, CASE WHEN google IS NOT NULL THEN name END AS name,
       avatar, google FROM user WHERE id IS NOT NULL
       AND NOT ${blocked}
@@ -368,7 +362,7 @@ export const suggest = async (query = "", lang = "ko") => {
     items: mentions
       .rank(
         rows
-          .filter((user) => events.state(user.uid) !== "offline")
+          .filter((user) => user.uid !== uid && events.state(user.uid) !== "offline")
           .map((user) => ({
             ...user,
             label: user.name || anonymous.replace("{id}", user.id.slice(0, 8)),
@@ -388,12 +382,12 @@ export const suggest = async (query = "", lang = "ko") => {
 
 async function notify(id) {
   if (!push.enabled) return;
-  const row = await get(`${select} WHERE chatting.id = ?`, [id]);
+  const row = await db.get(`${select} WHERE chatting.id = ?`, [id]);
 
   if (!row || row.deleted || row.system || row.blocked) return;
   const ids = mentions.ids(row.text);
 
-  const recipients = await all(
+  const recipients = await db.all(
     `SELECT uid, id, ip, lang, settings FROM user WHERE
       (id IN (${ids.length ? ids.map(() => "?").join(",") : "NULL"})
         OR json_extract(settings, '$.chat') = 1)
@@ -405,29 +399,22 @@ async function notify(id) {
 
   await Promise.allSettled(
     recipients.map(async (user) => {
-      if (
-        !settings.allows(
-          settings.read(user.settings),
-          ids.includes(user.id),
-          true
-        )
-      )
-        return;
+      if (!settings.allows(settings.read(user.settings), ids.includes(user.id), true)) return;
+
       if (events.viewing(user.uid)) return;
+
       await viewer(user.uid, user.ip);
-      const rows = await all(
+
+      const rows = await db.all(
         "SELECT endpoint, data FROM web WHERE uid = ? AND active = 1 AND connected = 1",
         [user.uid]
       );
 
-      const anonymous =
-        (locale(user.lang) || locale("ko"))?.["profile.anonymous"] || "{id}";
+      const anonymous = (locale(user.lang) || locale("ko"))?.["profile.anonymous"] || "{id}";
 
       await push.send(rows, {
         title:
-          row.google && row.name
-            ? row.name
-            : anonymous.replace("{id}", row.public.slice(0, 8)),
+          row.google && row.name ? row.name : anonymous.replace("{id}", row.public.slice(0, 8)),
         body: mentions.plain(row.text).slice(0, 180),
         url: `/?message=${id}`,
         tag: `mention:${id}`
@@ -444,17 +431,52 @@ const removed = (id) =>
       return { id };
     }
 
-    const row = await get(`${select} WHERE chatting.id = ?`, [id]);
+    const row = await db.get(`${select} WHERE chatting.id = ?`, [id]);
 
     return row ? { id, message: message(row, user) } : { id };
   });
+
+export const restore = async (user, id) => {
+  if (!rules.validId(id)) fail(400);
+
+  if (user.role !== role.root) fail(403);
+  const row = await db.transaction(async () => {
+    const target = await db.get("SELECT deleted FROM chatting WHERE id = ? AND system IS NULL", [
+      id
+    ]);
+
+    if (!target) fail(404);
+
+    if (!target.deleted) fail(409);
+    const result = await db.run(
+      `UPDATE chatting SET deleted = NULL, deleted_by = NULL
+       WHERE id = ? AND deleted IS NOT NULL AND system IS NULL
+       AND EXISTS (SELECT 1 FROM user WHERE uid = ? AND role = ?
+         AND deletion IS NULL AND erased = 0)`,
+      [id, user.uid, role.root]
+    );
+
+    if (!result.changes) fail(403);
+
+    return db.get(`${select} WHERE chatting.id = ?`, [id]);
+  });
+
+  await events.publish("chatting-restore", async (client) => {
+    const recipient = await viewer(client.uid, client.ip, client.development);
+    const current = await db.get(`${select} WHERE chatting.id = ? AND ${visible(recipient)}`, [id]);
+
+    return current ? message(current, recipient) : null;
+  });
+
+  return message(row, user);
+};
 
 export const remove = async (viewer, id) => {
   if (!rules.validId(id)) {
     fail(400);
   }
 
-  const target = await get(
+  const target = await db.get(
     `SELECT chatting.uid, chatting.deleted, user.role
       FROM chatting
       LEFT JOIN user ON user.uid = chatting.uid
@@ -472,7 +494,7 @@ export const remove = async (viewer, id) => {
   }
 
   if (!target.deleted) {
-    await run(
+    await db.run(
       `UPDATE chatting
         SET deleted = datetime('now', '+9 hours'),
             deleted_by = ?

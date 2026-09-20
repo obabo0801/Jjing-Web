@@ -22,12 +22,10 @@ export function scrollable(node) {
     if (item instanceof HTMLElement && !item.hidden) {
       const style = getComputedStyle(item);
       const x =
-        item.scrollWidth > item.clientWidth + 1 &&
-        ["auto", "scroll"].includes(style.overflowX);
+        item.scrollWidth > item.clientWidth + 1 && ["auto", "scroll"].includes(style.overflowX);
 
       const y =
-        item.scrollHeight > item.clientHeight + 1 &&
-        ["auto", "scroll"].includes(style.overflowY);
+        item.scrollHeight > item.clientHeight + 1 && ["auto", "scroll"].includes(style.overflowY);
 
       if (x || y) {
         return item;
@@ -61,10 +59,7 @@ export default function scroll() {
   };
 
   if (dom.scroller) {
-    previous.set(dom.scroller, {
-      top: dom.scroller.scrollTop,
-      edge: bound(dom.scroller)
-    });
+    previous.set(dom.scroller, { top: dom.scroller.scrollTop, edge: bound(dom.scroller) });
   }
 
   dom.on(
@@ -75,8 +70,7 @@ export default function scroll() {
 
       if (
         !(target instanceof HTMLElement) ||
-        (target !== dom.scroller &&
-          (!dom.has("wearable") || !target.closest("dialog[open]")))
+        (target !== dom.scroller && (!dom.has("wearable") || !target.closest("dialog[open]")))
       ) {
         return;
       }
@@ -84,12 +78,7 @@ export default function scroll() {
       const position = bound(target);
       const last = previous.get(target) ?? { top: 0, edge: "top" };
 
-      if (
-        !paused &&
-        position &&
-        position !== last.edge &&
-        target.scrollTop !== last.top
-      ) {
+      if (!paused && position && position !== last.edge && target.scrollTop !== last.top) {
         vibrate.play("touch");
       }
 

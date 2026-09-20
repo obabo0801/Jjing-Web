@@ -10,17 +10,15 @@ import * as report from "#service/report";
 const router = Router();
 
 const allowed = async (req) => {
-  const user = await viewer(
-    identity(req),
-    address(req),
-    req.app.get("env") === "development"
-  );
+  const user = await viewer(identity(req), address(req), req.app.get("env") === "development");
 
   if (!role.staff(user.role)) return { status: 403 };
   const target = await resolve(req.params.id);
 
   if (!target) return { status: 404 };
+
   if (!role.manages(user, target)) return { status: 403 };
+
   return { user, target };
 };
 
@@ -33,8 +31,7 @@ router.get("/:id/history/:type", async (req, res, next) => {
     const { user, target } = access;
     const { type } = req.params;
 
-    if (!["chatting", "block", "sanction", "report"].includes(type))
-      return res.status(404).end();
+    if (!["chatting", "block", "sanction", "report"].includes(type)) return res.status(404).end();
     const result =
       type === "report"
         ? await report.list(user, req.query, target.uid)
@@ -45,9 +42,11 @@ router.get("/:id/history/:type", async (req, res, next) => {
     const fresh = await allowed(req);
 
     if (fresh.status) return res.status(fresh.status).end();
+
     res.json(result);
   } catch (error) {
     if (error.status) return res.status(error.status).end();
+
     next(error);
   }
 });

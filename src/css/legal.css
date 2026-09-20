@@ -1,10 +1,17 @@
+@counter-style legal {
+  system: fixed;
+  symbols: "①" "②" "③" "④" "⑤" "⑥" "⑦" "⑧" "⑨" "⑩";
+  suffix: " ";
+}
+
 .legal {
   display: grid;
-  gap: 24px;
+  gap: 1.5rem;
   width: min(100%, 52rem);
   margin-inline: auto;
-  padding: 32px 20px;
-  color: var(--text);
+  padding: 2rem 1.25rem;
+  color: var(--mute);
+  font-size: 1rem;
   line-height: 1.8;
   word-break: keep-all;
   overflow-wrap: anywhere;
@@ -19,33 +26,77 @@
   white-space: pre-wrap;
 }
 
+.legal :is(ol, ul) {
+  display: grid;
+  gap: 0.5rem;
+  margin: 0;
+  padding-inline-start: 1.75rem;
+}
+
+.legal ol {
+  list-style-type: legal;
+}
+
+.legal ul {
+  list-style-type: disc;
+}
+
+.legal li::marker {
+  font-weight: 600;
+}
+
+.legal table {
+  table-layout: auto;
+  color: var(--mute);
+}
+
+.legal th {
+  color: var(--text);
+  overflow-wrap: normal;
+}
+
+.legal td {
+  overflow-wrap: anywhere;
+}
+
 .legal h1 {
-  font-size: 1.75rem;
+  font-size: var(--heading-size, 1.75rem);
 }
 
 .legal h2 {
-  font-size: 1.15rem;
+  font-size: var(--heading-size, 1.25rem);
+}
+
+.legal :is(h1, h2),
+dialog:has(.legal) > .layer-head > .layer-title {
+  min-width: 0;
+  color: var(--text);
+  font-weight: 700;
+  line-height: 1.4;
+  white-space: nowrap;
+}
+
+dialog:has(.legal) > .layer-head > .layer-title {
+  font-size: var(--heading-size, 1.75rem);
 }
 
 .legal section {
   display: grid;
   min-width: 0;
-  gap: 12px;
+  gap: 0.75rem;
 }
 
 .legal-contact {
-  display: grid;
-  gap: 0;
-}
-
-.legal-contact p {
-  white-space: normal;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.5rem;
 }
 
 .legal nav {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px 16px;
+  gap: 0.5rem 1rem;
 }
 
 .legal a {
@@ -63,14 +114,10 @@
 }
 
 .legal [id] {
-  scroll-margin-block-start: 16px;
-}
-
-.legal section:target > h2 {
-  color: var(--focus);
+  scroll-margin-block-start: 1rem;
 }
 
 :is(.small, .wearable) .legal {
-  gap: 16px;
-  padding: 16px 8px;
+  gap: 1rem;
+  padding: 1rem 0.5rem;
 }

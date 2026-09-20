@@ -93,6 +93,7 @@ export const meter = (stream, callback) => {
 
   const check = () => {
     if (stopped) return;
+
     analyser.getByteTimeDomainData(data);
 
     let power = 0;
@@ -115,6 +116,7 @@ export const meter = (stream, callback) => {
 
   return () => {
     if (stopped) return;
+
     stopped = true;
     cancelAnimationFrame(frame);
     source.disconnect();
@@ -127,7 +129,9 @@ export const silence = (stream, signal, stop) =>
 
     if (!audio) {
       let offSignal = () => {};
+
       let offStop = () => {};
+
       let timer;
       let settled = false;
 
@@ -148,7 +152,7 @@ export const silence = (stream, signal, stop) =>
 
       offStop = dom.on(stop, "abort", () => done(false), { once: true });
 
-      if (stop?.aborted) {
+      if (signal?.aborted || stop?.aborted) {
         done();
       }
 
@@ -167,8 +171,10 @@ export const silence = (stream, signal, stop) =>
     let spoken = false;
     let quiet = start;
     let frame;
+    let timer;
     let stopped = false;
     let offSignal = () => {};
+
     let offStop = () => {};
 
     const done = () => {
@@ -178,6 +184,7 @@ export const silence = (stream, signal, stop) =>
 
       stopped = true;
       cancelAnimationFrame(frame);
+      clearTimeout(timer);
       offSignal();
       offStop();
       source.disconnect();
@@ -187,8 +194,9 @@ export const silence = (stream, signal, stop) =>
     offSignal = dom.on(signal, "abort", done, { once: true });
     offStop = dom.on(stop, "abort", done, { once: true });
 
-    if (stop?.aborted) {
+    if (signal?.aborted || stop?.aborted) {
       done();
+
       return;
     }
 
@@ -218,6 +226,7 @@ export const silence = (stream, signal, stop) =>
         time - start >= 60_000
       ) {
         done();
+
         return;
       }
 
@@ -225,4 +234,5 @@ export const silence = (stream, signal, stop) =>
     };
 
     frame = requestAnimationFrame(check);
+    timer = setTimeout(done, 60_000);
   });

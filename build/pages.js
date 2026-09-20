@@ -8,6 +8,7 @@ export default {
 
       if (["GET", "HEAD"].includes(req.method) && name)
         req.url = name === "index" ? "/index.html" : `/src/${name}.html`;
+
       next();
     });
   }

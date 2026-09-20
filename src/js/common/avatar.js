@@ -28,10 +28,7 @@ export default function avatar(source = "", tag = "div") {
       return;
     }
 
-    const ratio =
-      adjustment?.shape === "original"
-        ? adjustment.width / adjustment.height
-        : 1;
+    const ratio = adjustment?.shape === "original" ? adjustment.width / adjustment.height : 1;
 
     root.toggleAttribute("data-original", adjustment?.shape === "original");
     css.set(root, {
@@ -43,6 +40,7 @@ export default function avatar(source = "", tag = "div") {
       "--avatar-angle": `${Number(adjustment?.angle) || 0}deg`,
       "--avatar-scale": Number(adjustment?.previewScale) || 1
     });
+
     image.hidden = false;
   };
 
@@ -54,6 +52,7 @@ export default function avatar(source = "", tag = "div") {
       dom.remove(image, "src");
       dom.remove(root, "data-image");
       css.remove(root);
+
       return;
     }
 

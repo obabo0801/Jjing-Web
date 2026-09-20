@@ -16,6 +16,11 @@ import avatar from "#common/avatar";
 import profile from "#common/profile/view";
 import reports from "#common/report/inbox";
 import label from "#common/profile/label";
+import toolbar from "#common/toolbar";
+import format from "#common/format";
+import file from "./file.js";
+import voice from "./chatting/voice.js";
+import { stop } from "./voice.js";
 import "../../css/common/admin.css";
 
 const opening = once();
@@ -28,9 +33,7 @@ const keys = [
   "url",
   "send",
   "users",
-  "status",
   "database",
-  "readonly",
   "search",
   "filter",
   "all",
@@ -39,20 +42,41 @@ const keys = [
   "details",
   "empty",
   "error",
-  "server",
-  "uptime",
-  "push",
-  "fcm",
-  "ready",
-  "unavailable",
-  "configured",
-  "disabled",
   "sent",
   "confirm",
+  "operations",
+  "data",
+  "files",
+  "upload",
+  "tts",
+  "stt",
+  "service",
+  "log",
+  "evidence",
+  "filename",
+  "uploader",
+  "requester",
+  "related",
+  "profileImage",
+  "audio",
+  "original",
+  "resizing",
+  "cache",
+  "size",
+  "time",
+  "text",
+  "preview",
+  "folder",
+  "table",
+  "fields",
+  "condition",
   "refresh"
 ];
 
 i18n.preload(
+  "menu.devices",
+  "assets.unknown",
+  "chatting.voice",
   ...keys.map((key) => `admin.${key}`),
   "report.inbox",
   "dialog.cancel",
@@ -62,20 +86,64 @@ i18n.preload(
 const node = (tag, className = "", key = "") => {
   const element = dom.create(tag);
 
-  if (tag === "button") dom.set(element, "data-response", "");
   element.className = className;
+
   if (key) {
     element.textContent = i18n.message(key);
     dom.set(element, "data-i18n", key);
   }
+
+  if (tag === "button") {
+    dom.set(element, "data-response", "");
+  }
+
   return element;
 };
+
 const fail = () => toast({ text: "admin.error", type: "error" });
 const group = (...rows) => {
   const root = node("div", "group");
 
-  root.append(...rows.filter(Boolean));
+  for (const row of rows.filter(Boolean)) {
+    if (row.classList.contains("group-item")) root.append(row);
+    else {
+      const item = node("div", "group-item");
+
+      item.append(row);
+      root.append(item);
+    }
+  }
+
   return root;
+};
+
+const grid = (...rows) => {
+  const root = group(...rows);
+
+  root.classList.add("admin-grid");
+  dom.set(root, "data-view", "grid");
+  return root;
+};
+
+const source = (kind, item) =>
+  `/api${path}/files/${kind}/content?${new URLSearchParams({ file: item.file })}`;
+
+const thumbnail = (row, url) => {
+  const button = dom.query("button", row);
+  const image = node("img", "admin-thumbnail");
+
+  image.alt = "";
+  image.draggable = false;
+  image.loading = "lazy";
+  dom.remove(button, "data-icon");
+  dom.on(image, "error", () => {
+    image.remove();
+    dom.set(button, "data-icon", "image");
+    mount(button);
+  });
+
+  image.src = url;
+  button.prepend(image);
 };
 
 const entry = (key, icon, run) => {
@@ -84,355 +152,653 @@ const entry = (key, icon, run) => {
 
   button.type = "button";
   dom.set(button, "data-icon", icon);
-  button.append(node("span", "group-name", key));
+  dom.set(button, "data-color", "");
+  button.append(node("span", "name", key));
   dom.on(button, "click", run);
   row.append(button);
+
   return row;
 };
 
 const open = (title, content, options = {}) =>
-  drawer({
-    title,
-    content,
-    back: true,
-    side: "right",
-    direction: "→",
-    ...options
-  });
+  drawer({ title, content, back: true, side: "right", direction: "→", ...options });
 
-const field = (key, type = "text") => {
-  const root = node("label", "label");
+const field = (key, type = "text", compact = false) => {
   const control = node("div", "input");
   const input = node(type === "textarea" ? "textarea" : "input");
 
   if (type !== "textarea") input.type = type;
+
+  input.name = key.split(".").at(-1);
+
   dom.set(input, "data-control", "");
   control.append(input);
-  root.append(node("span", "label-key", key), control);
+
+  const root = compact ? control : node("label", "label");
+
+  if (compact) {
+    input.placeholder = i18n.message(key);
+    dom.set(input, "data-i18n-placeholder", key);
+  } else {
+    root.append(node("span", "label-key", key), control);
+  }
+
   return { root, input };
 };
 
 async function notify() {
-  const root = node("div", "profile");
+  const response = await api(`${path}/recipients`);
+
+  if (!response.ok) return fail();
+  const selected = new Set(response.data.map((item) => item.id));
+  const root = node("div", "profile admin admin-notify");
   const fields = Object.fromEntries(
-    ["title", "body", "image", "url"].map((key) => [
+    ["title", "body", "url"].map((key) => [
       key,
-      field(
-        `admin.${key}`,
-        key === "body" ? "textarea" : key === "image" ? "file" : "text"
-      )
+      field(`admin.${key}`, key === "body" ? "textarea" : "text", true)
     ])
   );
 
   fields.title.input.required = true;
   fields.title.input.maxLength = 100;
+  fields.body.input.required = true;
   fields.body.input.maxLength = 500;
   fields.url.input.value = "/";
-  fields.image.input.accept = "image/png,image/jpeg,image/webp";
-  root.append(...Object.values(fields).map((item) => item.root));
-  return open("admin.heading", root, {
-    actions: [
-      {
-        text: "admin.send",
-        submit: true,
-        close: false,
-        run: async ({ button }) => {
-          if (
-            !(await dialog({
-              title: "admin.confirm",
-              direction: "→",
-              actions: [
-                { text: "dialog.cancel", value: false },
-                { text: "dialog.confirm", value: true }
-              ]
-            }))
-          )
-            return;
-          button.disabled = true;
-          const loading = progress({ type: "circular", value: 25 });
+  fields.image = file({ accept: "image/png,image/jpeg,image/webp", compact: true });
 
-          root.append(loading.element);
-          try {
-            let image = "";
+  const composer = node("div", "admin-composer");
+  const actions = node("div", "input-actions");
+  const microphone = node("button");
 
-            const file = fields.image.input.files[0];
+  microphone.type = "button";
+  dom.set(microphone, "data-icon", "voice");
+  dom.set(microphone, "data-circle", "");
+  dom.set(microphone, "data-tooltip", "chatting.voice");
+  dom.on(microphone, "click", () => voice(fields.body.input, microphone));
+  actions.append(fields.image.button, microphone);
+  fields.body.input.rows = 4;
+  fields.body.root.classList.add("input-compose");
+  fields.body.root.append(actions);
+  composer.append(fields.image.root, fields.body.root);
 
-            if (file) {
-              const result = await upload(`${path}/image`, file);
+  const rows = response.data.map((user) => {
+    const row = node("div", "toggle admin-recipient");
+    const head = node("div", "toggle-head");
+    const button = node("button", "toggle-button");
+    const gear = node("button", "toggle-switch toggle-action");
+    const picture = node("span", "avatar-wrap");
+    const name = node("span", "name");
 
-              if (!result.ok) return fail();
-              image = result.data.image;
-            }
-            const result = await api(path, {
-              method: "POST",
-              data: {
-                title: fields.title.input.value,
-                body: fields.body.input.value,
-                url: fields.url.input.value,
-                image
-              }
-            });
+    picture.append(avatar(user.avatar, "span").root);
+    name.textContent = names.label(user);
+    names.mark(name, user.verified);
+    button.type = gear.type = "button";
+    button.append(picture, name);
+    dom.set(row, "data-active", "");
+    dom.set(gear, "data-icon", "info");
+    dom.on(button, "click", () => {
+      if (selected.has(user.id)) selected.delete(user.id);
+      else selected.add(user.id);
+
+      row.toggleAttribute("data-active", selected.has(user.id));
+      sync();
+    });
+
+    dom.on(gear, "click", () => profile(gear, root, { id: user.id, context: "chatting" }));
+    head.append(button, gear);
+    row.append(head);
+    return row;
+  });
+
+  const writing = group(fields.title.root, composer, fields.url.root);
+
+  writing.classList.add("admin-writing");
+  root.append(writing, section("menu.devices", ...rows));
+
+  if (!rows.length) root.append(node("p", "online-empty", "admin.empty"));
+
+  let sending = false;
+
+  const controls = toolbar([
+    {
+      text: "admin.send",
+      icon: "send",
+      color: true,
+      run: async (button) => {
+        if (!valid() || sending) return;
+        for (const key of ["title", "body", "url"]) {
+          if (!fields[key].input.reportValidity()) return;
+        }
+        const data = {
+          title: fields.title.input.value,
+          body: fields.body.input.value,
+          url: fields.url.input.value,
+          recipients: [...selected],
+          image: ""
+        };
+        const file = fields.image.input.files[0];
+
+        if (
+          !(await dialog({
+            title: "admin.heading",
+            content: i18n.message("admin.confirm").replace("{count}", data.recipients.length),
+            direction: "→",
+            actions: [
+              { text: "dialog.cancel", icon: "close", value: false },
+              { text: "dialog.confirm", icon: "check", value: true }
+            ]
+          }))
+        )
+          return;
+
+        sending = true;
+        button.disabled = true;
+
+        const loading = progress({ type: "circular", value: 25 });
+
+        root.append(loading.element);
+        try {
+          if (file) {
+            const result = await upload(`${path}/image`, file);
 
             if (!result.ok) return fail();
-            toast({
-              type: result.data.failed ? "info" : "success",
-              text: i18n
-                .message("admin.sent")
-                .replace("{sent}", result.data.sent)
-                .replace("{failed}", result.data.failed)
-            });
-            fields.image.input.value = "";
-          } finally {
-            loading.destroy();
-            button.disabled = false;
+
+            data.image = result.data.image;
           }
+
+          const result = await api(path, { method: "POST", data });
+
+          if (!result.ok) return fail();
+
+          toast({
+            type: result.data.failed ? "info" : "success",
+            text: i18n
+              .message("admin.sent")
+              .replace("{sent}", result.data.sent)
+              .replace("{failed}", result.data.failed)
+          });
+
+          if (fields.image.input.files[0] === file) fields.image.reset();
+        } finally {
+          loading.destroy();
+          sending = false;
+          sync();
         }
       }
-    ]
+    }
+  ]);
+
+  function valid() {
+    return (
+      selected.size > 0 &&
+      fields.title.input.value.trim() !== "" &&
+      fields.body.input.value.trim() !== ""
+    );
+  }
+
+  function sync() {
+    dom.query("button", controls).disabled = sending || !valid();
+  }
+
+  dom.on(root, "input", sync);
+  sync();
+  return open("admin.heading", root, {
+    toolbar: controls,
+    closing: () => {
+      fields.body.input.disabled = true;
+      if (microphone.hasAttribute("data-recording")) stop();
+
+      fields.image.destroy();
+    }
   });
 }
 
-async function browse(table = "") {
-  const root = node("div", "profile online");
-  const search = field("admin.search", "search");
-  const rows = node("div");
-  const controls = node("nav", "admin-pages");
+function tools(load, filtered = false) {
+  const values = { q: "", field: "", value: "", page: 0 };
+
+  let columns = [];
+  let closed = false;
+
+  const edit = async (button, condition = false) => {
+    const content = node("div", "profile");
+    const search = field(condition ? "admin.filter" : "admin.search", "search");
+    const select = node("select");
+
+    select.name = "field";
+
+    search.input.maxLength = 200;
+    search.input.value = condition ? values.value : values.q;
+    if (condition) {
+      const choice = node("div", "select");
+      const label = node("label", "label");
+      const all = node("option", "", "admin.all");
+
+      all.value = "";
+      select.append(all);
+      for (const column of columns) {
+        const option = node("option");
+
+        option.value = option.textContent = column;
+        select.append(option);
+      }
+      select.value = values.field;
+      choice.append(select);
+      label.append(node("span", "label-key", "admin.fields"), choice);
+      content.append(label);
+    }
+
+    content.append(search.root);
+
+    const result = await dialog({
+      title: condition ? "admin.condition" : "admin.search",
+      content,
+      actions: [
+        { text: "dialog.cancel", icon: "close", value: false },
+        { text: "image.reset", icon: "reload", value: "reset" },
+        { text: "dialog.confirm", icon: "check", value: true, submit: true }
+      ]
+    });
+
+    if (closed || (result !== true && result !== "reset")) return;
+
+    if (condition) {
+      values.field = result === "reset" ? "" : select.value;
+      values.value = values.field ? search.input.value.trim() : "";
+    } else values.q = result === "reset" ? "" : search.input.value.trim();
+
+    button.toggleAttribute("data-selected", Boolean(condition ? values.field : values.q));
+    values.page = 0;
+    await load();
+  };
+
+  const root = toolbar([
+    { icon: "search", text: "admin.search", color: true, run: (button) => edit(button) },
+    ...(filtered
+      ? [
+          {
+            icon: "setting",
+            text: "admin.condition",
+            color: true,
+            run: (button) => edit(button, true)
+          }
+        ]
+      : []),
+    { icon: "reload", text: "admin.refresh", color: true, run: () => load() },
+    {
+      icon: "arrow",
+      text: "admin.previous",
+      disabled: true,
+      run: () => {
+        values.page--;
+        return load();
+      }
+    },
+    {
+      icon: "arrow",
+      text: "admin.next",
+      disabled: true,
+      run: () => {
+        values.page++;
+        return load();
+      }
+    }
+  ]);
+  const buttons = [...root.children];
+  const previous = buttons.at(-2);
+  const next = buttons.at(-1);
   const page = node("output");
 
-  let index = 0;
+  root.classList.add("admin-tools");
+  dom.set(previous, "data-angle", "left");
+  dom.set(page, "data-page", "");
+  root.insertBefore(page, next);
+  page.textContent = "1 / 1";
+  return {
+    root,
+    values,
+    busy: () => {
+      previous.disabled = next.disabled = true;
+    },
+    update: (data) => {
+      columns = data.columns || [];
+      previous.disabled = values.page === 0;
+      next.disabled = (values.page + 1) * 30 >= data.total;
+      page.textContent = `${values.page + 1} / ${Math.max(1, Math.ceil(data.total / 30))}`;
+    },
+    close: () => {
+      closed = true;
+    }
+  };
+}
 
-  const previous = entry("admin.previous", "arrow", () => {
-    index--;
-    void load();
-  });
-
-  const next = entry("admin.next", "arrow", () => {
-    index++;
-    void load();
-  });
-  const previousButton = dom.query("button", previous);
-  const nextButton = dom.query("button", next);
-
-  dom.set(previousButton, "data-angle", "left");
-  nextButton.classList.add("icon-right");
-  previousButton.disabled = nextButton.disabled = true;
-  const filter = node("select");
-  const match = field("admin.filter");
-  const choice = node("div", "select");
+async function browse(table = "", scope = {}) {
+  const root = node("div", "profile online admin");
+  const rows = node("div");
   const loading = progress({ type: "circular", value: 25, show: false });
+  const controls = tools(load, Boolean(table));
 
-  choice.append(filter);
-  root.append(search.root);
-  if (table) root.append(node("p", "", "admin.readonly"), choice, match.root);
-  controls.append(previousButton, page, nextButton);
-  root.append(loading.element, rows, controls);
   let revision = 0;
   let closed = false;
   let request;
-  let timer;
+
+  if (table) root.append(label("admin.table", table));
+
+  root.append(loading.element, rows);
 
   async function load() {
     const version = ++revision;
 
     request?.abort();
     request = new AbortController();
+    controls.busy();
     loading.element.hidden = false;
-    previousButton.disabled = nextButton.disabled = true;
-    const params = new URLSearchParams({
-      q: search.input.value,
-      page: String(index)
+
+    const params = new URLSearchParams({ ...scope, ...controls.values });
+    const response = await api(`${path}/${table ? `database/${table}` : "users"}?${params}`, {
+      signal: request.signal
     });
 
-    if (table && filter.value) {
-      params.set("field", filter.value);
-      params.set("value", match.input.value);
-    }
-    const response = await api(
-      `${path}/${table ? `database/${table}` : "users"}?${params}`,
-      { signal: request.signal }
-    );
-
     if (closed || version !== revision) return;
+
     loading.element.hidden = true;
     rows.replaceChildren();
     if (!response.ok) return fail();
     const data = response.data;
 
-    previousButton.disabled = index === 0;
-    nextButton.disabled = (index + 1) * 30 >= data.total;
-    page.textContent = `${index + 1} / ${Math.max(1, Math.ceil(data.total / 30))}`;
-    if (table && !filter.children.length) {
-      const all = node("option", "", "admin.all");
+    controls.update(data);
+    if (!data.items.length) rows.append(node("p", "online-empty", "admin.empty"));
+    else
+      rows.append(
+        (table ? grid : group)(
+          ...data.items.map((item, index) => {
+            if (table) {
+              const row = entry("", "storage", () => details(item, data.columns));
+              const key = ["name", "title", "text", "id", "file", ...data.columns].find(
+                (key) => item[key] != null && item[key] !== ""
+              );
 
-      all.value = "";
-      filter.append(all);
-      for (const key of data.columns) {
-        const option = node("option");
+              dom.query(".name", row).textContent = String(item[key] ?? index + 1);
 
-        option.value = option.textContent = key;
-        filter.append(option);
-      }
-    }
-    if (!data.items.length)
-      rows.append(node("p", "online-empty", "admin.empty"));
-    else if (table) {
-      const wrap = node("div", "table-wrap");
-      const grid = node("table", "admin-table");
-      const head = node("thead");
-      const tr = node("tr");
-      const body = node("tbody");
+              const image = [item.preview, item.image, item.avatar, item.url].find(
+                (value) =>
+                  typeof value === "string" &&
+                  /^\/(?:[a-f0-9]{8}|upload\/(?:images|users)\/(?:original|resizing))\/[a-f0-9]{32}\.(?:png|jpg|jpeg|gif|webp)$/.test(
+                    value
+                  )
+              );
 
-      for (const key of ["", ...data.columns]) {
-        const th = node("th");
+              if (image) thumbnail(row, image);
+              return row;
+            }
+            const row = entry("", "", () =>
+              profile(dom.query("button", row), root, { id: item.id, context: "chatting" })
+            );
+            const button = dom.query("button", row);
+            const picture = node("span", "avatar-wrap");
+            const name = node("span", "name");
 
-        th.textContent = key || i18n.message("admin.details");
-        tr.append(th);
-      }
-      head.append(tr);
-      for (const item of data.items) {
-        const row = node("tr");
-        const cell = node("td");
-        const button = node("button", "", "admin.details");
-
-        button.type = "button";
-        dom.on(button, "click", () => {
-          const details = group(
-            ...data.columns.map((key) => {
-              const element = label("admin.details", item[key]);
-
-              if (element) {
-                const caption = dom.query(".label-key", element);
-
-                dom.remove(caption, "data-i18n");
-                caption.textContent = key;
-              }
-              return element;
-            })
-          );
-
-          void open("admin.details", details);
-        });
-        cell.append(button);
-        row.append(cell);
-        for (const key of data.columns) {
-          const td = node("td");
-
-          td.textContent = String(item[key] ?? "").slice(0, 160);
-          row.append(td);
-        }
-        body.append(row);
-      }
-      grid.append(head, body);
-      wrap.append(grid);
-      rows.append(wrap);
-    } else {
-      const list = group(
-        ...data.items.map((user) => {
-          const row = entry("", "", () =>
-            profile(dom.query("button", row), root, {
-              id: user.id,
-              context: "chatting"
-            })
-          );
-          const button = dom.query("button", row);
-          const picture = node("span", "avatar-wrap");
-          const name = node("span", "online-name");
-
-          dom.remove(button, "data-icon");
-          picture.append(avatar(user.avatar, "span").root);
-          name.textContent = names.label(user);
-          names.mark(name, user.verified);
-          button.replaceChildren(picture, name);
-          return row;
-        })
+            dom.remove(button, "data-icon");
+            picture.append(avatar(item.avatar, "span").root);
+            name.textContent = names.label(item);
+            names.mark(name, item.verified);
+            button.replaceChildren(picture, name);
+            return row;
+          })
+        )
       );
 
-      rows.append(list);
-    }
     mount(root);
   }
-  const refresh = () => {
-    index = 0;
-    revision++;
-    request?.abort();
-    clearTimeout(timer);
-    timer = setTimeout(load, 200);
-  };
-
-  dom.on(search.input, "input", refresh);
-  dom.on(match.input, "input", refresh);
-  dom.on(filter, "change", refresh);
   try {
     return await open(table ? "admin.database" : "admin.users", root, {
-      ready: load
+      ready: load,
+      toolbar: controls.root
     });
   } finally {
     closed = true;
+    controls.close();
     request?.abort();
-    clearTimeout(timer);
     loading.destroy();
   }
 }
 
-async function database() {
-  const response = await api(`${path}/database`);
+function details(item, columns) {
+  const dates = new Set([
+    "time",
+    "date",
+    "registered",
+    "updated",
+    "read",
+    "deleted",
+    "left",
+    "closed",
+    "assigned",
+    "departed",
+    "renamed",
+    "muted",
+    "kicked",
+    "until",
+    "expires",
+    "deletion",
+    "recovery_until"
+  ]);
+
+  const content = group(
+    ...columns.map((key) => {
+      const value = item[key];
+      const date =
+        dates.has(key) &&
+        ((typeof value === "number" && value > 0) ||
+          (typeof value === "string" && /^\d{4}-\d{2}-\d{2}(?:[ T]|$)/.test(value)));
+
+      const row = label("admin.details", value === "" || value == null ? "—" : value, {
+        date: date ? "seconds" : false
+      });
+      const caption = dom.query(".label-key", row);
+
+      dom.remove(caption, "data-i18n");
+      caption.textContent = key;
+      return row;
+    })
+  );
+
+  content.classList.add("admin");
+  return open("admin.details", content);
+}
+
+function section(key, ...rows) {
+  const root = node("section", "group-section");
+
+  root.append(node("h3", "group-title", key), group(...rows));
+  return root;
+}
+
+async function database(scope = {}) {
+  const response = await api(`${path}/database?${new URLSearchParams(scope)}`);
 
   if (!response.ok) return fail();
-  const root = node("div", "profile");
+  const root = node("div", "profile admin");
 
-  root.append(node("p", "", "admin.readonly"));
+  if (!response.data.length) root.append(node("p", "online-empty", "admin.empty"));
+
   root.append(
-    group(
-      ...response.data.map((table) => {
-        const row = entry("", "storage", () => browse(table));
+    grid(
+      ...response.data.map((item) => {
+        const row = entry(item.key || "", "storage", () =>
+          item.table ? browse(item.table, scope) : database(item.scope)
+        );
 
-        dom.query(".group-name", row).textContent = table;
+        if (!item.key) dom.query(".name", row).textContent = item.name || item.table;
         return row;
       })
     )
   );
+
   return open("admin.database", root);
 }
 
-async function status() {
-  const root = node("div", "profile");
-  const load = async () => {
-    const response = await api(`${path}/status`);
+function people(root, key, users = []) {
+  const rows = users
+    .filter((user) => user.id)
+    .map((user) => {
+      const row = node("div", "group-item");
+      const button = node("button");
+      const picture = node("span", "avatar-wrap");
+      const name = node("span", "online-name");
 
+      button.type = "button";
+      picture.append(avatar(user.avatar, "span").root);
+      name.textContent = names.label(user);
+      names.mark(name, user.verified);
+      button.append(picture, name);
+      dom.on(button, "click", () => profile(button, root, { id: user.id, context: "chatting" }));
+      row.append(button);
+      return row;
+    });
+  const content = section(key, ...rows);
+
+  content.hidden = !rows.length;
+  content.classList.add("online");
+  return content;
+}
+
+const title = (kind, item) => {
+  if (item.type === "folder") {
+    const folders = {
+      users: "profileImage",
+      images: "image",
+      audio: "audio",
+      original: "original",
+      resizing: "resizing",
+      cache: "cache"
+    };
+    const key = Object.hasOwn(folders, item.name) ? folders[item.name] : "";
+
+    return key ? i18n.message(`admin.${key}`) : item.name;
+  }
+
+  if (item.text) return item.text;
+  const key =
+    item.type === "audio"
+      ? "audio"
+      : kind === "upload" && item.file.startsWith("users/")
+        ? "profileImage"
+        : "image";
+
+  return `${i18n.message(`admin.${key}`)}\n${item.name.slice(0, 8)}`;
+};
+
+async function preview(kind, item) {
+  const response = await api(
+    `${path}/files/${kind}/details?${new URLSearchParams({ file: item.file })}`
+  );
+
+  if (!response.ok) return fail();
+
+  item = { ...item, ...response.data };
+
+  const root = node("div", "profile admin");
+  const media = node(item.type === "image" ? "img" : "audio", "admin-preview");
+
+  if (item.type === "image") {
+    media.alt = item.name;
+    media.draggable = false;
+  } else {
+    media.controls = true;
+    media.preload = "none";
+  }
+
+  media.src = source(kind, item);
+
+  const error = node("p", "", "admin.error");
+
+  error.hidden = true;
+  dom.on(media, "error", () => {
+    error.hidden = false;
+  });
+
+  const info = group(
+    label("admin.filename", item.file),
+    label("admin.size", format(item.size)),
+    label("admin.time", item.time, { date: true }),
+    label("admin.text", item.text)
+  );
+
+  root.append(media, error, info);
+  root.append(people(root, kind === "upload" ? "admin.uploader" : "admin.requester", item.users));
+  if (kind === "upload") root.append(people(root, "admin.related", item.related));
+
+  try {
+    return await open("admin.preview", root);
+  } finally {
+    if (item.type === "audio") media.pause();
+
+    media.removeAttribute("src");
+    if (item.type === "audio") media.load();
+  }
+}
+
+async function files(kind, folder = "") {
+  const root = node("div", "profile admin");
+  const rows = node("div");
+  const loading = progress({ type: "circular", value: 25, show: false });
+  const controls = tools(load);
+
+  let revision = 0;
+  let request;
+  let closed = false;
+
+  if (folder) root.append(label("admin.folder", folder));
+
+  root.append(loading.element, rows);
+
+  async function load() {
+    const version = ++revision;
+
+    request?.abort();
+    request = new AbortController();
+    controls.busy();
+    loading.element.hidden = false;
+
+    const params = new URLSearchParams({ folder, ...controls.values });
+    const response = await api(`${path}/files/${kind}?${params}`, { signal: request.signal });
+
+    if (closed || version !== revision) return;
+
+    loading.element.hidden = true;
+    rows.replaceChildren();
     if (!response.ok) return fail();
     const data = response.data;
 
-    root.replaceChildren(
-      group(
-        ...["server", "database", "push", "fcm"].map((key) =>
-          label(
-            `admin.${key}`,
-            i18n.message(
-              `admin.${
-                ["push", "fcm"].includes(key)
-                  ? data[key]
-                    ? "configured"
-                    : "disabled"
-                  : data[key]
-                    ? "ready"
-                    : "unavailable"
-              }`
-            )
-          )
-        ),
-        label(
-          "admin.uptime",
-          `${Math.floor(data.uptime / 3600)}:${String(Math.floor(data.uptime / 60) % 60).padStart(2, "0")}:${String(data.uptime % 60).padStart(2, "0")}`
-        )
-      )
-    );
-    mount(root);
-  };
+    controls.update(data);
+    if (!data.items.length) rows.append(node("p", "online-empty", "admin.empty"));
+    else
+      rows.append(
+        grid(
+          ...data.items.map((item) => {
+            const row = entry(
+              "",
+              item.type === "image" ? "image" : item.type === "audio" ? "voice" : "storage",
+              () => (item.type === "folder" ? files(kind, item.file) : preview(kind, item))
+            );
 
-  return open("admin.status", root, {
-    ready: load,
-    actions: [{ text: "admin.refresh", close: false, run: load }]
-  });
+            dom.query(".name", row).textContent = title(kind, item);
+            if (item.type === "image") thumbnail(row, source(kind, item));
+            return row;
+          })
+        )
+      );
+
+    mount(root);
+  }
+  try {
+    return await open(`admin.${kind}`, root, { ready: load, toolbar: controls.root });
+  } finally {
+    closed = true;
+    controls.close();
+    request?.abort();
+    loading.destroy();
+  }
 }
 
 export default function admin(anchor) {
@@ -440,19 +806,35 @@ export default function admin(anchor) {
     const response = await api(path);
 
     if (!response.ok) return fail();
-    const content = node("div", "profile");
+    const content = node("div", "profile admin");
 
+    content.classList.add("admin");
     content.append(
-      group(
+      section(
+        "admin.operations",
         entry("admin.heading", "notify-ring", notify),
-        entry("report.inbox", "flag", () => reports()),
-        entry("admin.users", "search", () => browse()),
-        entry("admin.status", "info", status),
-        response.data.database
-          ? entry("admin.database", "storage", database)
-          : null
+        entry("admin.users", "search", () => browse())
+      ),
+      section(
+        "report.inbox",
+        entry("report.inbox", "flag", () => reports())
       )
     );
+
+    if (response.data.database)
+      content.append(
+        section(
+          "admin.data",
+          entry("admin.database", "storage", () => database())
+        ),
+        section(
+          "admin.files",
+          entry("admin.upload", "image", () => files("upload")),
+          entry("admin.tts", "voice", () => files("tts")),
+          entry("admin.stt", "voice", () => files("stt"))
+        )
+      );
+
     return popover({
       title: "admin.panel",
       content,

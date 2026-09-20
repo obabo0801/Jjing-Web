@@ -1,6 +1,6 @@
 import * as dom from "#common/dom";
 import * as i18n from "#common/i18n";
-import * as emoji from "#common/emoji";
+import * as link from "#common/link";
 import label from "#common/profile/label";
 import media from "#common/chatting/media";
 import view from "#common/image/view";
@@ -38,6 +38,7 @@ const text = (tag, key, className = "") => {
   node.className = className;
   node.textContent = i18n.message(key);
   dom.set(node, "data-i18n", key);
+
   return node;
 };
 
@@ -54,6 +55,7 @@ const handler = (entry) => {
   dom.set(button, "data-response", "");
   dom.on(button, "click", () => location.assign(`/profile/${entry.handlerId}`));
   field.replaceWith(button);
+
   return row;
 };
 
@@ -62,6 +64,7 @@ const conversation = (entries, archived, target) => {
 
   root.className = "chatting history-conversation";
   dom.set(root, "data-chatting", "stream");
+
   let previous;
 
   for (const entry of entries) {
@@ -88,13 +91,11 @@ const conversation = (entries, archived, target) => {
         })
         .catch(() => {});
     }
+
     name.textContent =
       entry.name ||
-      (entry.id
-        ? i18n
-            .message("profile.anonymous")
-            .replace("{id}", entry.id.slice(0, 8))
-        : "");
+      (entry.id ? i18n.message("profile.anonymous").replace("{id}", entry.id.slice(0, 8)) : "");
+
     if (name.textContent) heading.append(name);
     const time = dom.create("time");
     const stamp = clock.stamp(entry.time);
@@ -105,21 +106,26 @@ const conversation = (entries, archived, target) => {
       time.dateTime = new Date(stamp).toISOString();
       time.title = clock.detail(stamp);
     }
+
     if (target && entry.url === target) {
       dom.set(article, "data-target", "");
     }
-    if (archived) body.textContent = entry.text || "";
-    else emoji.render(body, entry.text || "");
+
+    link.render(body, entry.text || "");
+
     const images = dom.create("div");
 
     images.className = "history-media";
     if (archived) {
+      media(images, { attachments: entry.attachments || [] });
       for (const item of entry.images || []) {
         if (!/^data:image\/webp;base64,/.test(item.image || "")) continue;
         const button = dom.create("button");
         const image = dom.create("img");
 
         button.type = "button";
+        dom.set(button, "data-response", "");
+
         image.src = item.image;
         image.alt = item.description || "";
         image.loading = "lazy";
@@ -139,14 +145,13 @@ const conversation = (entries, archived, target) => {
         images.append(audio);
       }
     }
-    if (
-      !body.textContent &&
-      !body.childElementCount &&
-      !images.childElementCount
-    )
-      continue;
+
+    if (!body.textContent && !body.childElementCount && !images.childElementCount) continue;
+
     if (heading.childElementCount) article.append(heading);
+
     if (images.childElementCount) body.append(images);
+
     article.append(body);
     if (entry.time) article.append(time);
     const follow =
@@ -156,9 +161,11 @@ const conversation = (entries, archived, target) => {
       stamp - previous.time <= 30 * 60 * 1000;
 
     if (follow) dom.set(article, "data-follow", "");
+
     previous = { id: entry.id, time: follow ? previous.time : stamp };
     root.append(article);
   }
+
   return root;
 };
 
@@ -175,17 +182,11 @@ export default function record(entry, type) {
 
   root.className = "group history-record";
   head.className = "history-record-head";
-  dom.set(
-    head,
-    "data-kind",
-    report ? "report" : chat ? "chatting" : entry.action
-  );
+  dom.set(head, "data-kind", report ? "report" : chat ? "chatting" : entry.action);
   head.append(text("h3", key || "profile.blockHistory"));
   if (entry.time) {
     const source = String(entry.time);
-    const date = new Date(
-      source.includes("T") ? source : `${source.replace(" ", "T")}+09:00`
-    );
+    const date = new Date(source.includes("T") ? source : `${source.replace(" ", "T")}+09:00`);
 
     if (Number.isFinite(date.getTime())) {
       const meta = dom.create("div");
@@ -209,17 +210,22 @@ export default function record(entry, type) {
   }
 
   root.append(head);
+
   const snapshot = entry.snapshot;
   const messages =
     snapshot?.messages ||
-    (chat
-      ? [entry]
-      : report && entry.type === "message"
-        ? [{ ...entry, url: entry.message }]
-        : []);
+    (chat ? [entry] : report && entry.type === "message" ? [{ ...entry, url: entry.message }] : []);
 
   const content = conversation(
-    messages,
+    messages.map((message) => {
+      if (!snapshot || message.attachments?.length || message.url !== entry.message) return message;
+      return {
+        ...message,
+        attachments: (entry.attachments || []).filter(
+          (item) => item.provider === "giphy" || item.type === "ogq"
+        )
+      };
+    }),
     Boolean(snapshot),
     report ? entry.message : ""
   );
@@ -227,6 +233,7 @@ export default function record(entry, type) {
   if (content.childElementCount) {
     root.append(content);
   }
+
   const id = chat
     ? entry.url
     : entry.message || snapshot?.messages.find((item) => item.target)?.url;
@@ -240,11 +247,10 @@ export default function record(entry, type) {
     dom.set(arrow, "data-icon", "arrow");
     dom.set(button, "data-response", "");
     button.append(text("span", "profile.around"), arrow);
-    dom.on(button, "click", () =>
-      location.assign(`/?message=${encodeURIComponent(id)}`)
-    );
+    dom.on(button, "click", () => location.assign(`/?message=${encodeURIComponent(id)}`));
     root.append(button);
   }
+
   const details = report
     ? [
         label("report.reason", i18n.message(`report.${entry.reason}`)),
@@ -268,5 +274,6 @@ export default function record(entry, type) {
     section.append(text("h4", "history.handling"), ...valid);
     root.append(section);
   }
+
   return root;
 }

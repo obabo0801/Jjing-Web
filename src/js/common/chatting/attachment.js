@@ -42,8 +42,7 @@ export default function attachments(field) {
   root.hidden = true;
   field.closest(".input").before(root);
 
-  const allowed = () =>
-    !busy && !destroyed && !field.disabled && !field.readOnly;
+  const allowed = () => !busy && !destroyed && !field.disabled && !field.readOnly;
 
   const update = () => {
     root.hidden = !items.length;
@@ -56,18 +55,21 @@ export default function attachments(field) {
     const at = items.indexOf(item);
 
     if (at < 0) return;
+
     items.splice(at, 1);
     item.node.remove();
     item.destroy?.();
     if (item.url) URL.revokeObjectURL(item.url);
+
     update();
   };
 
   const open = async (item, anchor) => {
     if (!allowed() || item.opened || !items.includes(item)) return;
+
     item.opened = true;
-    const state = () =>
-      JSON.stringify([item.description, item.spoiler, item.edit]);
+
+    const state = () => JSON.stringify([item.description, item.spoiler, item.edit]);
     const initial = state();
     const root = dom.create("div");
     const preview = avatar(item.url);
@@ -76,11 +78,12 @@ export default function attachments(field) {
     const label = dom.create("label");
     const name = dom.create("span");
     const checkbox = dom.create("input");
-    const removeButton = dom.create("button");
+    const discard = dom.create("button");
 
     root.className = "chatting-attachment-options";
     preview.root.classList.add("chatting-attachment-preview");
     if (item.edit) dom.set(preview.root, "data-edit", "");
+
     preview.set(item.url, item.edit);
     group.className = "group";
     check.className = "group-item checkbox";
@@ -90,6 +93,7 @@ export default function attachments(field) {
     dom.set(name, "data-i18n", "chatting.attach.spoiler");
     label.append(name, checkbox);
     check.append(label);
+
     const action = (key, run) => {
       const row = dom.create("div");
       const button = dom.create("button");
@@ -97,15 +101,21 @@ export default function attachments(field) {
       const arrow = dom.create("span");
 
       row.className = "group-item";
+
       button.type = "button";
+
+      arrow.className = "group-next";
+      dom.set(arrow, "data-icon", "arrow");
+
       text.textContent = i18n.message(key);
       dom.set(text, "data-i18n", key);
+
       dom.set(button, "data-response", "");
-      dom.set(arrow, "data-icon", "arrow");
-      arrow.className = "group-next";
       button.append(text, arrow);
+
       dom.on(button, "click", async () => {
         if (!allowed() || button.disabled) return;
+
         button.disabled = true;
         try {
           await run(button);
@@ -114,7 +124,9 @@ export default function attachments(field) {
           root.dispatchEvent(new Event("input", { bubbles: true }));
         }
       });
+
       row.append(button);
+
       return row;
     };
 
@@ -129,23 +141,18 @@ export default function attachments(field) {
         input.maxLength = rules.description;
         dom.set(input, "data-control", "");
         content.append(input);
+
         const confirmed = await dialog({
           title: "chatting.attach.description",
           content,
           direction: "→",
           actions: [
             { text: "image.cancel", icon: "close", value: false },
-            {
-              text: "image.confirm",
-              icon: "check",
-              value: true,
-              data: ["data-confirm"]
-            }
+            { text: "image.confirm", icon: "check", value: true, data: ["data-confirm"] }
           ]
         });
 
-        if (confirmed && allowed() && items.includes(item))
-          item.description = input.value;
+        if (confirmed && allowed() && items.includes(item)) item.description = input.value;
       }),
       check,
       action("image.title", async (button) => {
@@ -156,6 +163,7 @@ export default function attachments(field) {
         });
 
         if (!result || !allowed() || !items.includes(item)) return;
+
         item.edit = result.edit;
         item.receipt = null;
         dom.set(item.preview.root, "data-edit", "");
@@ -167,16 +175,19 @@ export default function attachments(field) {
 
     dom.on(checkbox, "change", () => {
       if (allowed() && items.includes(item)) item.spoiler = checkbox.checked;
+
       root.dispatchEvent(new Event("input", { bubbles: true }));
     });
-    removeButton.type = "button";
-    removeButton.textContent = i18n.message("chatting.attach.remove");
-    dom.set(removeButton, "data-i18n", "chatting.attach.remove");
-    dom.set(removeButton, "data-icon", "trash");
-    dom.set(removeButton, "data-danger", "");
-    dom.set(removeButton, "data-response", "");
-    dom.set(removeButton, "data-layer-action", "remove");
-    root.append(preview.root, group, removeButton);
+
+    discard.type = "button";
+    dom.set(discard, "data-danger", "");
+    dom.set(discard, "data-icon", "trash");
+
+    discard.textContent = i18n.message("chatting.attach.remove");
+    dom.set(discard, "data-i18n", "chatting.attach.remove");
+    dom.set(discard, "data-response", "");
+    dom.set(discard, "data-layer-action", "remove");
+    root.append(preview.root, group, discard);
     try {
       const result = await sheet({
         anchor,
@@ -204,22 +215,28 @@ export default function attachments(field) {
 
   const add = (value) => {
     if (!allowed()) return false;
+
     if (items.length >= rules.maximum) {
       toast({ text: "chatting.attach.limit", type: "warning" });
+
       return false;
     }
-    const sticker =
-      value?.type === "ogq" ? rules.ogq(value) : rules.giphy(value);
+
+    const sticker = value?.type === "ogq" ? rules.ogq(value) : rules.giphy(value);
     const file = value instanceof Blob ? value : null;
 
     if (!sticker && (!file?.size || !rules.types.includes(file.type))) {
       toast({ text: "image.loadError", type: "error" });
+
       return false;
     }
+
     if (file && file.size > maximum) {
       toast({ text: "image.sizeError", type: "error" });
+
       return false;
     }
+
     const node = dom.create("div");
     const close = dom.create("button");
     const url = file ? URL.createObjectURL(file) : null;
@@ -253,21 +270,27 @@ export default function attachments(field) {
         image.referrerPolicy = "no-referrer";
       }
     } else dom.on(image, "click", () => open(item, image));
+
     close.type = "button";
     close.className = "chatting-attachment-close";
+    dom.set(close, "data-blur", "");
+    dom.set(close, "data-shadow", "");
     dom.set(close, "data-icon", "close");
     dom.set(close, "data-circle", "");
-    dom.set(close, "data-shadow", "");
-    dom.set(close, "data-response", "");
+    dom.set(close, "data-scale", "");
     dom.set(close, "data-tooltip", "chatting.attach.remove");
+    dom.set(close, "data-response", "");
     dom.on(close, "click", () => {
       if (allowed()) remove(item);
     });
+
     if (sticker?.provider !== "giphy") node.append(image);
+
     node.append(close);
     root.append(node);
     items.push(item);
     update();
+
     return true;
   };
 
@@ -304,18 +327,21 @@ export default function attachments(field) {
         const { value, done } = await reader.read();
 
         if (done) break;
+
         size += value.byteLength;
         if (size > maximum || destroyed) {
           await reader.cancel();
           if (!destroyed) toast({ text: "image.sizeError", type: "error" });
+
           return;
         }
+
         chunks.push(value);
       }
+
       add(new Blob(chunks, { type }));
     } catch {
-      if (!destroyed)
-        toast({ text: "chatting.attach.clipboard", type: "warning" });
+      if (!destroyed) toast({ text: "chatting.attach.clipboard", type: "warning" });
     }
   };
 
@@ -347,9 +373,7 @@ export default function attachments(field) {
       .map((file) =>
         file.type
           ? file
-          : new Blob([file], {
-              type: mime[file.name?.split(".").at(-1)?.toLowerCase()]
-            })
+          : new Blob([file], { type: mime[file.name?.split(".").at(-1)?.toLowerCase()] })
       )
       .filter((file) => rules.types.includes(file.type));
     const html = data.getData("text/html");
@@ -360,28 +384,35 @@ export default function attachments(field) {
       event.preventDefault();
       event.stopImmediatePropagation();
       toast({ text: "image.sizeError", type: "error" });
+
       return;
     }
+
     if (!files.length) template.innerHTML = html;
-    const sources = [...template.content.querySelectorAll("img[src]")].map(
-      (image) => image.getAttribute("src")
+    const sources = [...template.content.querySelectorAll("img[src]")].map((image) =>
+      image.getAttribute("src")
     );
 
     if (!files.length && !sources.length && !candidates.length) return;
+
     event.preventDefault();
     event.stopImmediatePropagation();
     if (!allowed()) return;
+
     if (files.length) files.forEach(add);
     else if (sources.length) {
       void (async () => {
         for (const source of sources.slice(0, rules.maximum)) {
           if (!allowed()) break;
+
           if (items.length >= rules.maximum) {
             toast({ text: "chatting.attach.limit", type: "warning" });
             break;
           }
+
           await read(source);
         }
+
         if (sources.length > rules.maximum)
           toast({ text: "chatting.attach.limit", type: "warning" });
       })();
@@ -392,16 +423,12 @@ export default function attachments(field) {
       toast({ text: "chatting.tooLong", type: "warning" });
   };
 
-  const off = ["paste", "beforeinput", "drop"].map((type) =>
-    dom.on(editor, type, paste, true)
-  );
+  const off = ["paste", "beforeinput", "drop"].map((type) => dom.on(editor, type, paste, true));
   const observer = new MutationObserver(update);
 
-  observer.observe(field, {
-    attributes: true,
-    attributeFilter: ["disabled", "readonly"]
-  });
+  observer.observe(field, { attributes: true, attributeFilter: ["disabled", "readonly"] });
   update();
+
   return {
     add,
     snapshot: () => items.map((item) => ({ ...item })),
@@ -436,24 +463,24 @@ export async function prepare(batch, attached, signal) {
 
   for (const item of batch) {
     if (signal.aborted) return { ok: false, status: 0 };
+
     if (item.provider === "giphy") {
       items.push(rules.giphy(item));
       continue;
     }
+
     if (item.type === "ogq") {
       items.push(rules.ogq(item));
       continue;
     }
+
     const result =
       item.receipt?.expires > Date.now()
         ? { ok: true, data: item.receipt }
-        : await upload(`${path}/attachment`, item, {
-            cache: "no-store",
-            signal
-          });
+        : await upload(`${path}/attachment`, item, { cache: "no-store", signal });
 
-    if (!result.ok || !validId(result.data?.token))
-      return { ok: false, status: result.status };
+    if (!result.ok || !validId(result.data?.token)) return { ok: false, status: result.status };
+
     attached.receipt(item, result.data);
     items.push({
       type: item.type,
@@ -462,5 +489,6 @@ export async function prepare(batch, attached, signal) {
       spoiler: item.spoiler
     });
   }
+
   return { ok: true, items };
 }

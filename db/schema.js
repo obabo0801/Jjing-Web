@@ -1,4 +1,11 @@
 export default `
+  CREATE TABLE IF NOT EXISTS upload (
+    file TEXT NOT NULL,
+    uid TEXT NOT NULL,
+    time TEXT NOT NULL DEFAULT (datetime('now', '+9 hours')),
+    PRIMARY KEY(file, uid)
+  );
+  CREATE INDEX IF NOT EXISTS upload_uid ON upload (uid);
   CREATE TABLE IF NOT EXISTS message_asset (
     seq INTEGER NOT NULL,
     slot INTEGER NOT NULL,
@@ -20,6 +27,13 @@ export default `
     multiple INTEGER NOT NULL DEFAULT 0,
     owner TEXT,
     name TEXT
+  );
+  CREATE TABLE IF NOT EXISTS contact (
+    room TEXT PRIMARY KEY,
+    uid TEXT NOT NULL,
+    handler TEXT,
+    assigned TEXT,
+    closed TEXT
   );
   CREATE TABLE IF NOT EXISTS room_member (
     room TEXT NOT NULL,
@@ -184,6 +198,7 @@ export default `
   );
 
   CREATE TABLE IF NOT EXISTS web (
+      registered TEXT,
       uid TEXT NOT NULL,
       id TEXT,
       name TEXT,
@@ -199,6 +214,7 @@ export default `
   );
 
   CREATE TABLE IF NOT EXISTS fcm (
+    registered TEXT,
     uid TEXT NOT NULL,
     fid TEXT PRIMARY KEY,
     device TEXT NOT NULL

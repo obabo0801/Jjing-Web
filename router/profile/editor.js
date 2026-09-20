@@ -12,7 +12,7 @@ import account from "#middleware/account";
 
 const router = Router();
 
-const validName = (value) => /^[\p{L}\p{N} _-]{2,20}$/u.test(value);
+const valid = (value) => /^[\p{L}\p{N} _-]{2,20}$/u.test(value);
 
 router.get("/name", account, async (req, res) => {
   const uid = identity(req);
@@ -22,7 +22,7 @@ router.get("/name", account, async (req, res) => {
     return res.status(403).end();
   }
 
-  if (!validName(name)) {
+  if (!valid(name)) {
     return res.json({ available: false });
   }
 
@@ -59,18 +59,18 @@ router.patch("/", account, async (req, res) => {
     return res.status(403).end();
   }
 
-  if (name !== current.name && !validName(name)) {
+  if (name !== current.name && !valid(name)) {
     return res.status(400).end();
   }
+
   if (
     name !== current.name &&
     current.renamed &&
-    Date.now() - Date.parse(`${current.renamed.replace(" ", "T")}+09:00`) <
-      86400000
+    Date.now() - Date.parse(`${current.renamed.replace(" ", "T")}+09:00`) < 86400000
   )
     return res.status(429).end();
 
-  if (!consent.valid(req.body?.consent)) {
+  if (!current.setup && !consent.valid(req.body?.consent)) {
     return res.status(412).end();
   }
 
@@ -129,15 +129,16 @@ router.patch("/", account, async (req, res) => {
 
 router.post("/complete", account, async (req, res) => {
   const uid = identity(req);
-  const image =
-    req.body?.image === null ? "clear" : (req.body?.image ?? "keep");
+  const image = req.body?.image === null ? "clear" : (req.body?.image ?? "keep");
   const token = string(req.body?.token);
 
   if (!uid) {
     return res.status(403).end();
   }
 
-  if (!consent.valid(req.body?.consent)) {
+  const current = await profile.find(uid);
+
+  if (!current.setup && !consent.valid(req.body?.consent)) {
     return res.status(412).end();
   }
 
@@ -169,7 +170,7 @@ router.post("/complete", account, async (req, res) => {
           ELSE avatar
         END,
         setup = 1,
-        consent = ?,
+        consent = CASE WHEN setup = 1 THEN consent ELSE ? END,
         draft = NULL
       WHERE uid = ? AND draft IS NOT NULL
         AND json_extract(draft, '$.token') = ?
@@ -206,11 +207,20 @@ router.post("/complete", account, async (req, res) => {
   }
 
   events.broadcast("online");
+
   const user = await profile.find(uid);
 
   events.broadcast("profile-update", { id: user.id });
 
-  res.status(204).end();
+  res.json({
+    id: user.id,
+    name: user.name || "",
+    email: user.email || "",
+    image: media.resolve(user.image),
+    avatar: media.resolve(user.avatar),
+    renamed: user.renamed || "",
+    setup: Boolean(user.setup)
+  });
 });
 
 export default router;

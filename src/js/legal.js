@@ -1,8 +1,11 @@
 import init from "#src/init";
 import * as i18n from "#common/i18n";
 import * as dom from "#common/dom";
+import { bind } from "#common/legal";
 
 const loading = init();
+
+bind(dom.query(".legal"));
 
 const anchor = () => {
   let id;

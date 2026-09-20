@@ -39,28 +39,30 @@ export const upload = async (blob, options) => {
     return { text, confidence: null };
   }
 
-  const response = await fetch(`/api${route}`, {
-    method: "POST",
-    headers: {
-      "Content-Type": blob.type || "audio/webm",
-      "X-STT-Meta": encode({ lang, text, pitch })
-    },
-    body: blob,
-    signal
-  });
-
-  if (response.status === 204 || !response.ok) {
-    return { text, confidence: null };
-  }
-
   try {
+    const response = await fetch(`/api${route}`, {
+      method: "POST",
+      headers: {
+        "Content-Type": blob.type || "audio/webm",
+        "X-STT-Meta": encode({ lang, text, pitch })
+      },
+      body: blob,
+      signal
+    });
+
+    if (response.status === 204 || !response.ok) {
+      return { text, confidence: null };
+    }
+
     const data = await response.json();
 
     return {
       text: string(data.text, null)?.trim() ?? text,
       confidence: Number(data.confidence) > 0 ? Number(data.confidence) : null
     };
-  } catch {
+  } catch (error) {
+    if (signal?.aborted) throw error;
+
     return { text, confidence: null };
   }
 };

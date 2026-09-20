@@ -30,18 +30,13 @@ export const send = async (rows, value) => {
         );
         const options = settings.read(target?.settings);
 
-        if (
-          !target?.active ||
-          !target.connected ||
-          !options.notification ||
-          !options.web
-        )
-          return;
-        await webpush.sendNotification(
-          JSON.parse(row.data),
-          JSON.stringify(value),
-          { TTL: 300, timeout: 5000 }
-        );
+        if (!target?.active || !target.connected || !options.notification || !options.web) return;
+
+        await webpush.sendNotification(JSON.parse(row.data), JSON.stringify(value), {
+          TTL: 300,
+          timeout: 5000
+        });
+
         sent += 1;
       } catch (error) {
         if ([404, 410].includes(error.statusCode)) {

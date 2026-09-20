@@ -1,6 +1,7 @@
 import * as dom from "./dom.js";
 import * as i18n from "./i18n.js";
-import * as emoji from "./emoji.js";
+import * as link from "./link.js";
+import * as embed from "./embed.js";
 import editor, { enter, controls } from "./chatting/input.js";
 import * as css from "./css.js";
 import action from "./chatting/action.js";
@@ -12,12 +13,7 @@ import listen from "./chatting/voice.js";
 import media from "./chatting/media.js";
 import { notices } from "../../../shared/chatting.js";
 
-i18n.preload(
-  "chatting.tools.image",
-  "chatting.voice",
-  "chatting.send",
-  "chatting.emoji.clear"
-);
+i18n.preload("chatting.tools.image", "chatting.voice", "chatting.send", "chatting.emoji.clear");
 
 const bound = new WeakSet();
 const groups = new WeakMap();
@@ -25,8 +21,28 @@ const observers = new WeakMap();
 const records = new WeakMap();
 const duration = 30 * 60 * 1000;
 
-export const atBottom = (list) =>
-  list.scrollHeight - list.scrollTop - list.clientHeight < 24;
+const fit = (root) => {
+  if (root.dataset.chatting !== "stream") return;
+
+  const unit = Number.parseFloat(getComputedStyle(dom.root).fontSize);
+
+  dom.all(".chatting-name", root).forEach((name) => {
+    css.set(name, { "--name-size": null });
+
+    if (name.scrollWidth <= name.clientWidth + 1) return;
+
+    const base = Number.parseFloat(getComputedStyle(name).fontSize);
+
+    let size = base;
+
+    while (size > 14 && name.scrollWidth > name.clientWidth + 1) {
+      size -= 0.5;
+      css.set(name, { "--name-size": `${size / unit}rem` });
+    }
+  });
+};
+
+export const bottom = (list) => list.scrollHeight - list.scrollTop - list.clientHeight < 24;
 
 export const place = (list, node, end = null) => {
   const current = records.get(node)?.current;
@@ -37,12 +53,12 @@ export const place = (list, node, end = null) => {
   list.insertBefore(node, later || end);
 };
 
-const updateBottom = (list) => {
+const refresh = (list) => {
   const root = list.closest(".chatting");
   const button = dom.query(".chatting-bottom", root);
 
   if (button) {
-    button.hidden = atBottom(list) && dom.get(root, "data-history") !== "true";
+    button.hidden = bottom(list) && dom.get(root, "data-history") !== "true";
   }
 };
 
@@ -51,6 +67,7 @@ const follow = (list, options, current) => {
 
   if (!id) {
     groups.delete(list);
+
     return false;
   }
 
@@ -63,23 +80,26 @@ const follow = (list, options, current) => {
   return result;
 };
 
-const bottom = (root, list, form) => {
+const setup = (root, list, form) => {
   const button = dom.create("button");
 
   button.type = "button";
   button.className = "chatting-bottom";
 
-  dom.set(button, "data-icon", "arrow");
-  dom.set(button, "data-angle", "bottom");
-  dom.set(button, "data-circle", "");
   dom.set(button, "data-background", "");
   dom.set(button, "data-shadow", "");
+  dom.set(button, "data-icon", "arrow");
+  dom.set(button, "data-circle", "");
+  dom.set(button, "data-scale", "");
+  dom.set(button, "data-response", "down");
+  dom.set(button, "data-angle", "bottom");
 
   dom.on(button, "click", () => {
     root.dispatchEvent(new CustomEvent("chatting-latest"));
     list.scrollTo({ top: list.scrollHeight, behavior: "smooth" });
   });
-  dom.on(list, "scroll", () => updateBottom(list));
+
+  dom.on(list, "scroll", () => refresh(list));
 
   const place = () => {
     css.set(root, { "--chatting-form": `${form.offsetHeight}px` });
@@ -88,14 +108,18 @@ const bottom = (root, list, form) => {
   place();
 
   if (typeof ResizeObserver !== "undefined") {
-    const observer = new ResizeObserver(place);
+    const observer = new ResizeObserver(() => {
+      place();
+      fit(root);
+    });
 
     observer.observe(form);
+    observer.observe(root);
     observers.set(root, observer);
   }
 
   root.append(button);
-  updateBottom(list);
+  refresh(list);
 };
 
 export const regroup = (list) => {
@@ -108,14 +132,17 @@ export const regroup = (list) => {
       if (previous) previous.id = null;
       continue;
     }
+
     const item = records.get(node);
 
     if (!item) continue;
+
     if (node.hidden) {
       item.separator?.remove();
       item.separator = null;
       continue;
     }
+
     const date = clock.day(item.current);
     const sameDay = previous?.date === date;
     const follow =
@@ -129,6 +156,7 @@ export const regroup = (list) => {
 
     if (follow) dom.set(node, "data-follow", "");
     else dom.remove(node, "data-follow");
+
     if (!sameDay) {
       if (!item.separator) {
         item.separator = dom.create("time");
@@ -136,12 +164,14 @@ export const regroup = (list) => {
         item.separator.dateTime = date;
         item.separator.textContent = clock.label(item.current);
       }
+
       list.insertBefore(item.separator, node);
       dates.add(item.separator);
     } else {
       item.separator?.remove();
       item.separator = null;
     }
+
     previous = {
       id: item.options.system ? null : item.options.id,
       private: Boolean(item.options.private),
@@ -150,6 +180,7 @@ export const regroup = (list) => {
       start: follow ? previous.start : item.current
     };
   }
+
   dom.all(".chatting-date", list).forEach((node) => {
     if (!dates.has(node)) node.remove();
   });
@@ -170,7 +201,8 @@ const bind = (element) => {
     return;
   }
 
-  bottom(element, list, form);
+  setup(element, list, form);
+
   const field = editor(input);
 
   controls(input, input.closest(".input"), send);
@@ -203,34 +235,38 @@ export const append = (target, options = {}, scroll = true) => {
     const notice = notices[options.system];
 
     if (!notice || (notice.admin && !events.isAdmin())) return null;
+
     return system(target, { ...options, ...notice, params: options, scroll });
   }
-  const list = target?.matches?.(".chatting-list")
-    ? target
-    : dom.query(".chatting-list", target);
+
+  const list = target?.matches?.(".chatting-list") ? target : dom.query(".chatting-list", target);
 
   if (
     !list ||
-    (!options.text &&
-      !options.image &&
-      !options.audio &&
-      !options.attachments?.length)
+    (!options.text && !options.image && !options.audio && !options.attachments?.length)
   ) {
     return null;
   }
 
-  const stick = atBottom(list);
+  const stick = bottom(list);
   const current = clock.stamp(options.time);
   const message = dom.create("article");
   const user = profile(message, options);
   const text = dom.create("p");
   const time = dom.create("time");
+  const mode = dom.get(list.closest(".chatting"), "data-chatting");
 
   message.className = "chatting-message";
   text.className = "chatting-text";
   time.className = "chatting-time";
 
-  emoji.render(text, options.text);
+  if (mode === "messenger") {
+    dom.set(text, "data-shadow", "");
+  }
+
+  link.render(text, options.text);
+  if (!options.deleted) embed.append(text, options.text);
+
   if (options.audio) {
     const audio = dom.create("audio");
 
@@ -240,6 +276,7 @@ export const append = (target, options = {}, scroll = true) => {
     audio.src = options.audio;
     text.append(audio);
   }
+
   media(text, options);
   time.textContent = clock.format(current);
   time.dateTime = new Date(current).toISOString();
@@ -249,10 +286,15 @@ export const append = (target, options = {}, scroll = true) => {
 
   if (options.own) {
     dom.set(message, "data-own", "");
+
+    if (mode === "messenger") {
+      dom.set(text, "data-background", "");
+    }
   }
 
   if (options.deleted) {
     dom.set(message, "data-deleted", "");
+    if (options.restorable || options.retained) dom.set(message, "data-retained", "");
   }
 
   if (options.url && !options.private) {
@@ -282,7 +324,7 @@ export const append = (target, options = {}, scroll = true) => {
   }
 
   if (
-    !options.deleted &&
+    (!options.deleted || options.restorable || options.retained) &&
     (!options.private || options.evidence || options.kind === "message")
   ) {
     action(message, options);
@@ -292,45 +334,44 @@ export const append = (target, options = {}, scroll = true) => {
 
   list.append(message);
 
+  requestAnimationFrame(() => fit(list.closest(".chatting")));
+
   if (scroll && (stick || options.own)) {
     list.scrollTop = list.scrollHeight;
   }
 
-  requestAnimationFrame(() => updateBottom(list));
+  requestAnimationFrame(() => refresh(list));
 
   return message;
 };
 
 export function system(target, options = {}) {
-  const list = target?.matches?.(".chatting-list")
-    ? target
-    : dom.query(".chatting-list", target);
+  const list = target?.matches?.(".chatting-list") ? target : dom.query(".chatting-list", target);
 
   if (!list || !options.text) return null;
-  const stick =
-    options.scroll === true || (options.scroll !== false && atBottom(list));
+  const stick = options.scroll === true || (options.scroll !== false && bottom(list));
   const node = dom.create("p");
   const types = ["text", "mute", "info", "success", "warning", "error"];
 
   node.className = "chatting-system";
-  dom.set(
-    node,
-    "data-type",
-    types.includes(options.type) ? options.type : "text"
-  );
+  dom.set(node, "data-type", types.includes(options.type) ? options.type : "text");
   if (options.bold) dom.set(node, "data-bold", "");
+
   node.textContent = (i18n.message(options.text) || options.text).replace(
     /\{(\w+)\}/g,
     (match, key) => String(options.params?.[key] ?? match)
   );
+
   const last = list.lastElementChild;
 
   list.insertBefore(node, last?.matches(".chatting-page") ? last : null);
-  if (options.time)
-    records.set(node, { options, current: clock.stamp(options.time) });
+  if (options.time) records.set(node, { options, current: clock.stamp(options.time) });
+
   groups.delete(list);
   if (stick) list.scrollTop = list.scrollHeight;
-  updateBottom(list);
+
+  refresh(list);
+
   return node;
 }
 

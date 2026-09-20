@@ -12,6 +12,7 @@ export default function retry(run, active = () => true) {
     reset,
     schedule() {
       if (timer) return;
+
       timer = setTimeout(
         () => {
           timer = undefined;

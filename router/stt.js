@@ -28,6 +28,7 @@ const decode = (req) => {
     return null;
   }
 };
+
 const tooLong = (text) => [...text].length > 500;
 
 router.get("/", (_, res) => {
@@ -82,9 +83,7 @@ router.post("/", raw, async (req, res) => {
   let text = string(data.text).trim();
 
   const lang = string(data.lang).trim();
-  const pitch = ["low", "mid", "high", "unknown"].includes(data.pitch)
-    ? data.pitch
-    : "unknown";
+  const pitch = ["low", "mid", "high", "unknown"].includes(data.pitch) ? data.pitch : "unknown";
 
   let type = text ? "browser" : "cloud";
 

@@ -10,7 +10,7 @@ export default function choice() {
       return;
     }
 
-    sound.play("click");
-    vibrate.play("click");
+    sound.play("choice");
+    vibrate.play("confirm");
   });
 }

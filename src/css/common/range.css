@@ -47,10 +47,10 @@
 
   width: 18px;
   aspect-ratio: 1;
-  border: 3px solid var(--focus);
+  border: 0;
   border-radius: 50%;
 
-  background: var(--thumb, #ffffff);
+  background: var(--thumb);
   opacity: 1;
   pointer-events: none;
 
@@ -61,6 +61,18 @@
     opacity 160ms ease,
     transform 160ms ease,
     box-shadow 160ms ease;
+}
+
+.range-thumb::after {
+  content: "";
+
+  position: absolute;
+  inset: 0;
+
+  border-radius: inherit;
+  pointer-events: none;
+
+  animation: range-ping 1.6s ease-out 240ms infinite;
 }
 
 .range input {
@@ -110,19 +122,38 @@
 .range[data-drag] .range-thumb {
   opacity: 0;
 
-  transform: translate(-50%, -50%) scale(0);
+  transform: translate(-50%, -50%) scale(0.75);
 }
 
 .range:has(input:focus-visible) .range-thumb {
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--focus) 24%, transparent);
 }
 
+.range:has(input:enabled):hover .range-thumb {
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--focus) 20%, transparent);
+}
+
 .range:has(input:disabled) {
   opacity: 0.5;
 }
 
+.range:has(input:disabled) .range-thumb::after {
+  animation: none;
+}
+
 .range input:disabled {
   cursor: default;
+}
+
+@keyframes range-ping {
+  0% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--focus) 45%, transparent);
+  }
+
+  75%,
+  100% {
+    box-shadow: 0 0 0 6px transparent;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -134,23 +165,89 @@
   .range-thumb {
     transition: none;
   }
+
+  .range-thumb::after {
+    animation: none;
+  }
 }
 
 .range-label {
   display: grid;
-  gap: 8px;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 16px;
+
   min-width: 0;
   padding: 16px;
 }
 
-.range-line {
-  display: grid;
-  align-items: center;
-  grid-template-columns: auto minmax(0, 1fr);
-  gap: 16px;
+.range-label > .group-name {
+  min-width: 0;
 }
 
-:is(.small, .wearable) .range-label {
-  padding: 8px 0;
+:root:not(.small):not(.wearable) .layer-content .range-label > .group-name {
+  min-width: max-content;
+}
+
+.range-name {
+  white-space: nowrap;
+}
+
+.range-value {
+  min-width: 3ch;
+
+  color: var(--mute);
+  font-size: 0.875rem;
+  white-space: nowrap;
+  text-align: center;
+}
+
+:root:not(.small):not(.wearable) .layer-content .range-label {
+  grid-template-columns: auto minmax(0, 1fr) 3ch;
+  column-gap: 16px;
+
+  container-type: inline-size;
+}
+
+:root:not(.small):not(.wearable) .layer-content .range-label > .range {
+  justify-self: end;
+
+  width: min(100%, 8rem);
+}
+
+@container (max-width: 18rem) {
+  :root:not(.small):not(.wearable) .layer-content .range-name {
+    display: none;
+  }
+}
+
+:is(.small, .wearable) .layer-content .range-label {
+  grid-template-columns: minmax(0, 1fr);
+  justify-items: center;
+  gap: 8px;
+
+  padding: 8px 16px;
+  text-align: center;
+}
+
+:is(.small, .wearable) .layer-content .range-label > .group-name {
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+:is(.small, .wearable) .layer-content .range-name {
+  overflow: visible;
+  text-overflow: clip;
+  white-space: normal;
+  text-align: center;
+}
+
+:is(.small, .wearable) .layer-content .range-label > .range {
+  width: min(100%, 20rem);
+}
+
+:is(.small, .wearable) .layer-content .range-value {
+  min-width: 0;
   text-align: center;
 }

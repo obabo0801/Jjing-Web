@@ -1,0 +1,85 @@
+.embed {
+  display: grid;
+  gap: 0.5rem;
+  width: min(100%, 28rem);
+  min-width: 0;
+  margin-block: 8px;
+  padding: 12px;
+  border: 0;
+  border-radius: 8px;
+  background: var(--canvas);
+  color: var(--text);
+  overflow: hidden;
+  white-space: normal;
+  text-align: start;
+}
+
+.embed-title,
+.embed-origin,
+.embed-description,
+.embed-notice {
+  display: block;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.embed-title {
+  font-weight: 700;
+  color: var(--focus);
+}
+
+.embed-origin,
+.embed-notice {
+  color: var(--mute);
+  font-size: 0.75rem;
+}
+
+.embed-description {
+  font-size: 0.875rem;
+}
+
+.embed-body {
+  display: block;
+  width: 100%;
+  min-width: 0;
+}
+
+.embed .embed-body > :is(iframe, video) {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  height: auto;
+  aspect-ratio: 16 / 9;
+  border: 0;
+  background: #000;
+}
+
+.embed .embed-body > img {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: 32rem;
+  object-fit: contain;
+  cursor: pointer;
+}
+
+.embed .embed-body > audio {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+}
+
+.asset:has(> .embed) {
+  display: block;
+  min-width: 0;
+}
+
+.asset > .embed {
+  width: 100%;
+  margin: 0;
+}
+
+.embed > [hidden],
+.embed .embed-body > [hidden] {
+  display: none;
+}

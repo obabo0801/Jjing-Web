@@ -1,12 +1,18 @@
 .avatar-wrap {
   position: relative;
   flex: none;
-  width: var(--control-size);
-  height: var(--control-size);
+  width: 2.5rem;
+  height: 2.5rem;
+}
+
+:is(button, a):has(> .avatar-wrap) > .name {
+  font-size: 1rem;
+  line-height: 1.4;
 }
 
 .avatar-wrap > .avatar {
   width: 100%;
+  min-height: 0;
   height: 100%;
 
   background: var(--background);

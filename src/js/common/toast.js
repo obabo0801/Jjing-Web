@@ -72,6 +72,10 @@ export const raise = () => {
     stack.hidePopover();
   }
 
+  const parent = dom.all("dialog:modal").at(-1) || dom.body;
+
+  if (stack.parentElement !== parent) parent.append(stack);
+
   stack.showPopover();
   place();
 };
@@ -111,9 +115,7 @@ const createText = (tag, name, value) => {
 };
 
 const wait = (element) => {
-  const animations = element
-    .getAnimations()
-    .map((animation) => animation.finished);
+  const animations = element.getAnimations().map((animation) => animation.finished);
 
   return Promise.allSettled(animations);
 };
@@ -125,12 +127,7 @@ const loadImage = (target, options) => {
 
   const media = dom.create("div");
   const image = dom.create("img");
-  const loading = progress({
-    type: "circular",
-    value: 25,
-    show: false,
-    target: media
-  });
+  const loading = progress({ type: "circular", value: 25, show: false, target: media });
 
   media.className = "toast-media";
   image.className = "toast-image";
@@ -181,9 +178,11 @@ const loadImage = (target, options) => {
 export default function toast(options = {}) {
   if (options.id) {
     if (seen.has(options.id)) return;
+
     seen.add(options.id);
     if (seen.size > 100) seen.delete(seen.values().next().value);
   }
+
   if (typeof options === "string") {
     options = { text: options };
   }
@@ -194,7 +193,6 @@ export default function toast(options = {}) {
   const element = dom.create("section");
 
   element.className = "toast";
-  dom.set(element, "data-toast", type);
 
   if (type === "custom") {
     dom.set(element, "data-background", "");
@@ -207,6 +205,8 @@ export default function toast(options = {}) {
       css.set(element, { "--toast-text": options.color });
     }
   }
+
+  dom.set(element, "data-toast", type);
 
   const mark = dom.create("span");
 
@@ -234,9 +234,9 @@ export default function toast(options = {}) {
 
   button.type = "button";
   button.className = "toast-close";
-  dom.set(button, "data-response", "");
   dom.set(button, "data-opacity", "");
   dom.set(button, "data-icon", "close");
+  dom.set(button, "data-response", "");
 
   element.append(mark, content, button);
 
@@ -274,6 +274,7 @@ export default function toast(options = {}) {
 
   let frame;
   let off = () => {};
+
   let closing = false;
 
   const close = async () => {
@@ -339,6 +340,7 @@ export default function toast(options = {}) {
 
           if (value >= 100) {
             close();
+
             return;
           }
 

@@ -12,7 +12,9 @@ const reduce = matchMedia("(prefers-reduced-motion: reduce)");
 const visible = new IntersectionObserver((entries) => {
   for (const entry of entries) {
     if (!entry.isIntersecting) continue;
+
     visible.unobserve(entry.target);
+
     const item = mounted.get(entry.target);
 
     if (item) {
@@ -38,6 +40,7 @@ const request = async (path, params, signal) => {
   const url = new URL(`https://api.giphy.com/v1/${path}`);
 
   url.search = new URLSearchParams({ api_key: key, ...params });
+
   const response = await fetch(url, {
     signal: signal
       ? AbortSignal.any([signal, AbortSignal.timeout(10000)])
@@ -51,6 +54,7 @@ const request = async (path, params, signal) => {
   const body = await response.json();
 
   if (!Array.isArray(body.data)) throw new Error("Invalid GIPHY response");
+
   return body;
 };
 
@@ -68,9 +72,7 @@ export const list = async (type, query, offset, signal, limit = 24) => {
       media: item
     })),
     next: offset + result.data.length,
-    more:
-      result.data.length > 0 &&
-      offset + result.data.length < result.pagination?.total_count
+    more: result.data.length > 0 && offset + result.data.length < result.pagination?.total_count
   };
 };
 
@@ -80,10 +82,12 @@ const lookup = (id, signal) =>
   new Promise((resolve, reject) => {
     queue.push({ id, signal, resolve, reject });
     if (queue.length !== 1) return;
+
     queueMicrotask(async () => {
       const entries = queue;
 
       queue = [];
+
       const active = entries.filter((entry) => !entry.signal.aborted);
       const ids = [...new Set(active.map((entry) => entry.id))];
 
@@ -93,10 +97,7 @@ const lookup = (id, signal) =>
         const waiting = active.filter((entry) => batch.includes(entry.id));
 
         try {
-          const result = await request("gifs", {
-            ids: batch.join(","),
-            rating: "g"
-          });
+          const result = await request("gifs", { ids: batch.join(","), rating: "g" });
 
           for (const entry of waiting)
             entry.resolve(result.data.find((item) => item.id === entry.id));
@@ -123,11 +124,18 @@ const source = (value) => {
   }
 };
 
-export const resolve = async (id) => {
+export const resolve = async (id, preview = false) => {
   if (!/^[a-zA-Z0-9]{1,80}$/.test(id)) return "";
   const data = await lookup(id, AbortSignal.timeout(10000));
+  const images = data?.images;
+  const still = preview && (reduce.matches || dom.has("wearable"));
+  const item = still
+    ? images?.fixed_width_still
+    : preview
+      ? images?.fixed_width || images?.fixed_width_small
+      : images?.original;
 
-  return source(data?.images?.original?.webp || data?.images?.original?.url);
+  return source((!still && item?.webp) || item?.url);
 };
 
 // 미디어 주소는 저장하지 않고, 저장된 ID로 최신 주소를 다시 조회합니다.
@@ -136,9 +144,7 @@ export const image = (target, item, { signal, preview = false } = {}) => {
   const loading = progress({ type: "circular", value: 25, show: false });
   const label = dom.create("span");
   const request = new AbortController();
-  const abort = signal
-    ? AbortSignal.any([signal, request.signal])
-    : request.signal;
+  const abort = signal ? AbortSignal.any([signal, request.signal]) : request.signal;
 
   let data = item.media;
   let active = false;
@@ -146,6 +152,7 @@ export const image = (target, item, { signal, preview = false } = {}) => {
 
   node.className = "chatting-emoji";
   node.loading = "lazy";
+  node.decoding = "async";
   node.draggable = false;
   node.referrerPolicy = "no-referrer";
   label.className = "chatting-giphy-credit";
@@ -155,6 +162,7 @@ export const image = (target, item, { signal, preview = false } = {}) => {
   const retries = retry(
     () => {
       data = undefined;
+
       return load();
     },
     () => !stopped && !abort.aborted && target.isConnected
@@ -162,6 +170,7 @@ export const image = (target, item, { signal, preview = false } = {}) => {
 
   const failed = () => {
     if (stopped) return;
+
     loading.element.hidden = false;
     node.hidden = true;
     retries.schedule();
@@ -170,6 +179,7 @@ export const image = (target, item, { signal, preview = false } = {}) => {
 
   async function load() {
     if (active || stopped || abort.aborted) return;
+
     active = true;
     loading.element.hidden = false;
     try {
@@ -181,15 +191,15 @@ export const image = (target, item, { signal, preview = false } = {}) => {
         ? images?.fixed_width_still
         : preview
           ? images?.fixed_width_small
-          : images?.original;
+          : images?.fixed_width || images?.fixed_width_small || images?.original;
 
       const url = source((!still && rendition?.webp) || rendition?.url);
 
       if (!url) throw new Error("Unavailable GIPHY media");
+
       node.alt = data.title || item.type;
-      label.textContent = data.user?.display_name
-        ? `${data.user.display_name} · GIPHY`
-        : "GIPHY";
+      label.textContent = data.user?.display_name ? `${data.user.display_name} (GIPHY)` : "GIPHY";
+      dom.set(node, "data-pending", "");
       node.hidden = false;
       node.src = url;
     } catch {
@@ -197,32 +207,45 @@ export const image = (target, item, { signal, preview = false } = {}) => {
     }
   }
 
-  dom.on(node, "load", () => {
+  dom.on(node, "load", async () => {
+    const source = node.src;
+
+    try {
+      if (typeof node.decode === "function") await node.decode();
+    } catch {
+      if (!stopped && !abort.aborted && node.src === source) failed();
+
+      return;
+    }
+
+    if (stopped || abort.aborted || node.src !== source) return;
+
     retries.reset();
+    dom.remove(node, "data-pending");
     loading.element.hidden = true;
     active = false;
   });
+
   dom.on(node, "error", failed);
+
   const destroy = () => {
     if (stopped) return;
+
     stopped = true;
     retries.reset();
     request.abort();
     visible.unobserve(target);
     mounted.delete(target);
     if (!mounted.size) removed.disconnect();
+
     loading.destroy();
   };
 
-  if (!mounted.size)
-    removed.observe(document.body, { childList: true, subtree: true });
-  mounted.set(target, {
-    load,
-    destroy,
-    connected: target.isConnected,
-    visible: false
-  });
+  if (!mounted.size) removed.observe(document.body, { childList: true, subtree: true });
+
+  mounted.set(target, { load, destroy, connected: target.isConnected, visible: false });
   visible.observe(target);
   signal?.addEventListener("abort", destroy, { once: true });
+
   return destroy;
 };

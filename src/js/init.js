@@ -17,6 +17,7 @@ import mount, { register } from "#common/mount";
 import group from "#common/group";
 import chatting from "#common/chatting";
 import range from "#common/range";
+import player from "#common/player";
 import segment from "#common/segment";
 import scroll from "#common/scroll";
 import drag from "#common/drag";
@@ -31,6 +32,7 @@ export default function init() {
   register(
     group,
     chatting,
+    player,
     range,
     select.default,
     stepper.default,
@@ -42,12 +44,7 @@ export default function init() {
 
   loading.className = "loading";
 
-  const type = "circular";
-  const value = 25;
-  const show = false;
-  const target = loading;
-
-  progress({ type, value, show, target });
+  progress({ type: "circular", value: 25, show: false, target: loading });
 
   dom.body.append(loading);
 

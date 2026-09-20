@@ -9,6 +9,7 @@ const open = () => (ready ||= initialize());
 
 async function initialize() {
   await path.mkdir(path.data(), { recursive: true });
+
   const file = path.data("evidence.key");
 
   try {
@@ -21,8 +22,10 @@ async function initialize() {
       await access(path.data("evidence.db"));
     } catch (error) {
       if (error.code !== "ENOENT") throw error;
+
       exists = false;
     }
+
     if (exists) throw new Error("Restore the missing evidence key from backup");
     try {
       await writeFile(file, randomBytes(32), { flag: "wx", mode: 0o600 });
@@ -30,6 +33,7 @@ async function initialize() {
       if (error.code !== "EEXIST") throw error;
     }
   }
+
   const key = await readFile(file);
 
   if (key.length !== 32) throw new Error("Invalid evidence key");
@@ -51,7 +55,9 @@ async function initialize() {
       subject TEXT NOT NULL
     );
   `);
+
   await chmod(path.data("evidence.db"), 0o600);
+
   return {
     // The evidence database and key must be backed up together.
     ...db,
@@ -73,6 +79,7 @@ export const save = async (user, records) => {
     reason = reason
       .replace(/[\w.+-]+@[\w.-]+\.[a-z]{2,}/gi, "[redacted]")
       .replace(/\b(?:\d{1,3}\.){3}\d{1,3}\b/g, "[redacted]");
+
     for (const value of [user.email, user.google, user.name, user.ip, user.uid])
       if (value) reason = reason.replaceAll(value, "[redacted]");
     const id = db.hash(`${user.uid}:${item.source}`);
@@ -88,13 +95,12 @@ export const save = async (user, records) => {
 export const match = async (uid, sub) => {
   const db = await open();
   const subject = db.hash(`google:${sub}`);
-  const found = await db.get(
-    "SELECT 1 FROM record WHERE subject = ? AND expires > ? LIMIT 1",
-    [subject, Date.now()]
-  );
+  const found = await db.get("SELECT 1 FROM record WHERE subject = ? AND expires > ? LIMIT 1", [
+    subject,
+    Date.now()
+  ]);
 
-  if (found)
-    await db.run("INSERT OR REPLACE INTO member VALUES (?, ?)", [uid, subject]);
+  if (found) await db.run("INSERT OR REPLACE INTO member VALUES (?, ?)", [uid, subject]);
 };
 
 export const read = async (uid) => {

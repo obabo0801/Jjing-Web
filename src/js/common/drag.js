@@ -64,9 +64,7 @@ export default function drag(target = document) {
       outside(event) ||
       (event.target instanceof Element &&
         event.target.closest(
-          "input, select, textarea, " +
-            "[contenteditable], .range, " +
-            '[data-drag="none"]'
+          "input, select, textarea, " + "[contenteditable], .range, " + '[data-drag="none"]'
         ))
     ) {
       return;
@@ -95,6 +93,7 @@ export default function drag(target = document) {
 
     if (scroller.closest("[data-swipe]")) {
       reset();
+
       return;
     }
 
@@ -103,6 +102,7 @@ export default function drag(target = document) {
 
     if (selected()) {
       reset();
+
       return;
     }
 
@@ -112,6 +112,7 @@ export default function drag(target = document) {
 
     if (!dragging && !pending) {
       pending = true;
+
       return;
     }
 
@@ -177,6 +178,7 @@ export default function drag(target = document) {
     remove.forEach((run) => {
       run();
     });
+
     reset();
   };
 }

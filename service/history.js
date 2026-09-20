@@ -2,6 +2,21 @@ import sharp from "sharp";
 import * as path from "#config/path";
 import * as media from "#config/media";
 import { validId } from "#shared/chatting";
+import * as attachment from "#shared/attachment";
+
+const stickers = (items) =>
+  Array.isArray(items)
+    ? items
+        .slice(0, attachment.maximum)
+        .map((item) =>
+          item?.provider === "giphy"
+            ? attachment.giphy(item)
+            : item?.type === "ogq"
+              ? attachment.ogq(item)
+              : null
+        )
+        .filter(Boolean)
+    : [];
 
 const person = (value) =>
   value && typeof value.id === "string" && /^[a-f0-9]{32}$/.test(value.id)
@@ -17,6 +32,7 @@ export const read = (value) => {
     const data = typeof value === "string" ? JSON.parse(value) : value;
 
     if (data?.version !== 1 || !Array.isArray(data.messages)) return null;
+
     return {
       version: 1,
       ...(data.kind === "whisper" && { kind: "whisper" }),
@@ -25,15 +41,14 @@ export const read = (value) => {
       limited: data.limited === true,
       messages: data.messages
         .slice(0, data.kind === "whisper" ? 500 : 5)
-        .filter(
-          (item) => item && validId(item.url) && typeof item.text === "string"
-        )
+        .filter((item) => item && validId(item.url) && typeof item.text === "string")
         .map((item) => ({
           ...person(item),
           url: item.url,
           text: item.text.slice(0, 2000),
           time: typeof item.time === "string" ? item.time : "",
           target: item.target === true,
+          attachments: stickers(item.attachments),
           images: Array.isArray(item.images)
             ? item.images
                 .slice(0, 10)
@@ -41,16 +56,12 @@ export const read = (value) => {
                   (image) =>
                     typeof image?.image === "string" &&
                     image.image.length <= 90000 &&
-                    /^data:image\/webp;base64,[A-Za-z0-9+/=]+$/.test(
-                      image.image
-                    )
+                    /^data:image\/webp;base64,[A-Za-z0-9+/=]+$/.test(image.image)
                 )
                 .map((image) => ({
                   image: image.image,
                   description:
-                    typeof image.description === "string"
-                      ? image.description.slice(0, 500)
-                      : ""
+                    typeof image.description === "string" ? image.description.slice(0, 500) : ""
                 }))
             : []
         }))
@@ -70,14 +81,14 @@ export const redact = (value, id) => {
       item.verified = false;
     }
   }
+
   return JSON.stringify(data);
 };
 
 const preview = async (value) => {
   const url = media.resolve(value);
   const route = media.routes.find(
-    (item) =>
-      !item.directory.startsWith("audio/") && url.startsWith(`${item.prefix}/`)
+    (item) => !item.directory.startsWith("audio/") && url.startsWith(`${item.prefix}/`)
   );
 
   if (!route) return "";
@@ -85,18 +96,15 @@ const preview = async (value) => {
 
   if (!/^[a-f0-9]{32}\.(?:gif|jpg|png|webp)$/.test(file)) return "";
   try {
-    const image = await sharp(
-      await path.readFile(path.upload(route.directory, file)),
-      { limitInputPixels: 40000000 }
-    )
+    const image = await sharp(await path.readFile(path.upload(route.directory, file)), {
+      limitInputPixels: 40000000
+    })
       .rotate()
       .resize(640, 640, { fit: "inside", withoutEnlargement: true })
       .webp({ quality: 60 })
       .toBuffer();
 
-    return image.length <= 65536
-      ? `data:image/webp;base64,${image.toString("base64")}`
-      : "";
+    return image.length <= 65536 ? `data:image/webp;base64,${image.toString("base64")}` : "";
   } catch {
     return "";
   }
@@ -105,10 +113,7 @@ const preview = async (value) => {
 // Only nearby public conversation is retained; it is not a claim of causation.
 export const capture = async (db, { message, uid }) => {
   const target = message
-    ? await db.get(
-        "SELECT seq FROM chatting WHERE id = ? AND deleted IS NULL",
-        [message]
-      )
+    ? await db.get("SELECT seq FROM chatting WHERE id = ? AND deleted IS NULL", [message])
     : await db.get(
         "SELECT seq FROM chatting WHERE uid = ? AND system IS NULL AND deleted IS NULL ORDER BY seq DESC LIMIT 1",
         [uid]
@@ -128,15 +133,9 @@ export const capture = async (db, { message, uid }) => {
       AND user.role = 0`;
 
   const rows = [
-    ...(
-      await db.all(`${selection} AND seq < ? ORDER BY seq DESC LIMIT 2`, [
-        target.seq
-      ])
-    ).reverse(),
+    ...(await db.all(`${selection} AND seq < ? ORDER BY seq DESC LIMIT 2`, [target.seq])).reverse(),
     ...(await db.all(`${selection} AND seq = ?`, [target.seq])),
-    ...(await db.all(`${selection} AND seq > ? ORDER BY seq LIMIT 2`, [
-      target.seq
-    ]))
+    ...(await db.all(`${selection} AND seq > ? ORDER BY seq LIMIT 2`, [target.seq]))
   ];
   const messages = [];
 
@@ -162,24 +161,29 @@ export const capture = async (db, { message, uid }) => {
     } catch {
       attachments = [];
     }
+
     if (!Array.isArray(attachments)) attachments = [];
-    if (!attachments.length && row.image)
-      attachments = [{ preview: row.preview || row.image }];
+
+    item.attachments = stickers(attachments);
+
+    if (!attachments.length && row.image) attachments = [{ preview: row.preview || row.image }];
     for (const attachment of attachments) {
+      if (attachment.provider === "giphy" || attachment.type === "ogq") continue;
       const image = await preview(attachment.preview || attachment.image);
 
       if (!image || size + image.length > 350000) {
         limited = true;
         continue;
       }
+
       size += image.length;
-      item.images.push({
-        image,
-        description: String(attachment.description || "").slice(0, 500)
-      });
+      item.images.push({ image, description: String(attachment.description || "").slice(0, 500) });
     }
+
     if (row.audio) limited = true;
+
     messages.push(item);
   }
+
   return { version: 1, subject, messages, limited };
 };

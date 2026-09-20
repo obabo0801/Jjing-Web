@@ -1,13 +1,13 @@
 import * as dom from "#common/dom";
 import { visualize } from "#common/voice/view";
 
-const Recognition = Reflect.get(window, "Recognition");
+const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 
 export const supported = Boolean(Recognition);
 
 export const listen = (options) => {
   const { lang, stream, target, signal } = options;
-  const { keep = false } = options;
+  const { keep = false, change } = options;
 
   if (!Recognition) {
     return null;
@@ -17,20 +17,23 @@ export const listen = (options) => {
 
   recognition.lang = lang;
   recognition.continuous = keep;
-  recognition.interimResults = false;
+  recognition.interimResults = Boolean(change);
   recognition.maxAlternatives = 1;
 
   let text = "";
+  let prefix = "";
   let confidence = 0;
-  let stopVisual = () => {};
+  let release = () => {};
+
   let stopped = false;
   let settled = false;
   let shown = false;
   let off = () => {};
-  let resolveDone;
+
+  let complete;
 
   const done = new Promise((resolve) => {
-    resolveDone = resolve;
+    complete = resolve;
   });
 
   const finish = () => {
@@ -40,8 +43,8 @@ export const listen = (options) => {
 
     settled = true;
     off();
-    stopVisual();
-    resolveDone({ text, confidence });
+    release();
+    complete({ text, confidence });
   };
 
   const start = () => {
@@ -50,6 +53,7 @@ export const listen = (options) => {
     }
 
     try {
+      prefix = text;
       recognition.start();
     } catch {
       finish();
@@ -57,26 +61,25 @@ export const listen = (options) => {
   };
 
   dom.on(recognition, "result", (event) => {
-    const result = event.results[event.resultIndex];
-    const item = result?.[0];
+    if (settled || signal?.aborted) return;
+    const final = [];
+    const current = [];
 
-    if (!item) {
-      return;
+    for (const result of event.results) {
+      const item = result[0];
+      const value = item?.transcript.trim();
+
+      if (!value) continue;
+
+      current.push(value);
+      if (result.isFinal) {
+        final.push(value);
+        confidence = Number(item.confidence) || 0;
+      }
     }
 
-    const value = item.transcript.trim();
-
-    if (!value) {
-      return;
-    }
-
-    if (!text || value.startsWith(text)) {
-      text = value;
-    } else if (!text.startsWith(value) && !text.endsWith(value)) {
-      text = `${text} ${value}`.trim();
-    }
-
-    confidence = Number(item.confidence) || 0;
+    text = [prefix, ...final].filter(Boolean).join(" ");
+    change?.([prefix, ...current].filter(Boolean).join(" "));
   });
 
   dom.on(recognition, "start", () => {
@@ -85,7 +88,7 @@ export const listen = (options) => {
     }
 
     shown = true;
-    stopVisual = visualize(target, stream);
+    release = visualize(target, stream);
   });
 
   dom.on(recognition, "error", (event) => {
@@ -100,6 +103,7 @@ export const listen = (options) => {
   dom.on(recognition, "end", () => {
     if (keep && !stopped && !signal?.aborted) {
       setTimeout(start, 0);
+
       return;
     }
 
@@ -125,6 +129,13 @@ export const listen = (options) => {
 
   return {
     done,
+    abort: () => {
+      stopped = true;
+      try {
+        recognition.abort();
+      } catch {}
+      finish();
+    },
     stop: () => {
       if (stopped) {
         return;

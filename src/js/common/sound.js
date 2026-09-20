@@ -3,23 +3,25 @@ import { context, level } from "#common/audio";
 import { get } from "#common/storage";
 import patterns from "#common/pattern";
 
-const file = (name) =>
-  new URL(`../../assets/audio/${name}.mp3`, import.meta.url).href;
+const file = (name) => new URL(`../../assets/audio/${name}.mp3`, import.meta.url).href;
 
 const backgrounds = Object.freeze({
+  loop: file("loop"),
   semenota: file("semenota"),
   sunflower: file("sunflower")
 });
 
 const effects = Object.freeze({
   bell: file("bell"),
+  choice: file("choice"),
   click: file("click"),
+  down: file("down"),
   eoheo: file("eoheo"),
   failure: file("failure"),
   noinput: file("noinput"),
   open: file("open"),
   pop: file("pop"),
-  send: file("send"),
+  send: { url: file("send"), volume: 0.2 },
   snap: file("snap"),
   success: file("success")
 });
@@ -83,10 +85,7 @@ export function beep(
   const end = start + length;
   const attack = Math.min(0.01, length / 2);
 
-  oscillator.frequency.setValueAtTime(
-    Math.max(1, Number(frequency) || 440),
-    start
-  );
+  oscillator.frequency.setValueAtTime(Math.max(1, Number(frequency) || 440), start);
   oscillator.type = waves.has(type) ? type : "sine";
   gain.gain.setValueAtTime(0, start);
   gain.gain.linearRampToValueAtTime(level(channel, volume), start + attack);
@@ -104,6 +103,7 @@ export function beep(
     },
     { once: true }
   );
+
   oscillator.start(start);
   oscillator.stop(end);
 
@@ -130,10 +130,7 @@ const beeps = (name, options = {}) => {
     .filter(Boolean);
 };
 
-const effect = async (
-  url,
-  { channel = "system", delay = 0, volume = 1 } = {}
-) => {
+const effect = async (url, { channel = "system", delay = 0, volume = 1 } = {}) => {
   if (get("sound", "true") === "false") {
     return null;
   }
@@ -203,10 +200,12 @@ export async function play(name, { overlap = false, ...options } = {}) {
   }
 
   const id = token;
-  const url = effects[name];
+  const preset = effects[name];
+  const url = typeof preset === "string" ? preset : preset?.url;
 
   if (url) {
-    const player = await effect(url, options);
+    const volume = preset?.volume ?? 1;
+    const player = await effect(url, { volume, ...options });
 
     if (player) {
       on(player, "ended", release, { once: true });
@@ -258,7 +257,7 @@ const clearTrack = (player) => {
   source = "";
 };
 
-const resetTrack = () => {
+const reset = () => {
   if (!track) {
     return false;
   }
@@ -276,9 +275,29 @@ const resetTrack = () => {
   return true;
 };
 
+export function playing(name) {
+  if (!track || track.paused) {
+    return false;
+  }
+
+  if (!name) {
+    return true;
+  }
+
+  return source === (backgrounds[name] || name);
+}
+
+export function halt(name) {
+  if (name && source !== (backgrounds[name] || name)) {
+    return false;
+  }
+
+  return reset();
+}
+
 export function music(name, { loop = false, volume = 1 } = {}) {
   if (typeof Audio === "undefined" || get("sound", "true") === "false") {
-    resetTrack();
+    reset();
 
     return null;
   }
@@ -302,7 +321,7 @@ export function music(name, { loop = false, volume = 1 } = {}) {
     return player;
   }
 
-  resetTrack();
+  reset();
 
   const player = new Audio(url);
 
@@ -321,7 +340,7 @@ export function music(name, { loop = false, volume = 1 } = {}) {
 export function stop() {
   token += 1;
   active.clear();
-  resetTrack();
+  reset();
 
   for (const tone of tones) {
     try {
@@ -343,4 +362,4 @@ export function stop() {
   players.clear();
 }
 
-export default Object.freeze({ beep, music, play, stop });
+export default Object.freeze({ beep, music, playing, play, stop, halt });

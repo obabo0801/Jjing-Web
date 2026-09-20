@@ -9,20 +9,21 @@ const router = Router();
 router.use((req, res, next) => {
   res.set("Cache-Control", "private, no-store");
   if (!identity(req)) return res.status(401).end();
+
   if (
     req.method !== "GET" &&
     (req.get("sec-fetch-site") === "cross-site" || !req.is("application/json"))
   )
     return res.status(403).end();
+
   next();
 });
 
 router.get("/", async (req, res) => {
-  const user = await db.get("SELECT settings FROM user WHERE uid = ?", [
-    identity(req)
-  ]);
+  const user = await db.get("SELECT settings FROM user WHERE uid = ?", [identity(req)]);
 
   if (!user) return res.status(404).end();
+
   res.json(settings.read(user.settings));
 });
 
@@ -32,8 +33,7 @@ router.patch("/", async (req, res) => {
   if (
     !entries.length ||
     entries.some(
-      ([key, value]) =>
-        !Object.hasOwn(settings.defaults, key) || typeof value !== "boolean"
+      ([key, value]) => !Object.hasOwn(settings.defaults, key) || typeof value !== "boolean"
     )
   )
     return res.status(400).end();
@@ -50,6 +50,7 @@ router.patch("/", async (req, res) => {
   events.send(uid, "settings", value);
   if (entries.some(([key]) => ["whisper", "message"].includes(key)))
     events.broadcast("profile-update", { id: row.id });
+
   res.json(value);
 });
 

@@ -5,11 +5,7 @@ export default function line({ type = "solid", text = "", icon = "" } = {}) {
   const element = dom.create("div");
 
   element.className = "line";
-  dom.set(
-    element,
-    "data-line",
-    ["solid", "dotted", "double"].includes(type) ? type : "solid"
-  );
+  dom.set(element, "data-line", ["solid", "dotted", "double"].includes(type) ? type : "solid");
 
   if (icon) {
     dom.set(element, "data-icon", icon);

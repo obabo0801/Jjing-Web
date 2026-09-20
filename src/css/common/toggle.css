@@ -8,14 +8,9 @@
   grid-template-columns: minmax(0, 1fr) auto;
 
   overflow: hidden;
-  border: 1px solid var(--border);
   border-radius: 8px;
 
   transition: background-color 160ms ease;
-}
-
-.toggle[data-background] .toggle-head {
-  background: var(--background);
 }
 
 .toggle-button {
@@ -124,6 +119,7 @@
 }
 
 .toggle-action {
+  color: var(--mute);
   display: grid;
   place-items: center;
 }

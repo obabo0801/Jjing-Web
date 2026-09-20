@@ -20,6 +20,7 @@ const updateText = (element, value) => {
     element.prepend(icon);
   }
 };
+
 const attributes = new Map([["data-i18n", updateText]]);
 
 export const message = (key) => messages[key] || "";
@@ -47,22 +48,18 @@ export const register = (attribute, update) => {
 };
 
 const hash = async (value) => {
-  const data = await crypto.subtle.digest(
-    "SHA-256",
-    new TextEncoder().encode(value.toLowerCase())
-  );
+  const data = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(value.toLowerCase()));
 
   return [...new Uint8Array(data)]
     .map((byte) => byte.toString(16).padStart(2, "0"))
     .join("")
     .slice(0, 8);
 };
+
 const encode = (value) => btoa(JSON.stringify(value));
 
 export const decode = (value) => {
-  const bytes = Uint8Array.from(atob(value), (character) =>
-    character.charCodeAt(0)
-  );
+  const bytes = Uint8Array.from(atob(value), (character) => character.charCodeAt(0));
 
   return JSON.parse(new TextDecoder().decode(bytes));
 };
@@ -76,16 +73,10 @@ export default async function translate(mode = get("lang", "system")) {
   const targets = [...attributes].flatMap(([attribute, update]) =>
     dom
       .all(`[${attribute}]`)
-      .map((element) => ({
-        element,
-        key: dom.get(element, attribute)?.trim(),
-        update
-      }))
+      .map((element) => ({ element, key: dom.get(element, attribute)?.trim(), update }))
   );
 
-  const names = [
-    ...new Set([...targets.map(({ key }) => key), ...required])
-  ].filter(Boolean);
+  const names = [...new Set([...targets.map(({ key }) => key), ...required])].filter(Boolean);
 
   const task = {};
 
@@ -96,9 +87,7 @@ export default async function translate(mode = get("lang", "system")) {
     }
 
     try {
-      const entries = await Promise.all(
-        names.map(async (name) => [name, await hash(name)])
-      );
+      const entries = await Promise.all(names.map(async (name) => [name, await hash(name)]));
       const keys = [...new Set(entries.map(([, key]) => key))];
       const text = Object.create(null);
 
@@ -111,12 +100,7 @@ export default async function translate(mode = get("lang", "system")) {
 
         const result = await api(i18n, {
           method: "POST",
-          data: {
-            [content]: encode({
-              lang: mode,
-              keys: keys.slice(index, index + 256)
-            })
-          }
+          data: { [content]: encode({ lang: mode, keys: keys.slice(index, index + 256) }) }
         });
 
         // A superseded caller waits for the current translation, including layers.
@@ -154,6 +138,7 @@ export default async function translate(mode = get("lang", "system")) {
           .map(([name, key]) => [name, text[key]])
           .filter(([, value]) => typeof value === "string")
       );
+
       dom.root.lang = lang;
 
       targets.forEach(({ element, key, update }) => {

@@ -16,6 +16,7 @@ export const get = (value) => {
 
   if (!item || item.expires < Date.now()) {
     links.delete(value);
+
     return null;
   }
 

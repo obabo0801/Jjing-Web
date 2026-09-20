@@ -1,10 +1,7 @@
-const offline = "offline";
+const offline = "_offline";
 const page = "/offline";
 const prepare = async (locale, content) => {
-  const response = await fetch(page, {
-    cache: "no-store",
-    headers: { "x-pwa-cache": "true" }
-  });
+  const response = await fetch(page, { cache: "no-store", headers: { "x-pwa-cache": "true" } });
 
   if (!response.ok) {
     throw new Error();
@@ -65,18 +62,16 @@ const prepare = async (locale, content) => {
   );
 };
 
-const openDatabase = () =>
+const openDatabase = (name = "_sync") =>
   new Promise((resolve, reject) => {
-    const request = indexedDB.open("sync", 1);
+    const request = indexedDB.open(name, 1);
+    const store = name === "sync" ? "requests" : "_request";
 
     request.onupgradeneeded = () => {
       const database = request.result;
 
-      if (!database.objectStoreNames.contains("requests")) {
-        database.createObjectStore("requests", {
-          keyPath: "id",
-          autoIncrement: true
-        });
+      if (!database.objectStoreNames.contains(store)) {
+        database.createObjectStore(store, { keyPath: "id", autoIncrement: true });
       }
     };
 
@@ -89,16 +84,17 @@ const openDatabase = () =>
     };
   });
 
-const requests = async () => {
-  const database = await openDatabase();
+const requests = async (name = "_sync") => {
+  const database = await openDatabase(name);
+  const store = name === "sync" ? "requests" : "_request";
 
   return new Promise((resolve, reject) => {
-    const transaction = database.transaction("requests");
-    const request = transaction.objectStore("requests").getAll();
+    const transaction = database.transaction(store);
+    const request = transaction.objectStore(store).getAll();
 
     transaction.oncomplete = () => {
       database.close();
-      resolve(request.result);
+      resolve(request.result.map((item) => ({ ...item, source: name })));
     };
 
     const fail = () => {
@@ -113,13 +109,14 @@ const requests = async () => {
   });
 };
 
-const removeRequest = async (id) => {
-  const database = await openDatabase();
+const removeRequest = async (id, name) => {
+  const database = await openDatabase(name);
+  const store = name === "sync" ? "requests" : "_request";
 
   return new Promise((resolve, reject) => {
-    const transaction = database.transaction("requests", "readwrite");
+    const transaction = database.transaction(store, "readwrite");
 
-    transaction.objectStore("requests").delete(id);
+    transaction.objectStore(store).delete(id);
     transaction.oncomplete = () => {
       database.close();
       resolve();
@@ -135,6 +132,34 @@ const removeRequest = async (id) => {
     transaction.onerror = fail;
     transaction.onabort = fail;
   });
+};
+
+const migrate = async () => {
+  const queue = await requests("sync");
+
+  if (!queue.length) return;
+
+  const database = await openDatabase();
+
+  try {
+    await new Promise((resolve, reject) => {
+      const transaction = database.transaction("_request", "readwrite");
+      const store = transaction.objectStore("_request");
+
+      for (const item of queue) {
+        store.put({ id: `legacy:${item.id}`, url: item.url, options: item.options });
+      }
+
+      transaction.oncomplete = resolve;
+      transaction.onerror = () => reject(transaction.error);
+      transaction.onabort = () => reject(transaction.error || new Error("Queue migration failed"));
+    });
+  } finally {
+    database.close();
+  }
+
+  // 새 저장소에 기록한 뒤에만 원본을 지웁니다. 재시도는 같은 키를 사용합니다.
+  for (const item of queue) await removeRequest(item.id, "sync");
 };
 
 const fetchApi = async (request) => {
@@ -162,13 +187,24 @@ let syncing;
 
 const synchronize = () => {
   syncing ??= (async () => {
+    const read = async () => {
+      await migrate();
+
+      const queue = await requests();
+      const legacy = queue.filter((item) => typeof item.id === "string");
+
+      legacy.sort((a, b) => Number(a.id.split(":")[1]) - Number(b.id.split(":")[1]));
+
+      return [...legacy, ...queue.filter((item) => typeof item.id === "number")];
+    };
+
     // 처리 중 추가된 요청도 같은 작업에서 이어서 전송합니다.
-    for (let queue = await requests(); queue.length; queue = await requests()) {
+    for (let queue = await read(); queue.length; queue = await read()) {
       for (const item of queue) {
         const response = await fetch(item.url, item.options);
 
         if (response.status < 500) {
-          await removeRequest(item.id);
+          await removeRequest(item.id, item.source);
           continue;
         }
 
@@ -187,7 +223,27 @@ self.addEventListener("install", (event) => {
 });
 
 self.addEventListener("activate", (event) => {
-  event.waitUntil(self.clients.claim());
+  event.waitUntil(
+    (async () => {
+      if ((await caches.keys()).includes("offline")) {
+        const previous = await caches.open("offline");
+        const current = await caches.open(offline);
+
+        for (const request of await previous.keys()) {
+          if (await current.match(request)) continue;
+
+          const response = await previous.match(request);
+
+          if (response) await current.put(request, response);
+        }
+
+        await caches.delete("offline");
+      }
+
+      await migrate();
+      await self.clients.claim();
+    })()
+  );
 });
 
 self.addEventListener("fetch", (event) => {
@@ -210,9 +266,7 @@ self.addEventListener("fetch", (event) => {
   }
 
   if (url.pathname === page) {
-    event.respondWith(
-      caches.match(page).then((response) => response || fetch(request))
-    );
+    event.respondWith(caches.match(page).then((response) => response || fetch(request)));
 
     return;
   }
@@ -236,9 +290,7 @@ self.addEventListener("fetch", (event) => {
   }
 
   if (url.pathname.startsWith("/api/")) {
-    event.respondWith(
-      request.cache === "no-store" ? fetch(request) : fetchApi(request)
-    );
+    event.respondWith(request.cache === "no-store" ? fetch(request) : fetchApi(request));
 
     return;
   }
@@ -268,10 +320,7 @@ self.addEventListener("message", (event) => {
 });
 
 const sendToast = async (data) => {
-  const pages = await self.clients.matchAll({
-    type: "window",
-    includeUncontrolled: true
-  });
+  const pages = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
 
   pages.forEach((page) => {
     page.postMessage({ type: "notify", data });
@@ -311,14 +360,12 @@ const openPage = async (path) => {
   if (target.origin !== self.location.origin) {
     target.href = self.location.origin;
   }
+
   if (target.searchParams.has("message")) {
     target.searchParams.set("push", "1");
   }
 
-  const [client] = await self.clients.matchAll({
-    type: "window",
-    includeUncontrolled: true
-  });
+  const [client] = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
 
   if (!client) {
     return self.clients.openWindow(target.href);

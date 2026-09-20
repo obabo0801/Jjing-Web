@@ -35,15 +35,22 @@ export default async function send(fids, value) {
 
   for (let index = 0; index < fids.length; index += 500) {
     const targets = fids.slice(index, index + 500);
-    const response = await client.sendEachForMulticast({
-      fids: targets,
-      data,
-      android: { priority: "high", ttl: 300_000 }
-    });
 
-    response.responses.forEach((result, offset) => {
-      results.push({ fid: targets[offset], ...result });
-    });
+    try {
+      const response = await client.sendEachForMulticast({
+        fids: targets,
+        data,
+        android: { priority: "high", ttl: 300_000 }
+      });
+
+      response.responses.forEach((result, offset) => {
+        results.push({ fid: targets[offset], ...result });
+      });
+    } catch (error) {
+      targets.forEach((fid) => {
+        results.push({ fid, success: false, error });
+      });
+    }
   }
 
   return results;

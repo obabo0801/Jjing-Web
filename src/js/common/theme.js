@@ -7,10 +7,13 @@ export const brightness = (value = get("brightness", 100)) => {
   const level = Math.max(70, Math.min(100, Number(value) || 100));
 
   if (!set("brightness", level)) return false;
+
   css.set(dom.root, { "--brightness": `${level}%` });
   sync();
+
   return true;
 };
+
 const scheme = matchMedia("(prefers-color-scheme: dark)");
 const colors = new Map();
 
@@ -28,29 +31,26 @@ function sync() {
   }
 
   if (!background) {
+    const wrap = dom.create("div");
+
     background = dom.create("span");
     background.className = "theme-color";
     background.hidden = true;
-    dom.body.append(background);
+    wrap.append(background);
+    dom.body.append(wrap);
   }
 
   const source = [...colors.values()].at(-1) || dom.root;
   const target =
-    source === dom.root || (source instanceof Element && !source.isConnected)
-      ? background
-      : source;
+    source === dom.root || (source instanceof Element && !source.isConnected) ? background : source;
 
-  const color =
-    target instanceof Element
-      ? getComputedStyle(target).backgroundColor
-      : target;
+  const color = target instanceof Element ? getComputedStyle(target).backgroundColor : target;
 
   dom.set(meta, "content", color);
 }
 
 const apply = () => {
-  const value =
-    selected === "system" ? (scheme.matches ? "dark" : "light") : selected;
+  const value = selected === "system" ? (scheme.matches ? "dark" : "light") : selected;
 
   if (dom.get(dom.root, "data-theme") !== value) {
     dom.set(dom.root, "data-theme", value);
@@ -81,6 +81,7 @@ export default function theme(mode) {
   }
 
   if (!set("theme", mode) && selected) return selected;
+
   selected = mode;
   brightness();
 
@@ -92,12 +93,10 @@ export default function theme(mode) {
         apply();
       }
     });
+
     const observer = new MutationObserver(sync);
 
-    observer.observe(dom.root, {
-      attributes: true,
-      attributeFilter: ["data-theme", "class"]
-    });
+    observer.observe(dom.root, { attributes: true, attributeFilter: ["data-theme", "class"] });
     listening = true;
   }
 

@@ -37,14 +37,17 @@ export const packs = (body) =>
 
 export const normalize = (body) => {
   if (body?.RESULT !== 1 || !body.DATA) return [];
+
   // 배열별 순서만 제공하는 API입니다. 시간값을 만들거나 임의로 교차하지 않습니다.
   return Object.entries(body.DATA).flatMap(([type, values]) => {
     if (!Array.isArray(values)) return [];
+
     return values.flatMap((value) => {
       if (type === "default")
         return typeof value === "string" && value && value.length <= 100
           ? [{ type: "emoji", value }]
           : [];
+
       if (type !== "ogq") return [];
       const item = rules.ogq({
         ogq_id: value?.szOgqId,
@@ -80,11 +83,9 @@ let pending;
 
 export default async function catalog() {
   if (cached && Date.now() < expires) return cached;
+
   pending ||= (async () => {
-    const [ogq, used] = await Promise.all([
-      request("ogq"),
-      request("recent_used_emoticon")
-    ]);
+    const [ogq, used] = await Promise.all([request("ogq"), request("recent_used_emoticon")]);
     const groups = ogq?.code === 1 ? packs(ogq) : [];
     const items = normalize(used);
 
@@ -96,19 +97,21 @@ export default async function catalog() {
       recent: (items.length ? items : normalize(recent)).flatMap((item) => {
         if (item.type === "emoji") return [item];
         const found = stickers.find(
-          (value) =>
-            value.ogq_id === item.ogq_id && value.number === item.number
+          (value) => value.ogq_id === item.ogq_id && value.number === item.number
         );
 
         return found ? [{ ...found, size: item.size }] : [];
       }),
       fallback: { ogq: !groups.length, recent: !items.length }
     };
+
     expires = Date.now() + 300_000;
+
     return cached;
   })().finally(() => {
     pending = undefined;
   });
+
   return pending;
 }
 
@@ -121,9 +124,7 @@ export const accept = async (value) => {
     .flatMap((group) => group.items)
     .find(
       (entry) =>
-        entry.type === "ogq" &&
-        entry.ogq_id === item.ogq_id &&
-        entry.number === item.number
+        entry.type === "ogq" && entry.ogq_id === item.ogq_id && entry.number === item.number
     );
 
   return known ? { ...known, size: item.size } : null;
