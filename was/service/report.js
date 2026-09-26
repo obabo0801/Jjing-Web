@@ -74,7 +74,7 @@ export const save = async (user, ip, data = {}) => {
 
   snapshot.reporter = await get(
     `
-      SELECT id, CASE WHEN google IS NOT NULL THEN name ELSE '' END AS name
+      SELECT id, CASE WHEN verified THEN name ELSE '' END AS name
       FROM account.profile
       WHERE uid = ?
     `,

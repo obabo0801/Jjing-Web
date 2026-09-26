@@ -9,26 +9,14 @@ import client from "#config/client";
 import * as events from "#service/events";
 import limit from "#middleware/limit";
 import * as deletion from "#service/account";
+import * as login from "#service/login";
 
 const router = Router();
 const key = session.login;
 const recovery = session.recovery;
 const allowed = limit("google:allowed", 20);
-const cookie = { ...session.cookie, maxAge: 10 * 60 * 1000 };
-const clear = { ...cookie, maxAge: undefined };
+const { cookie, clear, finish } = login;
 const random = () => randomBytes(32).toString("base64url");
-const finish = (res, popup, result) =>
-  res.redirect(
-    popup
-      ? `/?login=${result}&popup=1`
-      : ["error", "unavailable", "unsupported"].includes(result)
-        ? `/login?login=${result}`
-        : result === "cancel"
-          ? "/login"
-          : result === "pending"
-            ? "/?login=pending"
-            : "/"
-  );
 
 router.get("/google", async (req, res) => {
   const popup = req.query.popup === "1";
@@ -46,7 +34,11 @@ router.get("/google", async (req, res) => {
   const verifier = random();
   const binding = createHash("sha256").update(req.uid).digest("base64url");
 
-  res.cookie(key, { state, nonce, verifier, binding, popup, redirect, time: Date.now() }, cookie);
+  res.cookie(
+    key,
+    { provider: "google", state, nonce, verifier, binding, popup, redirect, time: Date.now() },
+    cookie
+  );
 
   res.redirect(
     config.client.generateAuthUrl({
@@ -71,6 +63,7 @@ router.get("/google/callback", async (req, res) => {
     !config.enabled ||
     !req.uid ||
     !value ||
+    (value.provider && value.provider !== "google") ||
     !config.redirects.includes(value.redirect) ||
     typeof req.query.state !== "string" ||
     req.query.state !== value.state ||
@@ -90,33 +83,8 @@ router.get("/google/callback", async (req, res) => {
       value.redirect
     );
     const uid = await google.connect(req.uid, account);
-    const pending = await deletion.challenge(uid);
 
-    if (pending) {
-      res.cookie(recovery, pending, cookie);
-
-      return done("pending");
-    }
-
-    if (uid !== req.uid) {
-      const previous = await db.get(
-        `
-          SELECT google
-          FROM account.profile
-          WHERE uid = ?
-        `,
-        [req.uid]
-      );
-
-      if (previous && !previous.google) await session.remember(res, req.uid, session.anonymous);
-    }
-
-    if (!(await session.remember(res, uid))) return done("error");
-
-    res.clearCookie(recovery, clear);
-    events.broadcast("online");
-
-    return done("success");
+    return done(await login.complete(req, res, uid));
   } catch {
     // OAuth tokens and provider responses must not enter logs or responses.
     return done("error");
@@ -167,7 +135,7 @@ async function guest(req, res) {
         SELECT uid
         FROM account.profile
         WHERE uid = ?
-          AND google IS NULL
+          AND NOT verified
           AND deletion IS NULL
           AND erased = 0
       `,
@@ -186,14 +154,14 @@ router.post("/logout", async (req, res) => {
 
   const user = await db.get(
     `
-      SELECT google
+      SELECT verified
       FROM account.profile
       WHERE uid = ?
     `,
     [req.uid]
   );
 
-  if (!user?.google) return res.status(204).end();
+  if (!user?.verified) return res.status(204).end();
 
   await guest(req, res);
 

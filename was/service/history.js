@@ -139,7 +139,7 @@ export const capture = async (db, { message, uid }) => {
   const subject = uid
     ? await db.get(
         `
-          SELECT id, CASE WHEN google IS NOT NULL THEN name ELSE '' END AS name
+          SELECT id, CASE WHEN verified THEN name ELSE '' END AS name
           FROM account.profile
           WHERE uid = ?
         `,
@@ -150,7 +150,7 @@ export const capture = async (db, { message, uid }) => {
   if (!target) return { version: 1, subject, messages: [], limited: false };
   const selection = `
     SELECT chatting.message.*, account.profile.id AS public, account.profile.name,
-      account.profile.google
+      account.profile.verified
     FROM chatting.message
     JOIN account.profile ON account.profile.uid = chatting.message.uid
     WHERE chatting.message.system IS NULL
@@ -181,8 +181,8 @@ export const capture = async (db, { message, uid }) => {
       url: row.id,
       room: row.room,
       id: row.public,
-      name: row.google ? row.name || "" : "",
-      verified: Boolean(row.google),
+      name: row.verified ? row.name || "" : "",
+      verified: Boolean(row.verified),
       text: row.text,
       time: row.time,
       target: row.seq === target.seq,

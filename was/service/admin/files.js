@@ -42,7 +42,7 @@ const people = async (records) => {
   for (const record of records) {
     const user = await db.get(
       `
-        SELECT id, avatar, google IS NOT NULL AS verified, CASE WHEN google IS NOT NULL THEN name ELSE '' END AS name
+        SELECT id, avatar, verified, CASE WHEN verified THEN name ELSE '' END AS name
         FROM account.profile
         WHERE uid = ?
           AND erased = 0

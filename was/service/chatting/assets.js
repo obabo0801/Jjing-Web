@@ -161,10 +161,10 @@ export const list = async (user, query, room = "") => {
         } AS unread,
         CASE WHEN account.profile.erased = 0 THEN account.profile.id END AS author,
         CASE WHEN account.profile.erased = 0
-        AND account.profile.google IS NOT NULL THEN account.profile.name END AS label,
+        AND account.profile.verified THEN account.profile.name END AS label,
         CASE WHEN account.profile.erased = 0 THEN account.profile.avatar END AS avatar,
         (account.profile.erased = 0
-          AND account.profile.google IS NOT NULL) AS verified ${base} ${edge ? "AND (a.seq < ? OR a.seq = ? AND a.slot < ?)" : ""}
+          AND account.profile.verified) AS verified ${base} ${edge ? "AND (a.seq < ? OR a.seq = ? AND a.slot < ?)" : ""}
       ORDER BY a.seq DESC, a.slot DESC
       LIMIT 25
     `,

@@ -367,6 +367,46 @@ GOOGLE_REDIRECT_URI=http://localhost:5173/api/04f8996d/google/callback
 OAuth에도 동일한 콜백 URL을 등록합니다.<br>
 여러 주소는 쉼표로 구분합니다.
 
+### SOOP 로그인
+
+```env
+SOOP_CLIENT_KEY=
+SOOP_SECRET_KEY=
+SOOP_REDIRECT_URI=https://oanismajor.vercel.app/api/04f8996d/soop/callback
+SOOP_CONSENT=false
+SOOP_ENABLED=false
+```
+
+SOOP Developers 애플리케이션에 위 Redirect URL을 등록합니다.
+실제 접속 주소가 다르면 `.env`도 같은 주소로 변경합니다.
+
+- `user_stationinfo`: 닉네임, 프로필 이미지
+- `validate_live_status`: 토큰 소유자의 사용자 ID
+
+두 권한 모두 Consent 승인 전에는 호출하지 않습니다.
+신청에는 홈페이지, 개인정보처리방침, 로그인 기능 설명을 준비합니다.
+승인 후 `SOOP_CONSENT=true`로 변경합니다.
+방송국 정보만으로는 고유 사용자 ID를 확인할 수 없습니다.
+
+현재 공식 문서에는 `state` 반환과 PKCE 규칙이 명시되어 있지 않습니다.
+SOOP에 `state` 왕복 지원을 확인한 뒤 `SOOP_ENABLED=true`로 활성화합니다.
+콜백에 일치하는 `state`가 없으면 토큰 요청과 로그인을 거부합니다.
+검증을 생략하여 활성화하지 않습니다.
+
+닉네임과 이미지는 최초 로그인 때만 기본값으로 적용합니다.
+재로그인과 기존 계정 연결은 현재 프로필을 유지합니다.
+본인 프로필의 **SOOP 계정 연결**에서 Google 계정에 연결할 수 있습니다.
+이미 다른 계정에 연결된 SOOP 계정은 합치지 않습니다.
+
+토큰은 WAS 메모리에서만 사용하고 로그인 처리 후 보관하지 않습니다.
+만료는 `expires_in` 초를 따릅니다. 문서 예시는 28,800초입니다.
+갱신 함수는 `grant_type=refresh_token`을 사용합니다.
+Refresh Token의 고정 만료 기간은 문서에 명시되어 있지 않습니다.
+
+[인증 및 토큰](https://developers.sooplive.com/docs/api/auth-token),
+[방송국 정보](https://developers.sooplive.com/docs/api/membership),
+[사용자 ID 응답](https://developers.sooplive.com/docs/api/broad-watch#broad-status-intro)
+
 ### 음성
 
 | 값 | TTS | STT |

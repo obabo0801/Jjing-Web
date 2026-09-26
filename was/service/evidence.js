@@ -45,7 +45,7 @@ async function initialize() {
 export const save = async (user, records) => {
   if (!records.length) return;
   const db = await open();
-  const subject = db.hash(`google:${user.google}`);
+  const providers = ["google", "soop"].filter((provider) => user[provider]);
   const date = new Date();
 
   date.setUTCFullYear(date.getUTCFullYear() + 1);
@@ -57,24 +57,30 @@ export const save = async (user, records) => {
       .replace(/[\w.+-]+@[\w.-]+\.[a-z]{2,}/gi, "[redacted]")
       .replace(/\b(?:\d{1,3}\.){3}\d{1,3}\b/g, "[redacted]");
 
-    for (const value of [user.email, user.google, user.name, user.ip, user.uid])
+    for (const value of [user.email, user.google, user.soop, user.name, user.ip, user.uid])
       if (value) reason = reason.replaceAll(value, "[redacted]");
-    const id = db.hash(`${user.uid}:${item.source}`);
+    for (const provider of providers) {
+      const subject = db.hash(`${provider}:${user[provider]}`);
+      const id = db.hash(
+        `${provider === "google" ? "" : `${provider}:`}${user.uid}:${item.source}`
+      );
 
-    await db.run(
-      `
+      await db.run(
+        `
         INSERT INTO record (id, subject, kind, reason, time, expires)
         VALUES (?, ?, ?, ?, ?, ?)
         ON CONFLICT DO NOTHING
       `,
-      [id, subject, item.kind, reason.slice(0, 500), item.time, date.getTime()]
-    );
+        [id, subject, item.kind, reason.slice(0, 500), item.time, date.getTime()]
+      );
+    }
   }
 };
 
-export const match = async (uid, sub) => {
+export const match = async (uid, sub, provider = "google") => {
+  if (!["google", "soop"].includes(provider)) throw new Error("Invalid provider");
   const db = await open();
-  const subject = db.hash(`google:${sub}`);
+  const subject = db.hash(`${provider}:${sub}`);
   const found = await db.get(
     `
       SELECT 1

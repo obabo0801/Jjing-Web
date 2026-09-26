@@ -70,6 +70,10 @@ export default {
   login: {
     title: "로그인",
     google: "Google로 로그인",
+    soop: "SOOP로 로그인",
+    soopPending: "SOOP 로그인 준비 중",
+    soopLink: "SOOP 계정 연결",
+    soopLinked: "SOOP 연결됨",
     logout: "로그아웃",
     error: "로그인 상태를 변경하지 못했습니다.",
     unavailable: "현재 로그인할 수 없습니다.",

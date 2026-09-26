@@ -154,7 +154,7 @@ export const list = async () => {
     const keys = ids.slice(start, start + 256);
     const rows = await all(
       `
-        SELECT uid, id, name, avatar, role, google
+        SELECT uid, id, name, avatar, role, verified
         FROM account.profile
         WHERE uid IN (${keys.map(() => "?").join(",")})
           AND NOT EXISTS (SELECT 1
@@ -184,8 +184,8 @@ export const list = async () => {
       session: context.tab.id,
       order: context.tab.order,
       id: user.id || publicId(context.uid),
-      name: user.google ? user.name || "" : "",
-      verified: Boolean(user.google),
+      name: user.verified ? user.name || "" : "",
+      verified: Boolean(user.verified),
       avatar: media.resolve(user.avatar),
       group: user.role < 0 ? "admin" : "user",
       state: status(context)

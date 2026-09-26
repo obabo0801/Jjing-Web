@@ -96,6 +96,11 @@ export default `
       DEFAULT (to_char((CURRENT_TIMESTAMP AT TIME ZONE 'Asia/Seoul'), 'YYYY-MM-DD HH24:MI:SS'))
   );
 
+  ALTER TABLE account.profile ADD COLUMN IF NOT EXISTS soop TEXT;
+  ALTER TABLE account.profile ADD COLUMN IF NOT EXISTS verified BOOLEAN
+    GENERATED ALWAYS AS (google IS NOT NULL OR soop IS NOT NULL) STORED;
+  CREATE UNIQUE INDEX IF NOT EXISTS usersoop ON account.profile (soop);
+
   CREATE TABLE IF NOT EXISTS account.file (
     rowid BIGINT GENERATED ALWAYS AS IDENTITY UNIQUE,
     uid TEXT NOT NULL,

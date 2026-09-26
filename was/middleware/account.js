@@ -6,7 +6,7 @@ export default async (req, res, next) => {
       SELECT 1
       FROM account.profile
       WHERE uid = ?
-        AND google IS NOT NULL
+        AND verified
         AND deletion IS NULL
         AND erased = 0
     `,

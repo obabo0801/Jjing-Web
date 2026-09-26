@@ -19,6 +19,18 @@ dialog[open] > .layer-content:has(> .login) {
   background: transparent;
 }
 
+.login-providers {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.login > p {
+  color: var(--mute);
+}
+
 .login-google > [data-i18n] {
   position: absolute;
   width: 1px;

@@ -57,14 +57,14 @@ export const connect = async (uid, account) => {
 
   const user = await db.get(
     `
-      SELECT id, google
+      SELECT id, verified
       FROM account.profile
       WHERE uid = ?
     `,
     [uid]
   );
 
-  if (!user || user.google) throw new Error("Account cannot be linked");
+  if (!user || user.verified) throw new Error("Account cannot be linked");
   const initial = (account.name || "").trim().slice(0, 100);
   const used = await db.get(
     `
@@ -89,7 +89,7 @@ export const connect = async (uid, account) => {
         SET google = ?, email = ?, name = ?, avatar = ?, setup = 1,
           consent = ?, draft = NULL
         WHERE uid = ?
-          AND google IS NULL
+          AND NOT verified
           AND deletion IS NULL
           AND erased = 0
       `,

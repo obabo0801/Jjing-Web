@@ -15,9 +15,12 @@ route.register("login", () => login());
 
 let popup;
 
-const google = () => {
+export const authenticate = (provider = "google", link = false) => {
+  if (!["google", "soop"].includes(provider)) return;
   const query = new URLSearchParams({ origin: location.origin });
-  const url = `/api${user}/google?${query}`;
+
+  if (link) query.set("link", "1");
+  const url = `/api${user}/${provider}?${query}`;
   const standalone =
     navigator.standalone ||
     matchMedia("(display-mode: standalone)").matches ||
@@ -54,6 +57,8 @@ i18n.preload(
   "profile.restoreError",
   "login.title",
   "login.google",
+  "login.soop",
+  "login.soopPending",
   "login.logout",
   "login.error",
   "login.unavailable",
@@ -183,12 +188,33 @@ export default async function login(anchor) {
   dom.set(button, "data-scale", "");
   dom.set(button, "data-tooltip", "login.google");
   dom.set(button, "data-response", "");
-  dom.on(button, "click", google);
+  dom.on(button, "click", () => authenticate("google"));
 
   text.textContent = i18n.message("login.google");
   dom.set(text, "data-i18n", "login.google");
   button.append(text);
-  root.append(button, links());
+
+  const providers = dom.create("div");
+  const soop = dom.create("button");
+  const notice = dom.create("p");
+
+  providers.className = "login-providers";
+  soop.type = "button";
+  soop.disabled = true;
+  soop.textContent = i18n.message("login.soop");
+  dom.set(soop, "data-i18n", "login.soop");
+  dom.set(soop, "data-response", "");
+  dom.on(soop, "click", () => authenticate("soop"));
+  notice.textContent = i18n.message("login.soopPending");
+  dom.set(notice, "data-i18n", "login.soopPending");
+  providers.append(button, soop);
+  root.append(providers, notice, links());
+  void api(`${user}/providers?${new URLSearchParams({ origin: location.origin })}`).then(
+    (result) => {
+      soop.disabled = !result.ok || !result.data.soop;
+      notice.hidden = !soop.disabled;
+    }
+  );
 
   return popover({
     size: "24rem",

@@ -49,8 +49,8 @@ router.get("/:id", async (req, res) => {
 
   const result = {
     id: user.id,
-    name: user.google ? user.name || "" : "",
-    verified: Boolean(user.google),
+    name: user.verified ? user.name || "" : "",
+    verified: Boolean(user.verified),
     image: media.resolve(user.image),
     avatar: media.resolve(user.avatar),
     receiving: {
@@ -67,7 +67,8 @@ router.get("/:id", async (req, res) => {
 
   if (self) {
     result.setup = Boolean(user.setup);
-    if (user.google) {
+    result.providers = { google: Boolean(user.google), soop: Boolean(user.soop) };
+    if (user.verified) {
       result.email = user.email || "";
       result.renamed = user.renamed || "";
     }

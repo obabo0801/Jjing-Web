@@ -6,6 +6,8 @@ import portrait from "#common/profile/image";
 import toast from "#common/toast";
 import label from "#common/profile/label";
 import dialog from "#common/dialog";
+import api from "#common/api";
+import { user as path } from "#shared/route";
 
 i18n.preload(
   "profile.own",
@@ -19,7 +21,9 @@ i18n.preload(
   "setup.uploadError",
   "image.save",
   "image.sizeError",
-  "login.logout"
+  "login.logout",
+  "login.soopLink",
+  "login.soopLinked"
 );
 
 export default function editor(user) {
@@ -77,6 +81,11 @@ export default function editor(user) {
 
   group.append(field, label("profile.email", user.email));
   for (const [key, icon, run] of [
+    [
+      user.providers?.soop ? "login.soopLinked" : "login.soopLink",
+      "link",
+      () => login.authenticate("soop", true)
+    ],
     ["login.logout", "logout", login.logout],
     ["profile.delete", "trash", login.remove]
   ]) {
@@ -90,6 +99,16 @@ export default function editor(user) {
     }
 
     button.type = "button";
+    if (key === "login.soopLink" || key === "login.soopLinked") {
+      button.disabled = true;
+      if (!user.providers?.soop)
+        void api(`${path}/providers?${new URLSearchParams({ origin: location.origin })}`).then(
+          (result) => {
+            if (active) button.disabled = !result.ok || !result.data.soop;
+          }
+        );
+    }
+
     dom.set(button, "data-icon", icon);
 
     if (key === "login.logout") {

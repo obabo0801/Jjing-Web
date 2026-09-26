@@ -18,7 +18,7 @@ const fail = (status, code) => {
 
 const person = (row) => ({
   id: row.id,
-  name: row.google ? row.name || "" : "",
+  name: row.verified ? row.name || "" : "",
   avatar: media.resolve(row.avatar)
 });
 
@@ -91,7 +91,7 @@ export const send = async (
   if (kind === "whisper" && events.state(target.uid) === "offline") fail(409, "offline");
   const sender = await db.get(
     `
-      SELECT id, name, avatar, google
+      SELECT id, name, avatar, verified
       FROM account.profile
       WHERE uid = ?
         AND deletion IS NULL
@@ -131,7 +131,7 @@ export const send = async (
 
   if (kind === "whisper") {
     item.recipient = target.id;
-    item.verified = Boolean(sender.google);
+    item.verified = Boolean(sender.verified);
     item.proof = signature(item);
   }
 
@@ -147,7 +147,7 @@ const output = (row, user) => ({
   kind: "message",
   ...(row.system && { system: JSON.parse(row.system) }),
   id: row.sid,
-  name: row.google ? row.name || "" : "",
+  name: row.verified ? row.name || "" : "",
   avatar: media.resolve(row.avatar),
   own: row.sender === user.uid,
   time: row.time,
@@ -269,7 +269,7 @@ export const list = async (user, id, before) => {
   const rows = current
     ? await db.all(
         `
-          SELECT m.*, u.id AS sid, u.name, u.avatar, u.google, x.read AS seen,
+          SELECT m.*, u.id AS sid, u.name, u.avatar, u.verified, x.read AS seen,
             (SELECT count(*)
             FROM messenger.receipt r
             WHERE r.message = m.id
@@ -343,7 +343,7 @@ export const list = async (user, id, before) => {
     const last = row.token
       ? await db.get(
           `
-            SELECT m.*, u.id AS sid, u.name, u.avatar, u.google
+            SELECT m.*, u.id AS sid, u.name, u.avatar, u.verified
             FROM messenger.message m
             JOIN account.profile u ON u.uid = m.sender
             WHERE m.id = ?
@@ -601,7 +601,7 @@ export const restore = async (user, token) => {
 
     return db.get(
       `
-        SELECT m.*, u.id AS sid, u.name, u.avatar, u.google, (SELECT count(*)
+        SELECT m.*, u.id AS sid, u.name, u.avatar, u.verified, (SELECT count(*)
           FROM messenger.receipt x
           WHERE x.message = m.id
             AND x.uid <> m.sender

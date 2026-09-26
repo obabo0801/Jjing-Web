@@ -84,14 +84,14 @@ const record = async (id, type, actor, targets = [], value = "") => {
       users.find((item) => item.uid === uid) ||
       (await db.get(
         `
-          SELECT id, name, google
+          SELECT id, name, verified
           FROM account.profile
           WHERE uid = ?
         `,
         [uid]
       ));
 
-    snapshots.push({ id: user.id, name: user.google ? user.name || "" : "" });
+    snapshots.push({ id: user.id, name: user.verified ? user.name || "" : "" });
   }
 
   const system = { type, actor: snapshots[0], targets: snapshots.slice(1), value };
@@ -303,7 +303,7 @@ export const read = async (user, id) => {
   const contact = row.contact
     ? await db.get(
         `
-          SELECT u.id, u.name, u.google, c.assigned
+          SELECT u.id, u.name, u.verified, c.assigned
           FROM messenger.contact c
           LEFT JOIN account.profile u ON u.uid = c.handler
             AND (c.closed IS NOT NULL
@@ -324,11 +324,11 @@ export const read = async (user, id) => {
       contact: true,
       requester: {
         id: requester?.id || "",
-        name: requester?.google ? requester.name || "" : "",
+        name: requester?.verified ? requester.name || "" : "",
         self: row.contact === user.uid
       },
       handler: contact.id
-        ? { id: contact.id, name: contact.google ? contact.name || "" : "" }
+        ? { id: contact.id, name: contact.verified ? contact.name || "" : "" }
         : null,
       assigned: contact.id ? contact.assigned : null
     }),
@@ -346,11 +346,11 @@ export const read = async (user, id) => {
     muted: Boolean(row.muted),
     participants: participants.map((item) => ({
       id: item.id,
-      name: item.google ? item.name || "" : "",
+      name: item.verified ? item.name || "" : "",
       avatar: media.resolve(item.avatar),
       state: events.state(item.uid),
       self: item.uid === user.uid,
-      verified: Boolean(item.google),
+      verified: Boolean(item.verified),
       owner: row.owner === item.uid,
       deputy: Boolean(row.multiple && item.deputy && row.owner !== item.uid)
     }))
@@ -362,7 +362,7 @@ export async function preview(user, id) {
 
   const peer = await db.get(
     `
-      SELECT uid, id, name, avatar, google
+      SELECT uid, id, name, avatar, verified
       FROM account.profile
       WHERE id = ?
         AND ${active}
@@ -414,11 +414,11 @@ export async function preview(user, id) {
     participants: [
       {
         id: peer.id,
-        name: peer.google ? peer.name || "" : "",
+        name: peer.verified ? peer.name || "" : "",
         avatar: media.resolve(peer.avatar),
         state: events.state(peer.uid),
         self: false,
-        verified: Boolean(peer.google),
+        verified: Boolean(peer.verified),
         owner: false,
         deputy: false
       }
@@ -456,11 +456,11 @@ export const search = async (user, query = "", id = "") => {
 
   const users = await db.all(
     `
-      SELECT uid, id, name, avatar, google, settings
+      SELECT uid, id, name, avatar, verified, settings
       FROM account.profile
       WHERE uid <> ?
         AND ${active}
-        AND (strpos(lower(CASE WHEN google IS NOT NULL THEN coalesce(name,
+        AND (strpos(lower(CASE WHEN verified THEN coalesce(name,
             '') ELSE '' END), lower(?)) > 0
           OR strpos(id, lower(?)) > 0)
       ORDER BY name, id
@@ -495,9 +495,9 @@ export const search = async (user, query = "", id = "") => {
 
     items.push({
       id: candidate.id,
-      name: candidate.google ? candidate.name || "" : "",
+      name: candidate.verified ? candidate.name || "" : "",
       avatar: media.resolve(candidate.avatar),
-      verified: Boolean(candidate.google),
+      verified: Boolean(candidate.verified),
       state: events.state(candidate.uid),
       available: Boolean(allowed)
     });

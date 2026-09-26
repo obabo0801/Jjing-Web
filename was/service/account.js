@@ -23,7 +23,7 @@ export const request = async (uid) => {
       SET deletion = COALESCE(deletion, ?), session = NULL, recovery = NULL,
         expires = NULL
       WHERE uid = ?
-        AND google IS NOT NULL
+        AND verified
         AND erased = 0
       RETURNING id, deletion
     `,
@@ -606,7 +606,7 @@ const erase = async (uid) => {
   await db.run(
     `
       UPDATE account.profile
-      SET google = NULL, email = NULL, name = NULL, avatar = NULL, image = NULL,
+      SET google = NULL, soop = NULL, email = NULL, name = NULL, avatar = NULL, image = NULL,
         draft = NULL, consent = NULL, settings = NULL, renamed = NULL,
         session = NULL, recovery = NULL, expires = NULL, deletion = NULL,
         setup = 0, role = 0, ip = '', initial = NULL, lang = NULL, date = '',

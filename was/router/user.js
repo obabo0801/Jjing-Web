@@ -16,11 +16,13 @@ import string from "#shared/string";
 
 import limit from "#middleware/limit";
 import google from "#router/google";
+import soop from "#router/soop";
 import settings from "#router/settings";
 
 const router = Router();
 
 router.use(google);
+router.use(soop);
 router.use("/settings", settings);
 
 const allowed = limit("user:allowed", 120);
@@ -97,7 +99,7 @@ router.post("/", async (req, res) => {
   const user = uid
     ? await get(
         `
-          SELECT uid, role, ip, lang, name, google, erased
+          SELECT uid, role, ip, lang, name, verified, erased
           FROM account.profile
           WHERE uid = ?
         `,
@@ -176,13 +178,13 @@ router.post("/", async (req, res) => {
     );
   }
 
-  if (user && !user.google && !user.name && !user.erased) {
+  if (user && !user.verified && !user.name && !user.erased) {
     await run(
       `
         UPDATE account.profile
         SET name = ?
         WHERE uid = ?
-          AND google IS NULL
+          AND NOT verified
           AND (name IS NULL OR name = '')
           AND erased = 0
       `,

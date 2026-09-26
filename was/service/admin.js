@@ -5,7 +5,7 @@ import * as settings from "#shared/settings";
 
 export const recipients = async () => {
   const users = await db.all(`
-    SELECT id, name, avatar, date, settings, google IS NOT NULL AS verified
+    SELECT id, name, avatar, date, settings, verified
     FROM account.profile
     WHERE erased = 0
       AND deletion IS NULL
@@ -162,7 +162,7 @@ export const users = async (options) =>
 
     const rows = await db.all(
       `
-      SELECT id, name, avatar, google IS NOT NULL AS verified
+      SELECT id, name, avatar, verified
       FROM account.profile
       WHERE ${where}
       ORDER BY date DESC, id

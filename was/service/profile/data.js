@@ -11,7 +11,7 @@ export const clear = () =>
 export const find = (uid) =>
   get(
     `
-      SELECT rowid AS number, uid, id, name, email, google, renamed, image,
+      SELECT rowid AS number, uid, id, name, email, google, soop, verified, renamed, image,
         avatar, settings, setup, role, ip, initial, lang, date
       FROM account.profile
       WHERE uid = ?

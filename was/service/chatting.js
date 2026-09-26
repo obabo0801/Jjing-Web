@@ -22,7 +22,7 @@ const fail = (status) => {
 export const viewer = async (uid, ip, development = false) => {
   const user = await db.get(
     `
-      SELECT uid, role, google IS NOT NULL AS verified, (SELECT muted
+      SELECT uid, role, verified, (SELECT muted
         FROM moderation.sanction
         WHERE uid = account.profile.uid) AS muted, (SELECT notice
         FROM moderation.sanction
@@ -57,7 +57,7 @@ const blocked = `EXISTS (
 
 const select = `
   SELECT chatting.message.*, account.profile.id AS public, account.profile.name,
-    account.profile.avatar, account.profile.google, account.profile.role AS author_role,
+    account.profile.avatar, account.profile.verified, account.profile.role AS author_role,
     ${blocked} AS blocked
   FROM chatting.message
   LEFT JOIN account.profile ON account.profile.uid = chatting.message.uid
@@ -104,7 +104,7 @@ const message = (row, user) => {
     room: row.room,
     url: row.id,
     id: row.public || ids.publicId(row.uid),
-    name: row.google ? row.name || "" : "",
+    name: row.verified ? row.name || "" : "",
     avatar: media.resolve(row.avatar),
     ...(row.audio && { audio: media.resolve(row.audio) }),
     text: row.text,
@@ -446,8 +446,8 @@ export const suggest = async (query = "", lang = "ko", uid) => {
 
   const rows = await db.all(
     `
-      SELECT uid, id, CASE WHEN google IS NOT NULL THEN name END AS name,
-        avatar, google
+      SELECT uid, id, CASE WHEN verified THEN name END AS name,
+        avatar, verified
       FROM account.profile
       WHERE id IS NOT NULL
         AND NOT ${blocked}
@@ -472,10 +472,10 @@ export const suggest = async (query = "", lang = "ko", uid) => {
           })),
         query
       )
-      .map(({ uid, id, name, avatar, google }) => ({
+      .map(({ uid, id, name, avatar, verified }) => ({
         id,
         name: name || "",
-        verified: Boolean(google),
+        verified: Boolean(verified),
         avatar: media.resolve(avatar),
         state: events.state(uid)
       }))
@@ -531,7 +531,7 @@ async function notify(id) {
 
       await push.send(rows, {
         title:
-          row.google && row.name ? row.name : anonymous.replace("{id}", row.public.slice(0, 8)),
+          row.verified && row.name ? row.name : anonymous.replace("{id}", row.public.slice(0, 8)),
         body: mentions.plain(row.text).slice(0, 180),
         url: `/rooms/${row.room}?message=${id}`,
         tag: `mention:${id}`
