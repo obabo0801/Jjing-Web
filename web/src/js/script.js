@@ -3,8 +3,7 @@ import * as i18n from "#common/i18n";
 import * as emoji from "#common/emoji";
 import init from "#src/init";
 import * as settings from "#common/settings";
-import history from "#common/chatting/history";
-import tools from "#common/chatting/toolbar";
+import rooms from "#common/chatting/room";
 import * as route from "#common/route";
 
 import access from "#src/access";
@@ -48,7 +47,7 @@ try {
 
       const chat = dom.query(".chatting", app);
 
-      tools(chat, history(chat, message));
+      await rooms(chat, message);
       direct.listen(document);
       await route.restore();
     }

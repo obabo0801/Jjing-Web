@@ -3,6 +3,7 @@ import identity from "../config/uid.js";
 import address from "../config/ip.js";
 import limit from "../middleware/limit.js";
 import * as chatting from "../service/chatting.js";
+import * as publicroom from "../service/chatting/room.js";
 import store from "../service/image.js";
 import audio from "../service/audio.js";
 import maximum from "../../lib/upload.js";
@@ -34,6 +35,40 @@ router.use(async (req, res, next) => {
   } catch (error) {
     next(error);
   }
+});
+
+router.get("/public", async (req, res) => {
+  res.json({ items: await publicroom.list(req.chatUser, req.query.manage === "1") });
+});
+
+router.post("/public", async (req, res) => {
+  res.status(201).json(await publicroom.save(req.chatUser, null, req.body));
+});
+
+router.get("/public/:id", async (req, res) => {
+  res.json(await publicroom.read(req.chatUser, req.params.id));
+});
+
+router.patch("/public/:id", async (req, res) => {
+  res.json(await publicroom.save(req.chatUser, req.params.id, req.body));
+});
+
+router.delete("/public/:id", async (req, res) => {
+  res.json(await publicroom.remove(req.chatUser, req.params.id));
+});
+
+router.use(async (req, res, next) => {
+  if (/^\/(direct|rooms|contact)(\/|$)/.test(req.path)) return next();
+
+  if (["/attachment", "/embed", "/mentions"].includes(req.path)) return next();
+  const id = req.get("X-Chatting-Room");
+  const token = /^\/([\da-f-]{36})(?:\/restore)?$/i.exec(req.path)?.[1];
+  const current = token
+    ? await publicroom.message(req.chatUser, token, id)
+    : await publicroom.read(req.chatUser, id);
+
+  req.chatUser.room = current.id;
+  next();
 });
 
 router.get("/", async (req, res) => {
@@ -233,7 +268,7 @@ router.post("/", async (req, res) => {
   const items = req.body?.attachments ?? [];
   const message = await attachment.send(
     req.chatUser,
-    req.path,
+    `${req.path}:${req.chatUser.room}`,
     req.body?.token,
     items,
     (attachments) =>

@@ -6,6 +6,7 @@ import client from "../config/client.js";
 import { get } from "../../db/index.js";
 import identity from "../config/uid.js";
 import { viewer } from "../service/chatting.js";
+import * as rooms from "../service/chatting/room.js";
 
 const router = Router();
 
@@ -91,6 +92,17 @@ router.get("/", async (req, res) => {
 
   if (!user) {
     return res.status(403).end();
+  }
+
+  if (req.query.room !== undefined) {
+    try {
+      const room = await rooms.read(user, req.query.room);
+
+      user.room = room.id;
+    } catch (error) {
+      if (error.status) return res.status(error.status).end();
+      throw error;
+    }
   }
 
   res.set({

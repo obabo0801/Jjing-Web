@@ -8,6 +8,7 @@ import { filters } from "#shared/history";
 import { read } from "#service/chatting/attach";
 import * as history from "#service/history";
 import * as direct from "#service/chatting/direct";
+import * as rooms from "#service/chatting/room";
 
 const fail = (status) => {
   throw Object.assign(new Error("Report request rejected"), { status });
@@ -38,6 +39,8 @@ export const save = async (user, ip, data = {}) => {
 
   if (whisper && type !== "message") fail(400);
   const message = type === "message" && !whisper;
+
+  if (message) await rooms.message(user, target);
   const subject = whisper?.subject.id || target;
   const from = message
     ? "chatting.message JOIN account.profile AS target ON target.uid = chatting.message.uid"

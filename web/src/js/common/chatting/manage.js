@@ -8,6 +8,7 @@ import * as profile from "#common/profile";
 import * as actions from "#common/profile/actions";
 import * as storage from "#common/storage";
 import once from "#common/once";
+import * as context from "#common/chatting/current";
 import mount from "#common/mount";
 import preview from "#common/chatting/preview";
 import api from "#common/api";
@@ -77,17 +78,17 @@ export const allowed = (message, options) =>
         (!options.private || message?.querySelector("[data-unread]") || options.unread === true)
       );
 
-export const link = (id) => {
+export const link = (id, room = context.room) => {
   if (!rules.validId(id)) return "";
-  const url = new URL("/", location.origin);
+  const url = new URL(room ? `/rooms/${room}` : "/", location.origin);
 
   url.searchParams.set("message", id);
 
   return url.href;
 };
 
-export const copy = async (id) => {
-  const url = link(id);
+export const copy = async (id, room) => {
+  const url = link(id, room);
 
   if (url) return file.copy(url);
 
@@ -114,7 +115,10 @@ export const controls = (message, options, selected) => {
   if (options.text) add("text", { run: () => file.copy(options.text) });
 
   if (!options.private && (message || rules.validId(options.url))) {
-    add("link", { disabled: !rules.validId(options.url), run: () => copy(options.url) });
+    add("link", {
+      disabled: !rules.validId(options.url),
+      run: () => copy(options.url, options.room)
+    });
   }
 
   const sources = selected
@@ -200,6 +204,7 @@ export async function change(message, options, selected, quick = false) {
 
     const response = await api(restoring ? `${base}/restore` : base, {
       method: restoring ? "POST" : "DELETE",
+      ...(!options.private && options.room && { headers: { "X-Chatting-Room": options.room } }),
       data: {}
     });
 
@@ -272,7 +277,7 @@ export async function menu(message, options = {}, selected, target) {
 
   if (user) render(user);
   const off = user?.id ? profile.bind(element, user.id, render) : () => {};
-  const member = user ? actions.member(user, options.room, handlers) : null;
+  const member = user && options.private ? actions.member(user, options.room, handlers) : null;
 
   if (member) element.append(member.root);
 

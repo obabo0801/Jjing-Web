@@ -1,3 +1,5 @@
+import { initial } from "../lib/room.js";
+
 export async function prepare(client, sql) {
   const statements = [];
 
@@ -130,6 +132,18 @@ export default `
 
   CREATE SCHEMA IF NOT EXISTS chatting;
 
+  CREATE TABLE IF NOT EXISTS chatting.room (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name TEXT NOT NULL CHECK (length(name) BETWEEN 1 AND 80),
+    info TEXT NOT NULL DEFAULT '' CHECK (length(info) <= 1000),
+    state TEXT NOT NULL DEFAULT 'active' CHECK (state IN ('active', 'closed', 'archived')),
+    time TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+  );
+
+  INSERT INTO chatting.room (id, name)
+  VALUES ('${initial}', 'Oanismajor')
+  ON CONFLICT DO NOTHING;
+
   CREATE TABLE IF NOT EXISTS chatting.asset (
     rowid BIGINT GENERATED ALWAYS AS IDENTITY UNIQUE,
     seq INTEGER NOT NULL,
@@ -160,6 +174,10 @@ export default `
     time TEXT NOT NULL DEFAULT (to_char((CURRENT_TIMESTAMP AT TIME ZONE 'Asia/Seoul'), 'YYYY-MM-DD HH24:MI:SS'))
   );
 
+  ALTER TABLE chatting.message ADD COLUMN IF NOT EXISTS room UUID NOT NULL
+    DEFAULT '${initial}' REFERENCES chatting.room(id);
+
+  CREATE INDEX IF NOT EXISTS chattingroom ON chatting.message (room, seq);
   CREATE INDEX IF NOT EXISTS chattingtime ON chatting.message (time, seq);
 
   CREATE INDEX IF NOT EXISTS chattinguid ON chatting.message (uid, seq);

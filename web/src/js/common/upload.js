@@ -1,3 +1,5 @@
+import * as context from "./chatting/current.js";
+
 export default async function upload(path, value, options = {}) {
   const file = value instanceof Blob ? value : value?.file;
   const edit = value instanceof Blob ? null : value?.edit;
@@ -30,6 +32,7 @@ export default async function upload(path, value, options = {}) {
       request.withCredentials = options.credentials === "include";
       for (const [name, value] of Object.entries({
         "Content-Type": file.type || "application/octet-stream",
+        ...context.headers(),
         ...(edit ? { "X-Image-Edit": JSON.stringify(edit) } : {}),
         ...options.headers
       }))
@@ -63,6 +66,7 @@ export default async function upload(path, value, options = {}) {
       method: options.method || "POST",
       headers: {
         "Content-Type": file.type || "application/octet-stream",
+        ...context.headers(),
         ...(edit ? { "X-Image-Edit": JSON.stringify(edit) } : {}),
         ...options.headers
       },

@@ -5,6 +5,7 @@ import { now } from "#service/log";
 import record from "#service/log/block";
 import { system } from "#service/chatting";
 import * as history from "#service/history";
+import * as rooms from "#service/chatting/room";
 
 const fail = (status) => {
   throw Object.assign(new Error("Management request rejected"), { status });
@@ -51,6 +52,8 @@ export default async function manage(viewer, uid, action, data = {}) {
     );
 
     if (!actor || !role.staff(actor.role)) fail(403);
+
+    if (data.room) await rooms.read(actor, data.room);
 
     if (!user) fail(404);
 
@@ -329,7 +332,7 @@ export default async function manage(viewer, uid, action, data = {}) {
     if (action === "unblock") current.released = Boolean(blocked);
 
     if (action !== "authority" && (action !== "unblock" || current.released))
-      current.message = await system(run, user, action, current.sanction?.count, time);
+      current.message = await system(run, user, action, current.sanction?.count, time, data.room);
 
     await exec(`
       COMMIT;

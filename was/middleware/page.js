@@ -8,6 +8,9 @@ import string from "#shared/string";
 import * as location from "#shared/location";
 
 import * as admin from "#middleware/admin";
+import * as rooms from "#service/chatting/room";
+import { viewer } from "#service/chatting";
+import address from "#config/ip";
 
 const hidden = new Set(["/worker.js", "/manifest.json"]);
 
@@ -43,7 +46,37 @@ const manage = async (req, res) => {
 
 export const router = Router();
 
-router.get("/", (_, res) => normal(res, "index"));
+const visitor = async (req) =>
+  identity(req)
+    ? viewer(identity(req), address(req), req.app.get("env") === "development")
+    : { role: 0 };
+
+router.get("/", async (req, res) => {
+  if (req.query.message) {
+    try {
+      const room = await rooms.message(await visitor(req), req.query.message);
+
+      return res.redirect(
+        `/rooms/${room.id}?${new URLSearchParams({ message: req.query.message })}`
+      );
+    } catch (cause) {
+      if (cause.status) return error(res);
+      throw cause;
+    }
+  }
+  return normal(res, "index");
+});
+
+router.get("/rooms/:id", async (req, res) => {
+  try {
+    await rooms.read(await visitor(req), req.params.id);
+    res.set({ "Cache-Control": "private, no-store", Vary: "Cookie" });
+    return send(res, "index");
+  } catch (cause) {
+    if (cause.status) return error(res);
+    throw cause;
+  }
+});
 
 router.use((req, res, next) => {
   const name = location.page(req.originalUrl);

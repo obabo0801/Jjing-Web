@@ -6,6 +6,7 @@ import * as attachment from "#service/chatting/attach";
 import { visible } from "#service/chatting";
 import metadata from "#service/metadata";
 import * as rooms from "#service/room";
+import * as publicroom from "./room.js";
 import { parse } from "#shared/link";
 import * as role from "#shared/role";
 
@@ -111,6 +112,7 @@ async function index(source, state) {
 
 export const list = async (user, query, room = "") => {
   if (room) await rooms.read(user, room);
+  else await publicroom.read(user, user.room);
   const source = room ? "message" : "chatting";
   const kind = query.kind || "image";
   const before = query.before === undefined ? null : query.before;
@@ -136,8 +138,8 @@ export const list = async (user, query, room = "") => {
         WHERE x.message = entry.id AND x.uid = ?)`
     : `FROM chatting.asset a JOIN chatting.message entry ON entry.seq = a.seq
       LEFT JOIN account.profile ON account.profile.uid = entry.uid
-      WHERE a.kind = ? AND ${visible(user, "entry")}`;
-  const params = [kind, ...(room ? [room, user.uid] : [])];
+      WHERE a.kind = ? AND ${visible(user, "entry")} AND entry.room = ?`;
+  const params = [kind, ...(room ? [room, user.uid] : [user.room])];
 
   const totals = await db.get(
     `
@@ -196,7 +198,7 @@ export const list = async (user, query, room = "") => {
         record: {
           url: room ? "" : token,
           token: room ? token : "",
-          room,
+          room: room || user.room,
           private: Boolean(room),
           kind: room ? "message" : "",
           id: author || "",
@@ -229,6 +231,7 @@ export const list = async (user, query, room = "") => {
 
 export const preview = async (user, id, room = "") => {
   if (room) await rooms.read(user, room);
+  else await publicroom.read(user, user.room);
 
   if (!/^\d+:\d+$/.test(id)) throw Object.assign(new Error("Invalid asset"), { status: 400 });
   const row = await db.get(
@@ -250,15 +253,16 @@ export const preview = async (user, id, room = "") => {
       : `
         SELECT a.url
         FROM chatting.asset a
-        JOIN chatting.message ON entry.seq = a.seq
+        JOIN chatting.message entry ON entry.seq = a.seq
         LEFT JOIN account.profile ON account.profile.uid = entry.uid
         WHERE a.seq = ?
           AND a.slot = ?
           AND a.kind = 'link'
           AND entry.deleted IS NULL
-          AND ${visible(user)}
+          AND ${visible(user, "entry")}
+          AND entry.room = ?
       `,
-    [...id.split(":"), ...(room ? [room, user.uid] : [])]
+    [...id.split(":"), ...(room ? [room, user.uid] : [user.room])]
   );
 
   if (!row) throw Object.assign(new Error("Missing asset"), { status: 404 });

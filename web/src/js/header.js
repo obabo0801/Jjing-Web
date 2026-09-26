@@ -12,6 +12,7 @@ import * as i18n from "#common/i18n";
 import api from "#common/api";
 import events, { isAdmin } from "#common/events";
 import admin from "#common/admin";
+import * as context from "#common/chatting/current";
 
 import * as direct from "#common/chatting/direct";
 import * as toolbar from "#common/toolbar";
@@ -70,6 +71,8 @@ export default function header(app) {
 
   const permissions = () => {
     if (management) management.hidden = !isAdmin();
+
+    buttons.get("chatting").hidden = !context.room;
 
     shadow();
   };

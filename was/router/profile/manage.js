@@ -29,7 +29,10 @@ router.post("/:id/sanction", admin, async (req, res) => {
 
   if (!user) return res.status(404).end();
   try {
-    const result = await management(req.user.uid, user.uid, action, { reason });
+    const result = await management(req.user.uid, user.uid, action, {
+      reason,
+      room: req.get("X-Chatting-Room")
+    });
 
     if (action === "kick") {
       events.send(user.uid, "kick", { handler: result.handler, reason: reason.trim() });
@@ -67,7 +70,10 @@ router.post("/:id/block", admin, async (req, res) => {
   let result;
 
   try {
-    result = await management(req.user.uid, uid, "block", { reason });
+    result = await management(req.user.uid, uid, "block", {
+      reason,
+      room: req.get("X-Chatting-Room")
+    });
   } catch (error) {
     if (error.status) return res.status(error.status).end();
     throw error;
@@ -93,7 +99,10 @@ router.delete("/:id/block", admin, async (req, res) => {
   let current;
 
   try {
-    current = await management(req.user.uid, uid, "unblock", { reason });
+    current = await management(req.user.uid, uid, "unblock", {
+      reason,
+      room: req.get("X-Chatting-Room")
+    });
   } catch (error) {
     if (error.status) return res.status(error.status).end();
     throw error;

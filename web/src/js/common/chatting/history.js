@@ -18,6 +18,7 @@ import * as clock from "#common/chatting/time";
 import * as direct from "#common/chatting/direct";
 import * as profile from "#common/profile";
 import * as names from "#common/profile/name";
+import * as context from "#common/chatting/current";
 
 i18n.preload(
   "chatting.unavailable",
@@ -77,7 +78,7 @@ const request = async (query = {}, id, recent = false) => {
   return page;
 };
 
-export default function history(root, messageId = "") {
+export default function history(root, messageId = "", room = {}) {
   const list = dom.query(".chatting-list", root);
   const form = dom.query(".chatting-form", root);
   const input = dom.query(".chatting-input", root);
@@ -137,7 +138,7 @@ export default function history(root, messageId = "") {
     if (destroyed || halted) return;
     const seconds = Math.max(0, Math.ceil((muted - Date.now()) / 1000));
 
-    if (input.disabled !== seconds > 0) input.disabled = seconds > 0;
+    input.disabled = seconds > 0 || room.state !== "active";
 
     if (voice) voice.disabled = input.disabled;
 
@@ -357,6 +358,8 @@ export default function history(root, messageId = "") {
   const receive = (item, follow = false) => {
     if (destroyed || halted) return;
 
+    if (item?.room !== context.room) return;
+
     if (sending && !follow && item?.own) {
       deferred.set(item.url, item);
       return;
@@ -371,11 +374,7 @@ export default function history(root, messageId = "") {
 
     if (item.seq <= cursor) return;
 
-    if (
-      item.seq !== cursor + 1 ||
-      (!access.isAdmin() && (item.blocked || access.isBlocked(item.id)))
-    )
-      return recover();
+    if (!access.isAdmin() && (item.blocked || access.isBlocked(item.id))) return recover();
 
     if (after) tail.set(item.url, item);
     else if (!follow) insert([item], !messageId && chat.bottom(list));
@@ -790,7 +789,7 @@ export default function history(root, messageId = "") {
         return;
       }
 
-      if (destroyed || halted || !valid(item)) return;
+      if (destroyed || halted || !valid(item) || item.room !== context.room) return;
       const existing = rows.get(item.url);
 
       if (existing?.node.isConnected) {

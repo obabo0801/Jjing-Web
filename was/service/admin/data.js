@@ -9,7 +9,8 @@ const schemas = {
     block: ["time"]
   },
   chatting: {
-    message: ["id", "text", "image", "audio", "deleted", "time"],
+    room: ["id", "name", "info", "state", "time"],
+    message: ["id", "room", "text", "image", "audio", "deleted", "time"],
     asset: ["kind", "url", "preview", "name", "size"]
   },
   messenger: {
@@ -68,13 +69,15 @@ export function catalogue({ source } = {}) {
 export function read(table, { source }, run) {
   if (!Object.hasOwn(schemas, source) || !Object.hasOwn(schemas[source], table)) invalid();
   const order =
-    source === "runtime"
-      ? "expires"
-      : (source === "chatting" || source === "messenger") && table === "message"
-        ? "seq"
-        : source === "moderation" && table === "report"
+    source === "chatting" && table === "room"
+      ? "time"
+      : source === "runtime"
+        ? "expires"
+        : (source === "chatting" || source === "messenger") && table === "message"
           ? "seq"
-          : "rowid";
+          : source === "moderation" && table === "report"
+            ? "seq"
+            : "rowid";
 
   return database.read((connection) =>
     run(connection, `"${source}"."${table}"`, schemas[source][table], order)

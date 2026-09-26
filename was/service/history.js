@@ -45,6 +45,7 @@ export const read = (value) => {
         .map((item) => ({
           ...person(item),
           url: item.url,
+          ...(validId(item.room) && { room: item.room }),
           text: item.text.slice(0, 2000),
           time: typeof item.time === "string" ? item.time : "",
           target: item.target === true,
@@ -115,7 +116,7 @@ export const capture = async (db, { message, uid }) => {
   const target = message
     ? await db.get(
         `
-          SELECT seq
+          SELECT seq, room
           FROM chatting.message
           WHERE id = ?
             AND deleted IS NULL
@@ -124,7 +125,7 @@ export const capture = async (db, { message, uid }) => {
       )
     : await db.get(
         `
-          SELECT seq
+          SELECT seq, room
           FROM chatting.message
           WHERE uid = ?
             AND system IS NULL
@@ -158,9 +159,17 @@ export const capture = async (db, { message, uid }) => {
   `;
 
   const rows = [
-    ...(await db.all(`${selection} AND seq < ? ORDER BY seq DESC LIMIT 2`, [target.seq])).reverse(),
-    ...(await db.all(`${selection} AND seq = ?`, [target.seq])),
-    ...(await db.all(`${selection} AND seq > ? ORDER BY seq LIMIT 2`, [target.seq]))
+    ...(
+      await db.all(`${selection} AND room = ? AND seq < ? ORDER BY seq DESC LIMIT 2`, [
+        target.room,
+        target.seq
+      ])
+    ).reverse(),
+    ...(await db.all(`${selection} AND room = ? AND seq = ?`, [target.room, target.seq])),
+    ...(await db.all(`${selection} AND room = ? AND seq > ? ORDER BY seq LIMIT 2`, [
+      target.room,
+      target.seq
+    ]))
   ];
   const messages = [];
 
@@ -170,6 +179,7 @@ export const capture = async (db, { message, uid }) => {
   for (const row of rows) {
     const item = {
       url: row.id,
+      room: row.room,
       id: row.public,
       name: row.google ? row.name || "" : "",
       verified: Boolean(row.google),

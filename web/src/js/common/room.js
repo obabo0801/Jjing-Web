@@ -171,7 +171,13 @@ export function participants(id, anchor) {
         }
 
         dom.on(button, "click", () =>
-          profile(button, content, { id: user.id, own: user.self, room: id, context: "chatting" })
+          profile(button, content, {
+            id: user.id,
+            own: user.self,
+            room: id,
+            private: true,
+            context: "chatting"
+          })
         );
 
         row.append(button);

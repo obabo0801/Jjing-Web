@@ -362,7 +362,7 @@ export const message = (user, target, options, handlers, opening) => {
 
       if (
         text === "whisper" &&
-        (options.room ||
+        ((options.private && options.room) ||
           target?.closest?.('.chatting[data-chatting="messenger"]') ||
           !online(user) ||
           user.receiving?.whisper === false)
@@ -419,7 +419,9 @@ export const context = (user, target, options, handlers, opening) => {
   element.className = "profile-section";
 
   if (!user.self) {
-    const direct = options.room || target?.closest?.('.chatting[data-chatting="messenger"]');
+    const direct =
+      (options.private && options.room) ||
+      target?.closest?.('.chatting[data-chatting="messenger"]');
 
     const whisper = direct
       ? null

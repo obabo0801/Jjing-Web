@@ -12,6 +12,8 @@ import * as mentions from "../../lib/mention.js";
 import * as push from "./push.js";
 import * as settings from "#shared/settings";
 import { locale } from "#service/locale";
+import * as rooms from "./chatting/room.js";
+import { initial } from "#shared/room";
 
 const fail = (status) => {
   throw Object.assign(new Error("Chatting request rejected"), { status });
@@ -71,7 +73,9 @@ export const visible = (user, table = "chatting.message") => {
         AND NOT ${blocked})
       OR (chatting.message.system::jsonb ->> 'action') IN ('mute','kick','block'))`;
 
-  return `(${access}) AND (${deleted})`.replaceAll("chatting.message.", `${table}.`);
+  const room = rooms.visible(user);
+
+  return `(${access}) AND (${deleted}) AND (${room})`.replaceAll("chatting.message.", `${table}.`);
 };
 
 const removable = (viewer, target) =>
@@ -83,6 +87,7 @@ const message = (row, user) => {
 
     return {
       seq: row.seq,
+      room: row.room,
       url: row.id,
       id: "",
       own: false,
@@ -96,6 +101,7 @@ const message = (row, user) => {
 
   return {
     seq: row.seq,
+    room: row.room,
     url: row.id,
     id: row.public || ids.publicId(row.uid),
     name: row.google ? row.name || "" : "",
@@ -118,21 +124,21 @@ const message = (row, user) => {
 };
 
 // 제재와 같은 트랜잭션에서 한 번만 저장합니다. 입장 안내는 대상이 아닙니다.
-export const system = async (write, user, action, count, time) => {
+export const system = async (write, user, action, count, time, room = initial) => {
   if (!Object.hasOwn(rules.notices, action)) fail(400);
   const id = randomUUID();
   const text = user.name || "";
   const data = JSON.stringify({ action, ...(action === "mute" && { count }) });
   const result = await write(
     `
-      INSERT INTO chatting.message (id, uid, text, system, time)
-      VALUES (?, ?, ?, ?, ?)
+      INSERT INTO chatting.message (id, room, uid, text, system, time)
+      VALUES (?, ?, ?, ?, ?, ?)
       RETURNING seq
     `,
-    [id, user.uid, text, data, time]
+    [id, room, user.uid, text, data, time]
   );
 
-  return message({ seq: result.id, id, text, system: data, time });
+  return message({ seq: result.id, id, room, text, system: data, time });
 };
 
 const integer = (value) => {
@@ -161,19 +167,29 @@ export const restriction = (user) => {
 
 export const list = async (user, query = {}, uid) =>
   db.read(async () => {
+    if (user.room) await rooms.read(user, user.room);
     const { search } = filters(query);
     const count = query.limit === undefined ? rules.size : integer(query.limit);
 
     if (!count || (query.before !== undefined && query.after !== undefined)) fail(400);
     const limit = Math.min(count, rules.maximum);
     const high = (
-      await db.get(`
+      await db.get(
+        `
       SELECT COALESCE(MAX(seq), 0) AS seq
       FROM chatting.message
-    `)
+      WHERE (?::uuid IS NULL OR room = ?::uuid)
+    `,
+        [user.room || null, user.room || null]
+      )
     ).seq;
     const conditions = [visible(user), "chatting.message.seq <= ?"];
     const params = [high];
+
+    if (user.room) {
+      conditions.push("chatting.message.room = ?");
+      params.push(user.room);
+    }
     const forward = query.after !== undefined;
 
     if (query.live === "1" && !user.verified && !role.staff(user.role) && uid === undefined) {
@@ -254,13 +270,19 @@ export const list = async (user, query = {}, uid) =>
 
 export const recent = async (user, query = {}) =>
   db.read(async () => {
+    if (user.room) await rooms.read(user, user.room);
+
     if (user.verified || role.staff(user.role)) return list(user, query);
 
     const high = (
-      await db.get(`
+      await db.get(
+        `
       SELECT COALESCE(MAX(seq), 0) AS seq
       FROM chatting.message
-    `)
+      WHERE (?::uuid IS NULL OR room = ?::uuid)
+    `,
+        [user.room || null, user.room || null]
+      )
     ).seq;
 
     const conditions = [
@@ -269,6 +291,11 @@ export const recent = async (user, query = {}) =>
       "chatting.message.time >= to_char((CURRENT_TIMESTAMP AT TIME ZONE 'Asia/Seoul') + '-30 minutes'::interval, 'YYYY-MM-DD HH24:MI:SS')"
     ];
     const params = [high];
+
+    if (user.room) {
+      conditions.push("chatting.message.room = ?");
+      params.push(user.room);
+    }
 
     if (query.before !== undefined && query.after !== undefined) fail(400);
     for (const key of ["before", "after"]) {
@@ -306,8 +333,12 @@ export const around = async (user, id) =>
     const row = await db.get(`${select} WHERE chatting.message.id = ? AND ${visible(user)}`, [id]);
 
     if (!row) fail(404);
-    const before = await list(user, { before: row.seq, limit: 20 });
-    const after = await list(user, { after: row.seq, limit: 20 });
+
+    await rooms.message(user, id, user.room);
+
+    const current = { ...user, room: row.room };
+    const before = await list(current, { before: row.seq, limit: 20 });
+    const after = await list(current, { after: row.seq, limit: 20 });
 
     return {
       messages: [...before.messages, message(row, user), ...after.messages],
@@ -321,6 +352,7 @@ export const around = async (user, id) =>
   });
 
 export const writable = async (user) => {
+  if (user.room) await rooms.read(user, user.room, true);
   const mute = await db.get(
     `
       SELECT muted, notice
@@ -340,21 +372,23 @@ export const writable = async (user) => {
     });
 };
 
-export const save = async (user, ip, text, image = null, audio = null, attachments = []) => {
-  if (
-    typeof text !== "string" ||
-    (!text.trim() && !image && !audio && !attachments.length) ||
-    text.length > rules.length
-  )
-    fail(400);
+export const save = async (user, ip, text, image = null, audio = null, attachments = []) =>
+  db.transaction(async () => {
+    await rooms.read(user, user.room, true);
+    if (
+      typeof text !== "string" ||
+      (!text.trim() && !image && !audio && !attachments.length) ||
+      text.length > rules.length
+    )
+      fail(400);
 
-  await writable(user);
+    await writable(user);
 
-  const id = randomUUID();
-  const result = await db.run(
-    `
-      INSERT INTO chatting.message (id, uid, text, image, preview, audio, attachments)
-      SELECT ?, uid, ?, ?, ?, ?, ?
+    const id = randomUUID();
+    const result = await db.run(
+      `
+      INSERT INTO chatting.message (id, room, uid, text, image, preview, audio, attachments)
+      SELECT ?, ?, uid, ?, ?, ?, ?, ?
       FROM account.profile
       WHERE uid = ?
         AND NOT EXISTS (SELECT 1
@@ -369,33 +403,37 @@ export const save = async (user, ip, text, image = null, audio = null, attachmen
             OR kicked > to_char((CURRENT_TIMESTAMP AT TIME ZONE 'Asia/Seoul'),
             'YYYY-MM-DD HH24:MI:SS')))
     `,
-    [
-      id,
-      mentions.omit(text.trim(), user.id || ids.publicId(user.uid)),
-      image?.original || null,
-      image?.resizing || null,
-      audio,
-      attachments.length ? JSON.stringify(attachments) : null,
-      user.uid,
-      ip
-    ]
-  );
+      [
+        id,
+        user.room,
+        mentions.omit(text.trim(), user.id || ids.publicId(user.uid)),
+        image?.original || null,
+        image?.resizing || null,
+        audio,
+        attachments.length ? JSON.stringify(attachments) : null,
+        user.uid,
+        ip
+      ]
+    );
 
-  if (!result.changes) fail(403);
-  const row = await db.get(`${select} WHERE chatting.message.id = ?`, [id]);
+    if (!result.changes) fail(403);
+    const row = await db.get(`${select} WHERE chatting.message.id = ?`, [id]);
 
-  return message(row, user);
-};
+    return message(row, user);
+  });
 
 export const deliver = async (id, skip, relay = true) => {
   if (relay) await cluster.emit("chatting", { id, skip });
 
   await events.publish("chatting", async (client) => {
-    if (client.uid === skip) return null;
+    if (client.uid === skip || !client.room) return null;
     const user = await viewer(client.uid, client.ip, client.development);
     const row = await db.get(`${select} WHERE chatting.message.id = ? AND ${visible(user)}`, [id]);
 
-    return row ? message(row, user) : null;
+    if (!row || row.room !== client.room) return null;
+
+    await rooms.read(user, row.room);
+    return message(row, user);
   });
 
   // 저장 성공과 알림 성공은 별개입니다.
@@ -474,7 +512,9 @@ async function notify(id) {
 
       if (events.viewing(user.uid)) return;
 
-      await viewer(user.uid, user.ip);
+      const recipient = await viewer(user.uid, user.ip);
+
+      await rooms.read(recipient, row.room);
 
       const rows = await db.all(
         `
@@ -493,7 +533,7 @@ async function notify(id) {
         title:
           row.google && row.name ? row.name : anonymous.replace("{id}", row.public.slice(0, 8)),
         body: mentions.plain(row.text).slice(0, 180),
-        url: `/?message=${id}`,
+        url: `/rooms/${row.room}?message=${id}`,
         tag: `mention:${id}`
       });
     })
@@ -504,6 +544,9 @@ const removed = async (id, relay = true) => {
   if (relay) await cluster.emit("removed", { id });
   return events.publish("chatting-remove", async (client) => {
     const user = await viewer(client.uid, client.ip, client.development);
+    const room = await rooms.message(user, id);
+
+    if (client.room !== room.id) return null;
 
     if (user.role !== role.root) {
       return { id };
@@ -517,6 +560,8 @@ const removed = async (id, relay = true) => {
 
 export const restore = async (user, id) => {
   if (!rules.validId(id)) fail(400);
+
+  await rooms.message(user, id, user.room);
 
   if (user.role !== role.root) fail(403);
   const row = await db.transaction(async () => {
@@ -565,6 +610,8 @@ export const remove = async (viewer, id) => {
     fail(400);
   }
 
+  await rooms.message(viewer, id, viewer.room);
+
   const target = await db.get(
     `
       SELECT chatting.message.uid, chatting.message.deleted, account.profile.role
@@ -606,6 +653,9 @@ async function restored(id, relay = true) {
   if (relay) await cluster.emit("restored", { id });
   return events.publish("chatting-restore", async (client) => {
     const recipient = await viewer(client.uid, client.ip, client.development);
+    const room = await rooms.message(recipient, id);
+
+    if (client.room !== room.id) return null;
     const current = await db.get(
       `${select} WHERE chatting.message.id = ? AND ${visible(recipient)}`,
       [id]

@@ -1,5 +1,6 @@
 import * as storage from "#common/storage";
 import * as settings from "#common/settings";
+import * as context from "./chatting/current.js";
 import { events as path } from "../../../../lib/route.js";
 
 import * as dom from "./dom.js";
@@ -40,6 +41,7 @@ let timer;
 // 연결 교체 시에도 화면에서 등록한 이벤트 리스너는 유지합니다.
 const stream = new EventTarget();
 const types = [
+  "public-room",
   "direct",
   "direct-read",
   "direct-remove",
@@ -186,6 +188,8 @@ const connect = () => {
   disconnect();
 
   const query = new URLSearchParams({ ...(tab && { tab }), wearable: String(device().wearable) });
+
+  if (context.room) query.set("room", context.room);
   const current = new EventSource(`/api${path}?${query}`);
 
   source = current;
@@ -425,7 +429,7 @@ export default function events() {
       image: item.image,
       attachments: item.attachments,
       audio: item.audio,
-      url: `/?message=${encodeURIComponent(item.url)}`
+      url: `/rooms/${item.room}?message=${encodeURIComponent(item.url)}`
     });
   });
 

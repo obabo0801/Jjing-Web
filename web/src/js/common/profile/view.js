@@ -374,7 +374,7 @@ const content = (user, target, options, handlers) => {
   registered = devices(user.devices);
   root.append(registered);
 
-  const member = actions.member(user, options.room, handlers);
+  const member = actions.member(user, options.private ? options.room : "", handlers);
 
   root.append(member.root);
   protect();

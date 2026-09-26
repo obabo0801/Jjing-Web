@@ -1,4 +1,21 @@
 export default {
+  rooms: {
+    title: "공개 채팅방",
+    empty: "채팅방이 없습니다.",
+    error: "채팅방을 불러오지 못했습니다.",
+    active: "사용 중",
+    closed: "읽기 전용",
+    archived: "보관",
+    back: "채팅방 목록",
+    create: "방 만들기",
+    name: "방 이름",
+    info: "방 소개",
+    state: "상태",
+    save: "저장",
+    delete: "삭제",
+    confirm: "채팅방을 보관할까요?",
+    open: "입장"
+  },
   restore: {
     action: "복구",
     title: "이 메시지를 복구할까요?",

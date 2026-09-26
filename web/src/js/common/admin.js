@@ -15,6 +15,8 @@ import once from "#common/once";
 import avatar from "#common/avatar";
 import profile from "#common/profile/view";
 import reports from "#common/report/inbox";
+import * as rooms from "#common/chatting/room";
+import { chatting } from "#shared/route";
 import label from "#common/profile/label";
 import toolbar from "#common/toolbar";
 import format from "#common/format";
@@ -90,15 +92,12 @@ const states = [
 ];
 
 i18n.preload(
-  ...[
-    "connection",
-    "certificate",
-    "host",
-    "issuer",
-    "issued",
-    "expires",
-    "checked"
-  ].map((key) => `admin.${key}`),
+  ...["create", "name", "info", "state", "save", "delete", "confirm", "open"].map(
+    (key) => `rooms.${key}`
+  ),
+  ...["connection", "certificate", "host", "issuer", "issued", "expires", "checked"].map(
+    (key) => `admin.${key}`
+  ),
   ...states.map((key) => `admin.states.${key}`),
   ...["HTTPS", "TTS", "STT", "GOOGLE", "VAPID", "GIPHY"].map((key) => `admin.connections.${key}`),
   "menu.devices",
@@ -879,6 +878,121 @@ async function files(kind, folder = "") {
   }
 }
 
+async function roomlist() {
+  const root = node("div", "profile admin");
+
+  let closed = false;
+
+  async function load() {
+    const result = await api(`${chatting}/public?manage=1`);
+
+    if (closed) return;
+
+    if (!result.ok) return fail();
+
+    root.replaceChildren(
+      group(...result.data.items.map((room) => rooms.item(room, () => editor(room))))
+    );
+
+    mount(root);
+  }
+
+  async function editor(room = {}) {
+    const content = node("div", "profile");
+    const name = field("rooms.name");
+    const info = field("rooms.info", "textarea");
+    const choice = node("div", "select");
+    const state = node("select");
+
+    state.name = "state";
+    name.input.maxLength = 80;
+    name.input.required = true;
+    info.input.maxLength = 1000;
+    name.input.value = room.name || "";
+    info.input.value = room.info || "";
+    for (const value of ["active", "closed", "archived"]) {
+      const option = node("option", "", `rooms.${value}`);
+
+      option.value = value;
+      state.append(option);
+    }
+    state.value = room.state || "active";
+    choice.append(state);
+
+    const status = node("label", "label");
+
+    status.append(node("span", "label-key", "rooms.state"), choice);
+    content.append(group(name.root, info.root, status));
+    await dialog({
+      title: room.id ? "rooms.title" : "rooms.create",
+      content,
+      actions: [
+        { text: "dialog.cancel", icon: "close" },
+        ...(room.id
+          ? [
+              { text: "rooms.open", icon: "chat", run: () => location.assign(`/rooms/${room.id}`) },
+              {
+                text: "rooms.delete",
+                icon: "trash",
+                run: async () => {
+                  const confirmed = await dialog({
+                    title: "rooms.title",
+                    content: "rooms.confirm",
+                    actions: [
+                      { text: "dialog.cancel", icon: "close" },
+                      { text: "rooms.delete", icon: "trash", value: true, data: ["data-confirm"] }
+                    ]
+                  });
+
+                  if (!confirmed) return false;
+                  const result = await api(`${chatting}/public/${room.id}`, { method: "DELETE" });
+
+                  if (!result.ok) {
+                    fail();
+                    return false;
+                  }
+
+                  await load();
+                }
+              }
+            ]
+          : []),
+        {
+          text: "rooms.save",
+          icon: "check",
+          data: ["data-confirm"],
+          run: async () => {
+            if (!name.input.reportValidity()) return false;
+            const result = await api(`${chatting}/public${room.id ? `/${room.id}` : ""}`, {
+              method: room.id ? "PATCH" : "POST",
+              data: { name: name.input.value, info: info.input.value, state: state.value }
+            });
+
+            if (!result.ok) {
+              fail();
+              return false;
+            }
+
+            await load();
+          }
+        }
+      ]
+    });
+  }
+  try {
+    return await open("rooms.title", root, {
+      route: ["admin-section", "rooms"],
+      ready: load,
+      toolbar: toolbar([
+        { icon: "plus", text: "rooms.create", color: true, run: () => editor() },
+        { icon: "reload", text: "admin.refresh", color: true, run: load }
+      ])
+    });
+  } finally {
+    closed = true;
+  }
+}
+
 async function connection() {
   const root = node("div", "profile admin");
   const request = new AbortController();
@@ -953,6 +1067,7 @@ export default function admin(anchor) {
             "admin.operations",
             entry("admin.heading", "notify-ring", notify),
             entry("admin.users", "search", () => browse()),
+            entry("rooms.title", "chat", roomlist),
             response.data.database && entry("admin.connection", "link", connection)
           ),
           section(
@@ -999,6 +1114,8 @@ navigation.register(
     if (section === "users") return browse();
 
     if (section === "connection") return connection();
+
+    if (section === "rooms") return roomlist();
 
     if (section === "database") {
       const table = params.get("table");
